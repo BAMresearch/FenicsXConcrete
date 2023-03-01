@@ -1,0 +1,43 @@
+{% set name = "FenicsXConcrete" %}
+{% set version = "0.0.0" %}
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  url: https://github.com/BAMresearch/FenicsXConcrete/archive/refs/tags/{{ version }}.tar.gz
+
+build:
+  skip: True  # [win]
+  script: {{ PYTHON }} -m pip install . -vv
+  number: 0
+
+requirements:
+  host:
+    - python
+    - pip
+    - setuptools
+
+  run:
+    - python
+    - pint
+    - fenics-dolfinx
+
+test:
+  imports:
+    - fenicsxconcrete
+
+  source_files:
+    - tests/*
+
+  requires:
+    - pytest
+
+  commands:
+    - pytest tests
+about:
+  home: https://github.com/BAMresearch/FenicsXConcrete
+  license: MIT
+  license_family: MIT
+  summary: Computation for concrete structures using FEniCSX
