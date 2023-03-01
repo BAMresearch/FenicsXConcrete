@@ -8,3 +8,5 @@ dependencies:
   - python-gmsh
   - meshio
   - pip
+  - pip:
+      - -e .
