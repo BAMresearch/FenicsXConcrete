@@ -1,28 +1,23 @@
 import dolfinx as df
 import numpy as np
-from fenicsxconcrete.helpers import Parameters
+from fenicsxconcrete.helper import Parameters
+from abc import ABC, abstractmethod
 
 class Experiment:
     """Parent class for experimental setups"""
 
-    def __init__(self, parameters=None):
+    def __init__(self):
         """Initialises the parent object
 
         This is needs to be called by children
         Constant parameters are defined here
         """
-        # setup of parameter field
-        self.p = Parameters()
-        # constants
-        self.p['zero_C'] = 273.15  # to convert celsius to kelvin input to
-
-        self.p = self.p + parameters
-
         self.setup()
 
+    @abstractmethod
     def setup(self):
         """Is called by init, must be defined by child"""
-        raise NotImplementedError()
+        pass
 
     # define some common boundary conditions
     def boundary_full(self):

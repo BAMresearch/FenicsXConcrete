@@ -1,4 +1,5 @@
 import pint
+from collections import namedtuple
 
 
 class Parameters(dict):
@@ -24,3 +25,11 @@ class Parameters(dict):
         else:
             dic = Parameters({**self, **other})
         return dic
+
+    def to_magnitude(self):
+
+        magnitude_dictionary = {}
+        for key in self.keys():
+            magnitude_dictionary[key] = self[key].magnitude
+
+        return magnitude_dictionary

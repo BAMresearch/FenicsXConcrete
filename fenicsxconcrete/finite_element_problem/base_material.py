@@ -1,13 +1,14 @@
 import dolfinx as df
 #import sys
 #print(sys.path)
-from fenicsxconcrete.helpers import Parameters
+from fenicsxconcrete.helper import Parameters
 from fenicsxconcrete.sensor_definition.base_sensor import Sensors
 
 from loguru import logger
 import logging
 import sys
 
+from fenicsxconcrete.unit_registry import ureg
 import warnings
 
 
@@ -21,46 +22,46 @@ class MaterialProblem():
     def __init__(self, experiment, parameters=None, pv_name='pv_output_full'):
         self.experiment = experiment
         # setting up paramters
-        self.p = Parameters()
+        self.parameters = Parameters()
         # constants
         # TODO: where to put these?, what about units???
-        self.p['zero_C'] = 273.15
-        self.p['igc'] = 8.3145  # ideal gas constant [JK −1 mol −1 ]
+        self.parameters['igc'] = 8.3145 * ureg('') # ideal gas constant [JK −1 mol −1 ]
         #self.p['g'] = 9.81  # graviational acceleration in m/s²
         #self.p['rho'] = 1
 
         # other "globel" paramters...
-        self.p['log_level'] = 'INFO'
+        self.parameters['log_level'] = 'INFO' * ureg('')
 
-        self.p = self.p + self.experiment.p + parameters
+        self.parameters = self.parameters + self.experiment.parameters + parameters
+        self.p = self.parameters.to_magnitude()
 
         # set log level...
-        if self.p.log_level == 'NOTSET':
+        if self.p['log_level'] == 'NOTSET':
             df.log.LogLevel(0)
             logging.getLogger("FFC").setLevel(logging.NOTSET)
             logging.getLogger("UFL").setLevel(logging.NOTSET)
             logger.add(sys.stderr, level="NOTSET")
-        elif self.p.log_level == 'DEBUG':
+        elif self.p['log_level'] == 'DEBUG':
             df.log.LogLevel(10)
             logging.getLogger("FFC").setLevel(logging.DEBUG)
             logging.getLogger("UFL").setLevel(logging.DEBUG)
             logger.add(sys.stderr, level="DEBUG")
-        elif self.p.log_level == 'INFO':
+        elif self.p['log_level'] == 'INFO':
             df.log.LogLevel(20)
             logging.getLogger("FFC").setLevel(logging.INFO)
             logging.getLogger("UFL").setLevel(logging.INFO)
             logger.add(sys.stderr, level="INFO")
-        elif self.p.log_level == 'WARNING':
+        elif self.p['log_level'] == 'WARNING':
             df.log.LogLevel(30)
             logging.getLogger("FFC").setLevel(logging.WARNING)
             logging.getLogger("UFL").setLevel(logging.WARNING)
             logger.add(sys.stderr, level="WARNING")
-        elif self.p.log_level == 'ERROR':
+        elif self.p['log_level'] == 'ERROR':
             df.log.LogLevel(40)
             logging.getLogger("FFC").setLevel(logging.ERROR)
             logging.getLogger("UFL").setLevel(logging.ERROR)
             logger.add(sys.stderr, level="ERROR")
-        elif self.p.log_level == 'CRITICAL':
+        elif self.p['log_level'] == 'CRITICAL':
             df.log.LogLevel(50)
             logging.getLogger("FFC").setLevel(logging.CRITICAL)
             logging.getLogger("UFL").setLevel(logging.CRITICAL)

@@ -4,7 +4,7 @@ import dolfinx as df
 import ufl
 from petsc4py.PETSc import ScalarType
 from fenicsxconcrete.finite_element_problem.base_material import MaterialProblem
-from fenicsxconcrete.helpers import Parameters
+from fenicsxconcrete.helper import Parameters
 import numpy as np
 
 # this is necessary, otherwise this warning will not stop
@@ -13,6 +13,7 @@ import warnings
 #from ffc.quadrature.deprecation import QuadratureRepresentationDeprecationWarning
 #df.parameters["form_compiler"]["representation"] = "quadrature"
 #warnings.simplefilter("ignore", QuadratureRepresentationDeprecationWarning)
+from fenicsxconcrete.unit_registry import ureg
 
 
 class linear_elasticity(MaterialProblem):
@@ -40,19 +41,15 @@ class linear_elasticity(MaterialProblem):
     def setup(self):
         default_p = Parameters()
 
-        # parameters for mechanics problem
-        default_p['E'] = None  # Young's Modulus
-        default_p['nu'] = None  # Poisson's Ratio
-        default_p['mu'] = None
-        default_p['lmbda'] = None
-
-        self.p = default_p + self.p
+        self.parameters = default_p + self.parameters
           
         self.residual = None  # initialize residual
 
+
+        self.p = self.parameters.to_magnitude()
         # Constant E and nu fields.
-        E = self.p.E 
-        nu = self.p.nu 
+        E = self.p['E']
+        nu = self.p['nu']
 
         self.lambda_ = df.fem.Constant(self.experiment.mesh, E * nu / ((1.0 + nu) * (1.0 - 2.0 * nu)))
         self.mu = df.fem.Constant(self.experiment.mesh, E / (2.0 * (1.0 + nu)))
@@ -62,27 +59,30 @@ class linear_elasticity(MaterialProblem):
         self.v = ufl.TestFunction(self.experiment.V)
         
         # Selects the problem which you want to solve
-        if self.p.problem == 'tensile_test':
-            self.T = df.fem.Constant(self.experiment.mesh, ScalarType((self.p.load, 0)))
+        if self.p['problem'] == 'tensile_test':
+            self.T = df.fem.Constant(self.experiment.mesh, ScalarType((self.p['load'], 0)))
             ds = self.experiment.create_neumann_boundary()
             self.L =  ufl.dot(self.T, self.v) * ds(1) 
 
-        elif self.p.problem == 'cantilever_beam':
-            if self.p.dim == 2:
+        elif self.p['problem']== 'cantilever_beam':
+            if self.p['dim'] == 2:
                 #f = df.Constant((0, 0))
-                f = df.fem.Constant(self.experiment.mesh, ScalarType((0, -self.p.rho*self.p.g))) 
-            elif self.p.dim == 3:
+                f = df.fem.Constant(self.experiment.mesh, ScalarType((0, -self.p['rho']*self.p['g'])))
+            elif self.p['dim'] == 3:
                 #f = df.Constant((0, 0, 0))
-                f = df.fem.Constant(self.experiment.mesh, ScalarType((0, 0, -self.p.rho*self.p.g))) 
+                f = df.fem.Constant(self.experiment.mesh, ScalarType((0, 0, -self.p['rho']*self.p['g'])))
             else:
-                raise Exception(f'wrong dimension {self.p.dim} for problem setup')
+                raise Exception(f'wrong dimension {self.p["dim"]} for problem setup')
                 
             self.L =  ufl.dot(f, self.v) * ufl.dx
         else:
             exit()
 
         self.a = ufl.inner(self.sigma(self.u_trial), self.epsilon(self.v)) * ufl.dx
-        self.weak_form_problem = df.fem.petsc.LinearProblem(self.a, self.L, bcs=self.experiment.bcs, petsc_options={"ksp_type": "preonly", "pc_type": "lu"})
+        self.weak_form_problem = df.fem.petsc.LinearProblem(self.a,
+                                                            self.L,
+                                                            bcs=self.experiment.bcs,
+                                                            petsc_options={"ksp_type": "preonly", "pc_type": "lu"})
 
 
     # Stress computation for linear elastic problem 

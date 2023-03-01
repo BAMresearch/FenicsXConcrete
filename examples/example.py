@@ -1,17 +1,18 @@
 import os, sys
 parentdir = os.path.dirname(os.path.dirname(__file__))
 sys.path.append(parentdir)
-#print(parentdir)
+from fenicsxconcrete.unit_registry import ureg
 
 import numpy as np
-import fenicsxconcrete, math
+import fenicsxconcrete
+import math
 
 def simple_setup(p, sensor):
     parameters = fenicsxconcrete.Parameters()  # using the current default values
 
     #parameters['log_level'] = 'WARNING'
-    parameters['bc_setting'] = 'free'
-    parameters['mesh_density'] = 10
+    parameters['bc_setting'] = 'free' * ureg('')
+    parameters['mesh_density'] = 10 * ureg('')
 
     parameters = parameters + p
 
@@ -30,14 +31,14 @@ def simple_setup(p, sensor):
 
 
 p = fenicsxconcrete.Parameters()  # using the current default values
-p['problem'] = 'cantilever_beam' #'cantilever_beam' #
+p['problem'] = 'cantilever_beam' * ureg('') #'cantilever_beam' #
 
 # N/m², m, kg, sec, N
-p['rho'] = 7750
-p['g'] = 9.81
-p['E'] = 210e9
-p['length'] = 1
-p['breadth'] = 0.2
+p['rho'] = 7750 * ureg('kg/m^3')
+p['g'] = 9.81 * ureg('m/s^2')
+p['E'] = 210e9 * ureg('N/m^2')
+p['length'] = 1 * ureg('m')
+p['breadth'] = 0.2 * ureg('m')
 #p['load'] = 1000#-10e8
 
 # MPa, mm, kg, sec, N
@@ -48,21 +49,23 @@ p['breadth'] = 0.2
 #p['breadth'] = 200
 #p['load'] = 100e-6 #N/mm²
 
-p['nu'] = 0.28
-p['num_elements_length'] = 30
-p['num_elements_breadth'] = 20
-p['dim'] = 2
+p['nu'] = 0.28 * ureg('')
+p['num_elements_length'] = 30 * ureg('')
+p['num_elements_breadth'] = 20 * ureg('')
+p['dim'] = 2 * ureg('')
 #Defining sensor positions
 sensor = []
 sensor_pos_x = []
 number_of_sensors = 20
 for i in range(number_of_sensors):
-    sensor.append(fenicsxconcrete.displacement_sensor.DisplacementSensor(np.array([[p['length']/20*(i+1), 0.5*p['breadth'], 0]])))
-    sensor_pos_x.append(p['length']/20*(i+1))
+    sensor.append(fenicsxconcrete.displacement_sensor.DisplacementSensor(np.array([[p['length'].magnitude/20*(i+1),
+                                                                                    0.5*p['breadth'].magnitude,
+                                                                                    0]])))
+    sensor_pos_x.append(p['length'].magnitude/20*(i+1))
 
 # Synthetic data generation
 solution = simple_setup(p, sensor)
-number_of_sensors =20
+number_of_sensors = 20
 
 def collect_sensor_solutions(model_solution, total_sensors):
     counter=0
@@ -81,8 +84,8 @@ fig.update_layout(
     title_text='Vertical Displacement Curve'
 )
 fig.show() """
-
-import matplotlib.pyplot as plt
-#import numpy as np
-plt.plot(sensor_pos_x, displacement_data[:,1])
-plt.show()
+#
+# import matplotlib.pyplot as plt
+# #import numpy as np
+# plt.plot(sensor_pos_x, displacement_data[:,1])
+# plt.show()

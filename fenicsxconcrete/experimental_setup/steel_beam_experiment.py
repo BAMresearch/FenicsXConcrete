@@ -1,43 +1,54 @@
 from fenicsxconcrete.experimental_setup.base_experiment import Experiment
-from fenicsxconcrete.helpers import Parameters
+from fenicsxconcrete.helper import Parameters
 import dolfinx as df
 from mpi4py import MPI
 import numpy as np
 import ufl
 from petsc4py.PETSc import ScalarType
+from fenicsxconcrete.unit_registry import ureg
 
 class steel_beam(Experiment):
     def __init__(self, parameters=None):
         # initialize a set of "basic paramters" (for now...)
-        p = Parameters()
+        default_p = Parameters()
         # boundary values...
-        p['bc_setting'] = 'full'  # default boundary setting
-        p['degree'] = 1  # polynomial degree
+        default_p['bc_setting'] = 'full' * ureg('') # default boundary setting
+        default_p['degree'] = 1 * ureg('') # polynomial degree
         #p['dim'] = 2  # default boundary setting
-        p = p + parameters
-        super().__init__(p)
+        self.parameters = default_p + parameters
+
+        self.p = self.parameters.to_magnitude()
+        super().__init__()
 
     def setup(self, bc='full'):
         self.bc = bc  # different boundary settings
 
         # elements per spatial direction
-        if self.p.dim == 2:
+        if self.p['dim'] == 2:
             #self.mesh = df.UnitSquareMesh(n, n, self.p.mesh_setting)
             self.mesh = df.mesh.create_rectangle(comm=MPI.COMM_WORLD,
-                            points=((0.0, 0.0), (self.p.length, self.p.breadth)), n=(self.p.num_elements_length, self.p.num_elements_breadth),
-                            cell_type=df.mesh.CellType.quadrilateral)
-        elif self.p.dim == 3:
+                                                 points=[np.array([0.0, 0.0]),
+                                                         np.array([self.p['length'], self.p['breadth']])],
+                                                 n=[self.p['num_elements_length'],
+                                                    self.p['num_elements_breadth']],
+                                                 cell_type=df.mesh.CellType.quadrilateral)
+        elif self.p['dim'] == 3:
             #self.mesh = df.UnitCubeMesh(n, n, n)
             self.mesh = df.mesh.create_box(comm=MPI.COMM_WORLD,
-                            points=((0.0, 0.0), (self.p.length, self.p.breadth, self.p.height)), n=(self.p.num_elements_length, self.p.num_elements_breadth, self.p.num_elements_height),
-                            cell_type=df.mesh.CellType.hexahedron)
+                                           points=[(0.0, 0.0), (self.p['length'],
+                                                                self.p['breadth'],
+                                                                self.p['height'])],
+                                           n=[self.p['num_elements_length'],
+                                              self.p['num_elements_breadth'],
+                                              self.p['num_elements_height']],
+                                           cell_type=df.mesh.CellType.hexahedron)
         else:
-            print(f'wrong dimension {self.p.dim} for problem setup')
+            print(f'wrong dimension {self.p["dim"]} for problem setup')
             exit()
 
         # define function space ets.
-        self.V = df.fem.VectorFunctionSpace(self.mesh, ("Lagrange", self.p.degree)) # 2 for quadratic elements
-        self.V_scalar = df.fem.FunctionSpace(self.mesh, ("Lagrange", self.p.degree))
+        self.V = df.fem.VectorFunctionSpace(self.mesh, ("Lagrange", self.p['degree'])) # 2 for quadratic elements
+        self.V_scalar = df.fem.FunctionSpace(self.mesh, ("Lagrange", self.p['degree']))
 
         # boundary conditions only after function space
         self.bcs = self.create_displ_bcs(self.V)
@@ -49,14 +60,14 @@ class steel_beam(Experiment):
             return np.isclose(x[0], 0)
 
         displ_bcs = []
-        if self.p.dim == 2:
+        if self.p['dim'] == 2:
             #displ_bcs.append(df.fem.DirichletBC(V, df.Constant((0, 0)), self.boundary_left()))
             displ_bcs.append(df.fem.dirichletbc(np.array([0, 0], dtype=ScalarType), df.fem.locate_dofs_geometrical(V, clamped_boundary), V))
             #valbc = df.fem.Constant(self.mesh, ScalarType(0))
             #boundary_facets = df.mesh.locate_entities_boundary(self.mesh, self.p.dim -1, clamped_boundary)
             #displ_bcs.append(df.fem.dirichletbc(valbc, df.fem.locate_dofs_topological(V.sub(0), self.p.dim -1, boundary_facets), V.sub(0)))
             
-        elif self.p.dim == 3:
+        elif self.p['dim'] == 3:
             #displ_bcs.append(df.fem.DirichletBC(V, df.Constant((0, 0, 0)),  self.boundary_left()))
             displ_bcs.append(df.fem.dirichletbc(np.array([0, 0, 0], dtype=ScalarType), df.fem.locate_dofs_geometrical(V, clamped_boundary), V))
 
