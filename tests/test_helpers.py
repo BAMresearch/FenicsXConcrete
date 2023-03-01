@@ -1,4 +1,4 @@
-from fenicsxconcrete.helpers import Parameters
+from fenicsxconcrete.helper import Parameters
 from pint import UnitRegistry
 ureg = UnitRegistry()
 
