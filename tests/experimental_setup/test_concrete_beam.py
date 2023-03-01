@@ -1,7 +1,7 @@
 import numpy as np
-import fenicsxconcrete
+from fenicsxconcrete.experimental_setup.simple_beam import SimpleBeamExperiment
 import pytest
 
 def test_simple_beam():
     print('Testing')
-    setup = fenicsxconcrete.experimental_setup.simple_beam()
+    setup = SimpleBeamExperiment()
