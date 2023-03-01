@@ -1,4 +1,4 @@
-from fenicsxconcrete.experimental_setup.experiment import Experiment
+from fenicsxconcrete.experimental_setup.base_experiment import Experiment
 from fenicsxconcrete.helper import Parameters
 from mpi4py import MPI
 import dolfinx as df
