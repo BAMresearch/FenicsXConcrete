@@ -1,5 +1,4 @@
 import pint
-from collections import namedtuple
 
 
 class Parameters(dict):

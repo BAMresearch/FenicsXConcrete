@@ -4,3 +4,4 @@ from fenicsxconcrete.experimental_setup.steel_beam_experiment import steel_beam
 from fenicsxconcrete.finite_element_problem import base_material
 from fenicsxconcrete.finite_element_problem.linear_elastic_material import linear_elasticity
 from fenicsxconcrete.helper import Parameters
+from .helper import Parameters
