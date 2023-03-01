@@ -66,37 +66,37 @@ class SimpleBeamExperiment(Experiment):
     #
     #     return temp_bcs
 
-    # def create_displ_bcs(self,V):
-    #     if self.p.dim == 2:
-    #         dir_id = 1
-    #         fixed_bc = ufl.Constant((0, 0))
-    #     elif self.p.dim == 3:
-    #         dir_id = 2
-    #         fixed_bc = df.Constant((0, 0, 0))
-    #
-    #     # define surfaces, full, left, right, bottom, top, none
-    #     def left_support(x, on_boundary):
-    #         return df.near(x[0], 0) and df.near(x[dir_id], 0)
-    #     def right_support(x, on_boundary):
-    #         return df.near(x[0], self.p.length) and df.near(x[dir_id], 0)
-    #     def center_top(x, on_boundary):
-    #         return df.near(x[0], self.p.length/2) and df.near(x[dir_id], self.p.height)
-    #
-    #
-    #     # define displacement boundary
-    #     displ_bcs = []
-    #
-    #     displ_bcs.append(df.DirichletBC(V, fixed_bc, left_support, method='pointwise'))
-    #     displ_bcs.append(df.DirichletBC(V.sub(dir_id), df.Constant(0), right_support, method='pointwise'))
-    #     if self.p.dim == 3:
-    #         displ_bcs.append(df.DirichletBC(V.sub(1), df.Constant(0), right_support, method='pointwise'))
-    #
-    #     if self.p['bc_setting'] == 'full':  # not the best default or good name, but this will not break existing tests...
-    #         displ_bcs.append(df.DirichletBC(V.sub(dir_id), self.displ_load, center_top, method='pointwise'))
-    #     elif self.p['bc_setting'] == 'no_external_load':  # this will allow to add other loads without having to change this
-    #         pass #
-    #
-    #     return displ_bcs
+    def create_displ_bcs(self,V):
+        if self.p.dim == 2:
+            dir_id = 1
+            fixed_bc = ufl.Constant((0, 0))
+        elif self.p.dim == 3:
+            dir_id = 2
+            fixed_bc = df.Constant((0, 0, 0))
+
+        # define surfaces, full, left, right, bottom, top, none
+        def left_support(x, on_boundary):
+            return df.near(x[0], 0) and df.near(x[dir_id], 0)
+        def right_support(x, on_boundary):
+            return df.near(x[0], self.p.length) and df.near(x[dir_id], 0)
+        def center_top(x, on_boundary):
+            return df.near(x[0], self.p.length/2) and df.near(x[dir_id], self.p.height)
+
+
+        # define displacement boundary
+        displ_bcs = []
+
+        displ_bcs.append(df.DirichletBC(V, fixed_bc, left_support, method='pointwise'))
+        displ_bcs.append(df.DirichletBC(V.sub(dir_id), df.Constant(0), right_support, method='pointwise'))
+        if self.p.dim == 3:
+            displ_bcs.append(df.DirichletBC(V.sub(1), df.Constant(0), right_support, method='pointwise'))
+
+        if self.p['bc_setting'] == 'full':  # not the best default or good name, but this will not break existing tests...
+            displ_bcs.append(df.DirichletBC(V.sub(dir_id), self.displ_load, center_top, method='pointwise'))
+        elif self.p['bc_setting'] == 'no_external_load':  # this will allow to add other loads without having to change this
+            pass #
+
+        return displ_bcs
     #
     #
     # def apply_displ_load(self, displacement_load):

@@ -15,4 +15,6 @@ def test_simple_beam(dim):
     p['dim'] = dim * ureg('')
 
     setup = SimpleBeamExperiment()
+
+
     print(dim, setup.mesh)

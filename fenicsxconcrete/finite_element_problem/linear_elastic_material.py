@@ -123,4 +123,6 @@ class linear_elasticity(MaterialProblem):
         #    xdmf.write_mesh(self.experiment.mesh.comm)
         #    xdmf.write_function(self.stress)
 
+    def crea
+
 
