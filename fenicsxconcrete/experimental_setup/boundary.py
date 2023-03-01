@@ -2,7 +2,6 @@
 helpers to define boundaries"""
 
 import numpy as np
-from fenicsxconcrete.experimental_setup.common import to_floats
 
 """Design
 
@@ -117,3 +116,13 @@ def show_marked(domain, marker):
     xx, yy = marked.T
     plt.scatter(xx, yy, facecolors="r", edgecolors="none", marker="o")
     plt.show()
+
+def to_floats(values):
+    floats = []
+    try:
+        for v in values:
+            floats.append(float(v))
+    except TypeError as e:
+        floats = [float(values)]
+
+    return floats
