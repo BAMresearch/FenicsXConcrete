@@ -25,12 +25,10 @@ class steel_beam(Experiment):
 
         # elements per spatial direction
         if self.p['dim'] == 2:
-            #self.mesh = df.UnitSquareMesh(n, n, self.p.mesh_setting)
+            # self.mesh = df.UnitSquareMesh(n, n, self.p.mesh_setting)
             self.mesh = df.mesh.create_rectangle(comm=MPI.COMM_WORLD,
-                                                 points=[np.array([0.0, 0.0]),
-                                                         np.array([self.p['length'], self.p['breadth']])],
-                                                 n=[self.p['num_elements_length'],
-                                                    self.p['num_elements_breadth']],
+                                                 points=((0.0, 0.0), (self.p['length'], self.p['breadth'])),
+                                                 n=(self.p['num_elements_length'], self.p['num_elements_breadth']),
                                                  cell_type=df.mesh.CellType.quadrilateral)
         elif self.p['dim'] == 3:
             #self.mesh = df.UnitCubeMesh(n, n, n)
