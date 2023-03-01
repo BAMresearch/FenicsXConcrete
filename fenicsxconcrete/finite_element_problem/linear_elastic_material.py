@@ -92,7 +92,7 @@ class linear_elasticity(MaterialProblem):
 
     #Deterministic
     def sigma(self, u):
-        return self.lambda_ * ufl.nabla_div(u) * ufl.Identity(u.geometric_dimension()) + 2*self.mu*self.epsilon(u)
+        return self.lambda_ * ufl.nabla_div(u) * ufl.Identity(self.p['dim']) + 2*self.mu*self.epsilon(u)
 
     def solve(self, t=1.0):        
         self.displacement = self.weak_form_problem.solve()

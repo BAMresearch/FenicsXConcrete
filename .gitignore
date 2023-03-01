@@ -129,3 +129,6 @@ dmypy.json
 
 # sphinx website build
 .build
+
+*.h5
+*.xdmf
