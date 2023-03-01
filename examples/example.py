@@ -1,14 +1,16 @@
 import os, sys
 parentdir = os.path.dirname(os.path.dirname(__file__))
 sys.path.append(parentdir)
+from fenicsxconcrete.sensor_definition import displacement_sensor
+from fenicsxconcrete.experimental_setup.steel_beam_experiment import steel_beam
+from fenicsxconcrete.finite_element_problem.linear_elastic_material import linear_elasticity
+from fenicsxconcrete.helper import Parameters
 from fenicsxconcrete.unit_registry import ureg
 
 import numpy as np
-import fenicsxconcrete
-import math
 
 def simple_setup(p, sensor):
-    parameters = fenicsxconcrete.Parameters()  # using the current default values
+    parameters = Parameters()  # using the current default values
 
     #parameters['log_level'] = 'WARNING'
     parameters['bc_setting'] = 'free' * ureg('')
@@ -16,9 +18,9 @@ def simple_setup(p, sensor):
 
     parameters = parameters + p
 
-    experiment = fenicsxconcrete.steel_beam(parameters)         # Specifies the domain, discretises it and apply Dirichlet BCs
+    experiment = steel_beam(parameters)         # Specifies the domain, discretises it and apply Dirichlet BCs
 
-    problem = fenicsxconcrete.linear_elasticity(experiment, parameters)      # Specifies the material law and weak forms.
+    problem = linear_elasticity(experiment, parameters)      # Specifies the material law and weak forms.
 
     for i in range(len(sensor)):
         problem.add_sensor(sensor[i])
@@ -30,7 +32,7 @@ def simple_setup(p, sensor):
     return problem.sensors
 
 
-p = fenicsxconcrete.Parameters()  # using the current default values
+p = Parameters()  # using the current default values
 p['problem'] = 'cantilever_beam' * ureg('') #'cantilever_beam' #
 
 # N/m², m, kg, sec, N
@@ -58,7 +60,7 @@ sensor = []
 sensor_pos_x = []
 number_of_sensors = 20
 for i in range(number_of_sensors):
-    sensor.append(fenicsxconcrete.displacement_sensor.DisplacementSensor(np.array([[p['length'].magnitude/20*(i+1),
+    sensor.append(displacement_sensor.DisplacementSensor(np.array([[p['length'].magnitude/20*(i+1),
                                                                                     0.5*p['breadth'].magnitude,
                                                                                     0]])))
     sensor_pos_x.append(p['length'].magnitude/20*(i+1))
