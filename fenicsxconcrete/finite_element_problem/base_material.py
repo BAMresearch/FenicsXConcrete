@@ -8,7 +8,7 @@ from fenicsxconcrete.helper import Parameters
 from fenicsxconcrete.sensor_definition.base_sensor import Sensors
 
 class MaterialProblem():
-    def __init__(self, experiment, parameters=None, pv_name='pv_output_full', pv_path=None):
+    def __init__(self, experiment, parameters, pv_name='pv_output_full', pv_path=None):
         """"base material problem
 
         Parameters
@@ -25,9 +25,9 @@ class MaterialProblem():
         self.experiment = experiment
         self.mesh = self.experiment.mesh
         # setting up paramters
-        self.parameters = Parameters()
         # adding experimental parameters to material parameters
-        self.parameters = self.parameters + self.experiment.parameters + parameters
+        parameters.update(self.experiment.parameters)
+        self.parameters = parameters
         # remove units for use in fem model
         self.p = self.parameters.to_magnitude()
 

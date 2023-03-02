@@ -8,12 +8,15 @@ from petsc4py.PETSc import ScalarType
 from fenicsxconcrete.unit_registry import ureg
 
 class TensileBeam(Experiment):
-    def __init__(self, parameters=None):
+    def __init__(self, parameters):
         # initialize a set of "basic paramters" (for now...)
         default_p = Parameters()
         default_p['degree'] = 2 * ureg('')  # polynomial degree
 
-        super().__init__(default_p + parameters)
+        # updating parameters, overriding defaults
+        default_p.update(parameters)
+
+        super().__init__(default_p)
 
     def setup(self):
 
