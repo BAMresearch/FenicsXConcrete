@@ -35,7 +35,7 @@ def test_linear_tensile_beam_2d(dimension):
     setup_parameters['num_elements_length'] = 10 * ureg('')
     setup_parameters['num_elements_height'] = 3 * ureg('')
     setup_parameters['num_elements_width'] = 3 * ureg('')  # only relevant for 3D case
-    setup_parameters['load'] = 2 * ureg('kN')
+    setup_parameters['load'] = 200 * ureg('kN')
     setup_parameters['g'] = 0 * ureg('m/s^2')
 
 
