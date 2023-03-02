@@ -4,8 +4,10 @@ import pytest
 from fenicsxconcrete.helper import Parameters
 from fenicsxconcrete.unit_registry import ureg
 
+
 @pytest.mark.parametrize("dim", [2, 3])
 def test_simple_beam(dim):
+    # TODO: this simple beam is still a work in progress and will be dealt with in a separate issue
     print('Testing')
 
     p = Parameters()

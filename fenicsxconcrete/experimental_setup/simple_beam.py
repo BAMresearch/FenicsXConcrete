@@ -7,6 +7,7 @@ import numpy as np
 from fenicsxconcrete.unit_registry import ureg
 
 class SimpleBeamExperiment(Experiment):
+    # TODO: this simple beam is still a work in progress and will be dealt with in a separate issue
     def __init__(self, parameters = None):
 
         p = Parameters()
