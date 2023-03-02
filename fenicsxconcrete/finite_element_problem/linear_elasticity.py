@@ -41,19 +41,18 @@ class LinearElasticity(MaterialProblem):
         if ds:
             self.T = df.fem.Constant(self.mesh, ScalarType((self.p['load'], 0)))
             self.L =  ufl.dot(self.T, self.v) * ds(1)
-
-
-        # applying the gravitational force
-        if self.p['dim'] == 2:
-            #f = df.Constant((0, 0))
-            f = df.fem.Constant(self.mesh, ScalarType((0, -self.p['rho']*self.p['g'])))
-        elif self.p['dim'] == 3:
-            #f = df.Constant((0, 0, 0))
-            f = df.fem.Constant(self.mesh, ScalarType((0, 0, -self.p['rho']*self.p['g'])))
         else:
-            raise Exception(f'wrong dimension {self.p["dim"]} for problem setup')
-                
-        self.L =  ufl.dot(f, self.v) * ufl.dx
+            # applying the gravitational force
+            if self.p['dim'] == 2:
+                #f = df.Constant((0, 0))
+                f = df.fem.Constant(self.mesh, ScalarType((0, -self.p['rho']*self.p['g'])))
+            elif self.p['dim'] == 3:
+                #f = df.Constant((0, 0, 0))
+                f = df.fem.Constant(self.mesh, ScalarType((0, 0, -self.p['rho']*self.p['g'])))
+            else:
+                raise Exception(f'wrong dimension {self.p["dim"]} for problem setup')
+
+            self.L =  ufl.dot(f, self.v) * ufl.dx
 
 
 
