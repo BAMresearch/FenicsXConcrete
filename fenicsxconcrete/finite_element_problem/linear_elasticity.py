@@ -9,14 +9,17 @@ from fenicsxconcrete.finite_element_problem.base_material import MaterialProblem
 class LinearElasticity(MaterialProblem):
     """Material definition for linear elasticity"""
 
-    def __init__(self, experiment=None, parameters=None, pv_name='pv_output_linear_elasticity', pv_path=None):
+    def __init__(self, experiment, parameters, pv_name='pv_output_linear_elasticity', pv_path=None):
         """defines default parameters, for the rest, see base class"""
 
         # adding default material parameter, will be overridden by outside input
         default_p = Parameters()
-        default_p['load'] = 0 * ureg('N')  # TODO: remove this for the default force function...
+        default_p['dummy'] = 42 * ureg('')   # just an example, maybe useful for other material classes?
 
-        super().__init__(experiment, default_p + parameters, pv_name, pv_path)
+        # updating parameters, overriding defaults
+        default_p.update(parameters)
+
+        super().__init__(experiment, default_p, pv_name, pv_path)
 
     def setup(self):
         # compute different set of elastic moduli
@@ -33,11 +36,11 @@ class LinearElasticity(MaterialProblem):
         self.v = ufl.TestFunction(self.V)
 
         # apply external loads (neumann boundary)
-        # ds = self.experiment.create_force_boundary()
-        # # TODO: is this the most elegant way?
-        # if ds:
-        #     self.T = df.fem.Constant(self.mesh, ScalarType((self.p['load'], 0)))
-        #     self.L =  ufl.dot(self.T, self.v) * ds(1)
+        ds = self.experiment.create_force_boundary()
+        # TODO: is this the most elegant way?
+        if ds:
+            self.T = df.fem.Constant(self.mesh, ScalarType((self.p['load'], 0)))
+            self.L =  ufl.dot(self.T, self.v) * ds(1)
 
 
         # applying the gravitational force

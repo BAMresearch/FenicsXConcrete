@@ -14,14 +14,18 @@ class CantileverBeam(Experiment):
         see base class
     """
 
-    def __init__(self, parameters=None):
+    def __init__(self, parameters):
         """defines default parameters, for the rest, see base class"""
 
         # initialize default parameters for the setup
         default_p = Parameters()
         default_p['degree'] = 2 * ureg('')  # polynomial degree
+        default_p['load'] = 0 * ureg('N')  # TODO: find a better way
 
-        super().__init__(default_p + parameters)
+        # updating parameters, overriding defaults
+        default_p.update(parameters)
+
+        super().__init__(default_p)
 
     def setup(self):
         """defines the mesh for 2D or 3D"""

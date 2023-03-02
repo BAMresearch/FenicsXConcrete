@@ -13,7 +13,7 @@ class Experiment:
 
     """
 
-    def __init__(self, parameters=None):
+    def __init__(self, parameters):
         """Initialises the parent object
 
         This is needs to be called by children
