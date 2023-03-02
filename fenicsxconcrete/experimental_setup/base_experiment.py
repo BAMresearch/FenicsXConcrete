@@ -3,15 +3,21 @@ import numpy as np
 from fenicsxconcrete.helper import Parameters
 from abc import ABC, abstractmethod
 
+
 class Experiment:
     """Parent class for experimental setups"""
 
-    def __init__(self):
+    def __init__(self, parameters=None):
         """Initialises the parent object
 
         This is needs to be called by children
         Constant parameters are defined here
         """
+
+        # initialize parameter attributes
+        self.parameters = parameters
+        self.p = self.parameters.to_magnitude()
+
         self.setup()
 
     @abstractmethod
@@ -157,3 +163,16 @@ class Experiment:
             raise Exception('Dimension not defined')
 
         return bc
+
+    def create_displacement_boundary(self, V):
+        # define empty displacement boundary
+        displ_bcs = []
+
+        return displ_bcs
+
+    def create_force_boundary(self):
+        # define empty force boundary
+
+        # TODO: is there a better solution???
+
+        return None

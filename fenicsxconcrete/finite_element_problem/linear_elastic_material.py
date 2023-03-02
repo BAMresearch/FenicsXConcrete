@@ -1,11 +1,8 @@
-#import sys
-#print(sys.path)
 import dolfinx as df
 import ufl
 from petsc4py.PETSc import ScalarType
 from fenicsxconcrete.finite_element_problem.base_material import MaterialProblem
 from fenicsxconcrete.helper import Parameters
-import numpy as np
 
 # this is necessary, otherwise this warning will not stop
 # https://fenics.readthedocs.io/projects/ffc/en/latest/_modules/ffc/quadrature/deprecation.html
@@ -84,31 +81,21 @@ class linear_elasticity(MaterialProblem):
                                                             bcs=self.experiment.bcs,
                                                             petsc_options={"ksp_type": "preonly", "pc_type": "lu"})
 
-
     # Stress computation for linear elastic problem 
     def epsilon(self, u):
         return ufl.sym(ufl.grad(u)) 
 
-
     #Deterministic
     def sigma(self, u):
-        return self.lambda_ * ufl.nabla_div(u) * ufl.Identity(self.p['dim']) + 2*self.mu*self.epsilon(u)
+        return self.lambda_ * ufl.nabla_div(u) * ufl.Identity(self.p['dim']) + 2 * self.mu * self.epsilon(u)
 
     def solve(self, t=1.0):        
         self.displacement = self.weak_form_problem.solve()
-        #self.stress = self.sigma(self.displacement)
-
-        # TODO make some switch in sensor definition to trigger this...
-        #self.compute_residual()
 
         # get sensor data
         for sensor_name in self.sensors:
             # go through all sensors and measure
             self.sensors[sensor_name].measure(self, t)
-            
-    #def compute_residual(self):
-    #    # compute reaction forces
-    #    self.residual = df.action(self.a, self.displacement) - self.L
 
     def pv_plot(self, t=0):
         # paraview output
