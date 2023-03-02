@@ -8,22 +8,11 @@ from fenicsxconcrete.finite_element_problem.base_material import MaterialProblem
 
 class LinearElasticity(MaterialProblem):
     """Material definition for linear elasticity"""
+
     def __init__(self, experiment=None, parameters=None, pv_name='pv_output_linear_elasticity', pv_path=None):
-        """Initializes the object by calling super().__init__
+        """defines default parameters, for the rest, see base class"""
 
-        Parameters
-        ----------
-            experiment : object, optional
-                When no experiment is passed, the dummy experiment "MinimalCubeExperiment" is added
-            parameters : dictionary, optional
-                Dictionary with parameters. When none is provided, default values are used
-            pv_name : string, optional
-                Name of the paraview file, if paraview output is generated
-        """
-        # TODO: question, where do I define the input for init if parent is the same?
-
-        # adding default material parameter
-        # will be overridden by outside input
+        # adding default material parameter, will be overridden by outside input
         default_p = Parameters()
         default_p['load'] = 0 * ureg('N')  # TODO: remove this for the default force function...
 

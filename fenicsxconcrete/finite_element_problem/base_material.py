@@ -1,36 +1,25 @@
 import dolfinx as df
 from pathlib import Path
+import sys
+from loguru import logger
+import logging
 
 from fenicsxconcrete.helper import Parameters
 from fenicsxconcrete.sensor_definition.base_sensor import Sensors
 
-from loguru import logger
-import logging
-import sys
-
-from fenicsxconcrete.unit_registry import ureg
-import warnings
-
-
-""" from ffc.quadrature.deprecation import QuadratureRepresentationDeprecationWarning
-
-df.parameters["form_compiler"]["representation"] = "quadrature"
-warnings.simplefilter("ignore", QuadratureRepresentationDeprecationWarning)
- """
-
 class MaterialProblem():
     def __init__(self, experiment, parameters=None, pv_name='pv_output_full', pv_path=None):
-
-        """"Initializes the object by calling super().__init__
+        """"base material problem
 
         Parameters
         ----------
-            experiment : object, optional
-                When no experiment is passed, the dummy experiment "MinimalCubeExperiment" is added
+            experiment : object
             parameters : dictionary, optional
                 Dictionary with parameters. When none is provided, default values are used
             pv_name : string, optional
                 Name of the paraview file, if paraview output is generated
+            pv_path : string, optional
+                Name of the paraview path, if paraview output is generated
         """
 
         self.experiment = experiment
