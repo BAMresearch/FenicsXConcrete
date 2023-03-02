@@ -48,8 +48,7 @@ class concreteSlabExperiment(Experiment):
     def create_displ_bcs(self, V):
         # define displacement boundary
 
-        def clamped_boundary(
-                x):  # fenics will individually call this function for every node and will note the true or false value.
+        def clamped_boundary(x):  # fenics will individually call this function for every node and will note the true or false value.
             return np.isclose(x[0], 0)
 
         displ_bcs = []
