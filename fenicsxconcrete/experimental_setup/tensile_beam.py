@@ -62,7 +62,7 @@ class TensileBeam(Experiment):
 
         return displ_bcs
 
-    def create_force_boundary(self):
+    def create_force_boundary(self,v):
         boundaries = [(1, lambda x: np.isclose(x[0], self.p['length'])),
         (2, lambda x: np.isclose(x[0], 0))]
 
@@ -84,4 +84,14 @@ class TensileBeam(Experiment):
         #    xdmf.write_meshtags(facet_tag)
 
         _ds = ufl.Measure("ds", domain=self.mesh, subdomain_data=facet_tag)
-        return _ds
+
+        if self.p['dim'] == 2:
+            T = df.fem.Constant(self.mesh, ScalarType((self.p['load'], 0)))
+            L = ufl.dot(T, v) * _ds(1)
+        elif self.p['dim'] == 3:
+            T = df.fem.Constant(self.mesh, ScalarType((self.p['load'],0, 0)))
+            L = ufl.dot(T, v) * _ds(1)
+        else:
+            raise Exception(f'wrong dimension {self.p["dim"]} for problem setup')
+
+        return L

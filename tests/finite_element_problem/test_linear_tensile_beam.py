@@ -9,9 +9,9 @@ from fenicsxconcrete.finite_element_problem.linear_elasticity import LinearElast
 from fenicsxconcrete.sensor_definition.displacement_sensor import DisplacementSensor
 
 
-@pytest.mark.parametrize("dimension", [[2, [-1.10366991e-06, -6.02823499e-06]]])
-                 #                      [3, [-1.18487757e-06,  3.58357285e-10, -6.42126235e-06]]])
-def test_linear_tensile_beam_2d(dimension):
+@pytest.mark.parametrize("dimension", [[2, [8.71973440e-06, 5.12000403e-07]],
+                                       [3, [9.44327797e-06, 4.00000088e-07, 4.00000088e-07]]])
+def test_linear_tensile_beam(dimension):
     dim = dimension[0]
     result = dimension[1]
 
@@ -35,9 +35,7 @@ def test_linear_tensile_beam_2d(dimension):
     setup_parameters['num_elements_length'] = 10 * ureg('')
     setup_parameters['num_elements_height'] = 3 * ureg('')
     setup_parameters['num_elements_width'] = 3 * ureg('')  # only relevant for 3D case
-    setup_parameters['load'] = 200 * ureg('kN')
-    setup_parameters['g'] = 0 * ureg('m/s^2')
-
+    setup_parameters['load'] = 2000 * ureg('kN')
 
     fem_parameters = Parameters()
     fem_parameters['rho'] = 7750 * ureg('kg/m^3')
