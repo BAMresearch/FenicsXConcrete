@@ -2,7 +2,7 @@
 
 import dolfinx
 from mpi4py import MPI
-from fenicsxconcrete.experimental_setup.bcs import BoundaryConditions
+from fenicsxconcrete.boundary_conditions.bcs import BoundaryConditions
 
 
 def test():
