@@ -4,10 +4,20 @@ import dolfinx
 import ufl
 import numpy as np
 from petsc4py import PETSc
+from typing import Union
 
 
-def get_boundary_dofs(V, marker):
-    """get dofs on the boundary"""
+def get_boundary_dofs(V:dolfinx.fem.FunctionSpace, marker : callable) -> np.ndarray:
+    """
+    Get dofs on the boundary
+
+    Args:
+        V: The function space.
+        marker: A callable object that returns a boolean array, e.g. `lambda x : np.isclose(x[0],0.)`
+    
+    Returns:
+        The degrees of freedom as a numpy array
+    """
     domain = V.mesh
     gdim = domain.geometry.dim
     tdim = domain.topology.dim
@@ -20,20 +30,23 @@ def get_boundary_dofs(V, marker):
 
 # adapted version of MechanicsBCs by Thomas Titscher
 class BoundaryConditions:
-    """Handles dirichlet and neumann boundary conditions
+    """
+    Handles dirichlet and neumann boundary conditions
 
-    Parameters
-    ----------
-    domain : dolfinx.mesh.Mesh
-        Computational domain of the problem.
-    space : dolfinx.fem.FunctionSpace
-        Finite element space defined on the domain.
-    facet_markers : optional, dolfinx.mesh.MeshTags
-        The mesh tags defining boundaries.
+    Args:
+        domain: The mesh.
+        space: The function space.
+        facet_markers: Marker of the subdomain of the BC.
 
+    Attributes:
+        domain: Computational domain of the problem.
+        V: Finite element space defined on the domain.
     """
 
-    def __init__(self, domain, space, facet_markers=None):
+    #domain: dolfinx.mesh.Mesh
+    #V: dolfinx.fem.FunctionSpace
+
+    def __init__(self, domain:dolfinx.mesh.Mesh, space:dolfinx.fem.FunctionSpace, facet_markers=None):
         self.domain = domain
         self.V = space
 
@@ -52,26 +65,26 @@ class BoundaryConditions:
         self._v = ufl.TestFunction(space)
 
     def add_dirichlet_bc(
-        self, value, boundary=None, sub=None, method="topological", entity_dim=None
+        self, value:dolfinx.fem.Function, boundary:np.ndarray=None, sub:int=None, method:str="topological", entity_dim:int=None
     ):
-        """add a Dirichlet BC
-
-        Parameters
-        ----------
-        value : Function, Constant or np.ndarray or DirichletBCMetaClass
-            The Dirichlet function or boundary condition.
-        boundary : optional, callable or np.ndarray or int
-            The part of the boundary whose dofs should be constrained.
-            This can be a callable defining the boundary geometrically or
-            an array of entity tags or an integer marking the boundary if
-            `facet_tags` is not None.
-        sub : optional, int
-            If `sub` is not None the subspace `V.sub(sub)` will be constrained.
-        method : optional, str
-            A hint which method should be used to locate the dofs.
-            Choice: 'topological' or 'geometrical'.
-        entity_dim : optional, int
-            The entity dimension in case `method=topological`.
+        """
+        add a Dirichlet BC
+        
+        Args:
+            value: Function, Constant or np.ndarray or DirichletBCMetaClass
+                The Dirichlet function or boundary condition.
+            boundary: optional, callable or np.ndarray or int
+                The part of the boundary whose dofs should be constrained.
+                This can be a callable defining the boundary geometrically or
+                an array of entity tags or an integer marking the boundary if
+                `facet_tags` is not None.
+            sub: optional, int 
+                If `sub` is not None the subspace `V.sub(sub)` will be constrained.
+            method: optional, str
+                A hint which method should be used to locate the dofs.
+                Choice: 'topological' or 'geometrical'.
+            entity_dim: optional, int
+                The entity dimension in case `method=topological`.
         """
         if boundary is None:
             assert isinstance(value, dolfinx.fem.DirichletBCMetaClass)
@@ -113,14 +126,12 @@ class BoundaryConditions:
                     bc = dolfinx.fem.dirichletbc(f, dofs)
             self._bcs.append(bc)
 
-    def add_neumann_bc(self, marker, value):
+    def add_neumann_bc(self, marker : int, value:ufl.form.Form):
         """adds a Neumann BC.
 
-        Parameters
-        ----------
-        marker : int
-        value : some ufl type
-            The neumann data, e.g. traction vector.
+        Args:
+            marker : Index of the domain.
+            value : Some ufl type. The neumann data, e.g. traction vector.
 
         """
         if isinstance(marker, int):
@@ -129,11 +140,11 @@ class BoundaryConditions:
         self._neumann_bcs.append([value, marker])
 
     @property
-    def has_neumann(self):
+    def has_neumann(self)->bool:
         return len(self._neumann_bcs) > 0
 
     @property
-    def has_dirichlet(self):
+    def has_dirichlet(self)->bool:
         return len(self._bcs) > 0
 
     @property
@@ -141,15 +152,21 @@ class BoundaryConditions:
         """returns list of dirichlet bcs"""
         return self._bcs
 
-    def clear(self, dirichlet=True, neumann=True):
-        """clear list of boundary conditions"""
+    def clear(self, dirichlet:bool=True, neumann:bool=True):
+        """
+        Clear list of boundary conditions
+        
+        Args:
+            dirichlet: If True, delete all dirichlet BCs
+            neumann: If True, delete all Neumann BCs
+        """
         if dirichlet:
             self._bcs.clear()
         if neumann:
             self._neumann_bcs.clear()
 
     @property
-    def neumann_bcs(self):
+    def neumann_bcs(self)->ufl.form.Form:
         """returns ufl form of (sum of) neumann bcs"""
         r = 0
         for expression, marker in self._neumann_bcs:
@@ -157,25 +174,21 @@ class BoundaryConditions:
         return r
 
 
-def apply_bcs(lhs, rhs, bc_indices, bc_values):
+def apply_bcs(lhs:np.ndarray, rhs:np.ndarray, bc_indices:Union[list, np.ndarray], bc_values:Union[list, np.ndarray]):
     """
     Applies dirichlet bcs (in-place) using the algorithm described here
     http://www.math.colostate.edu/~bangerth/videos/676/slides.21.65.pdf
 
-    Parameters
-    ----------
-    lhs
-        The left hand side of the system.
-    rhs
-        The right hand side of the system.
-    bc_indices
-        DOF indices where bcs should be applied.
-    bc_values
-        The boundary data.
+    Args:
+        lhs:
+            The left hand side of the system.
+        rhs:
+            The right hand side of the system.
+        bc_indices:
+            DOF indices where bcs should be applied.
+        bc_values:
+            The boundary data.
 
-    Returns
-    -------
-    None
     """
     assert isinstance(lhs, np.ndarray)
     assert isinstance(rhs, np.ndarray)
