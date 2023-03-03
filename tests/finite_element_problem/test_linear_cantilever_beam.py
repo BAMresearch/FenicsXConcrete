@@ -11,7 +11,7 @@ from fenicsxconcrete.sensor_definition.displacement_sensor import DisplacementSe
 
 @pytest.mark.parametrize("dimension", [[2, [-1.10366991e-06, -6.02823499e-06]],
                                        [3, [-1.18487757e-06,  3.58357285e-10, -6.42126235e-06]]])
-def test_linear_cantilever_beam_2d(dimension):
+def test_linear_cantilever_beam(dimension):
     dim = dimension[0]
     result = dimension[1]
 

@@ -37,9 +37,14 @@ class Experiment:
 
         return displ_bcs
 
-    def create_force_boundary(self):
+    def create_force_boundary(self, v):
         # define empty force boundary
+        # TODO: is there a better solution???
 
+        return None
+
+    def create_body_force(self, v):
+        # define empty body force function
         # TODO: is there a better solution???
 
         return None

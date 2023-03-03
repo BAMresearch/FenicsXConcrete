@@ -69,3 +69,12 @@ class CantileverBeam(Experiment):
                                     V))
 
         return displacement_bcs
+
+    def create_body_force(self, v):
+        force_vector = np.zeros(self.p['dim'])
+        force_vector[-1] = -self.p['rho']*self.p['g']  # works for 2D and 3D
+
+        f = df.fem.Constant(self.mesh, ScalarType(force_vector))
+        L = ufl.dot(f, v) * ufl.dx
+
+        return L

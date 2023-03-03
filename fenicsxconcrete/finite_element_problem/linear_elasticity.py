@@ -1,4 +1,5 @@
 import dolfinx as df
+import numpy as np
 import ufl
 from petsc4py.PETSc import ScalarType
 from fenicsxconcrete.helper import Parameters
@@ -35,26 +36,18 @@ class LinearElasticity(MaterialProblem):
         self.u_trial = ufl.TrialFunction(self.V)
         self.v = ufl.TestFunction(self.V)
 
-        # apply external loads (neumann boundary)
-        ds = self.experiment.create_force_boundary()
-        # TODO: is this the most elegant way?
-        if ds:
-            self.T = df.fem.Constant(self.mesh, ScalarType((self.p['load'], 0)))
-            self.L =  ufl.dot(self.T, self.v) * ds(1)
-        else:
-            # applying the gravitational force
-            if self.p['dim'] == 2:
-                #f = df.Constant((0, 0))
-                f = df.fem.Constant(self.mesh, ScalarType((0, -self.p['rho']*self.p['g'])))
-            elif self.p['dim'] == 3:
-                #f = df.Constant((0, 0, 0))
-                f = df.fem.Constant(self.mesh, ScalarType((0, 0, -self.p['rho']*self.p['g'])))
-            else:
-                raise Exception(f'wrong dimension {self.p["dim"]} for problem setup')
+        # initialize L field, not sure if this is the best way...
+        zero_field = df.fem.Constant(self.mesh, ScalarType(np.zeros(self.p['dim'])))
+        self.L = ufl.dot(zero_field, self.v) * ufl.dx
 
-            self.L =  ufl.dot(f, self.v) * ufl.dx
+        # apply external loads
+        external_force = self.experiment.create_force_boundary(self.v)
+        if external_force:
+            self.L = self.L + external_force
 
-
+        body_force = self.experiment.create_body_force(self.v)
+        if body_force:
+            self.L = self.L + body_force
 
         # boundary conditions only after function space
         bcs = self.experiment.create_displacement_boundary(self.V)
