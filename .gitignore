@@ -130,5 +130,6 @@ dmypy.json
 # sphinx website build
 .build
 
+# paraview output files, add exeption if you want to add a specific file
 *.h5
 *.xdmf

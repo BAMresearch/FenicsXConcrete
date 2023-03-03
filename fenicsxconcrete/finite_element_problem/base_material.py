@@ -1,39 +1,36 @@
 import dolfinx as df
-#import sys
-#print(sys.path)
+from pathlib import Path
+import sys
+from loguru import logger
+import logging
+
 from fenicsxconcrete.helper import Parameters
 from fenicsxconcrete.sensor_definition.base_sensor import Sensors
 
-from loguru import logger
-import logging
-import sys
-
-from fenicsxconcrete.unit_registry import ureg
-import warnings
-
-
-""" from ffc.quadrature.deprecation import QuadratureRepresentationDeprecationWarning
-
-df.parameters["form_compiler"]["representation"] = "quadrature"
-warnings.simplefilter("ignore", QuadratureRepresentationDeprecationWarning)
- """
-
 class MaterialProblem():
-    def __init__(self, experiment, parameters=None, pv_name='pv_output_full'):
+    def __init__(self, experiment, parameters, pv_name='pv_output_full', pv_path=None):
+        """"base material problem
+
+        Parameters
+        ----------
+            experiment : object
+            parameters : dictionary, optional
+                Dictionary with parameters. When none is provided, default values are used
+            pv_name : string, optional
+                Name of the paraview file, if paraview output is generated
+            pv_path : string, optional
+                Name of the paraview path, if paraview output is generated
+        """
+
         self.experiment = experiment
+        self.mesh = self.experiment.mesh
         # setting up paramters
-        self.parameters = Parameters()
-        # constants
-        # TODO: where to put these?, what about units???
-        self.parameters['igc'] = 8.3145 * ureg('') # ideal gas constant [JK −1 mol −1 ]
-        #self.p['g'] = 9.81  # graviational acceleration in m/s²
-        #self.p['rho'] = 1
-
-        # other "globel" paramters...
-        self.parameters['log_level'] = 'INFO' * ureg('')
-
-        self.parameters = self.parameters + self.experiment.parameters + parameters
+        # adding experimental parameters to material parameters
+        parameters.update(self.experiment.parameters)
+        self.parameters = parameters
+        # remove units for use in fem model
         self.p = self.parameters.to_magnitude()
+        self.experiment.p = self.p  # update experimental parameter list for use in e.g. boundary definition
 
         # set log level...
         if self.p['log_level'] == 'NOTSET':
@@ -70,17 +67,20 @@ class MaterialProblem():
             level = self.p['log_level']
             raise Exception(f'unknown log level {level}')
 
+        self.sensors = Sensors()  # list to hold attached sensors
 
-        self.sensors =  Sensors()  # list to hold attached sensors
+        # settin gup path for paraview output
+        if not pv_path:
+            pv_path = "."
+        self.pv_output_file = Path(pv_path) / (pv_name + '.xdmf')
 
-
-        self.pv_name = pv_name
-
-        #setup fields for sensor output, can be defined in model
+        # setup fields for sensor output, can be defined in model
         self.displacement = None
         self.temperature = None
         self.degree_of_hydration = None
         self.q_degree_of_hydration = None
+
+        self.residual = None  # initialize residual
 
         # setup the material object to access the function
         self.setup()
@@ -99,8 +99,6 @@ class MaterialProblem():
     def clean_sensor_data(self):
         for sensor_object in self.sensors.values():
             sensor_object.data.clear()
-        #for i in range(len(self.sensors)):
-        #    self.sensors[i].data.clear()
 
     def delete_sensor(self):
         del self.sensors
