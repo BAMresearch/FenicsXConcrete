@@ -7,6 +7,8 @@ import ufl
 from petsc4py.PETSc import ScalarType
 from fenicsxconcrete.unit_registry import ureg
 import pint
+#from fenicsxconcrete.finite_element_problem.linear_elasticity import LinearElasticity
+from fenicsxconcrete.finite_element_problem.base_material import MaterialProblem
 
 class TensileBeam(Experiment):
     def __init__(self, parameters: dict[str, pint.Quantity]):
@@ -39,10 +41,6 @@ class TensileBeam(Experiment):
                                            cell_type=df.mesh.CellType.hexahedron)
         else:
             raise ValueError(f'wrong dimension: {self.p["dim"]} is not implemented for problem setup')
-
-        # to trigger the key error, when the load parameter is missing, before the material class is called
-        assert self.p['load']
-
 
     @staticmethod
     def default_parameters() -> dict[str, pint.Quantity]:

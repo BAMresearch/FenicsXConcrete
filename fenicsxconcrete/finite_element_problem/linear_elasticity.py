@@ -7,6 +7,7 @@ from fenicsxconcrete.helper import Parameters
 from fenicsxconcrete.unit_registry import ureg
 from fenicsxconcrete.finite_element_problem.base_material import MaterialProblem
 from fenicsxconcrete.experimental_setup.cantilever_beam import CantileverBeam
+from fenicsxconcrete.experimental_setup.base_experiment import Experiment
 
 
 class LinearElasticity(MaterialProblem):
@@ -65,7 +66,7 @@ class LinearElasticity(MaterialProblem):
                                                             petsc_options={"ksp_type": "preonly", "pc_type": "lu"})
 
     @staticmethod
-    def default_parameters() -> dict[str, pint.Quantity]:
+    def default_parameters() -> tuple[Experiment, [str, pint.Quantity]]:
         """returns a dictionary with required parameters and a set of working values as example"""
         # default setup for this material
         experiment = CantileverBeam(CantileverBeam.default_parameters())

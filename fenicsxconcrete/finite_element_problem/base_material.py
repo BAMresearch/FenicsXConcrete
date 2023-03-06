@@ -5,6 +5,7 @@ from loguru import logger
 import logging
 from abc import ABC, abstractmethod
 import pint
+from fenicsxconcrete.experimental_setup.base_experiment import Experiment
 
 from fenicsxconcrete.helper import Parameters
 from fenicsxconcrete.sensor_definition.base_sensor import Sensors
@@ -93,7 +94,7 @@ class MaterialProblem(ABC):
 
     @staticmethod
     @abstractmethod
-    def default_parameters() -> dict[str, pint.Quantity]:
+    def default_parameters() -> tuple[Experiment, dict[str, pint.Quantity]]:
         """returns a dictionary with required parameters and a set of working values as example"""
         # this must de defined in each setup class
         pass
@@ -118,7 +119,3 @@ class MaterialProblem(ABC):
     def delete_sensor(self):
         del self.sensors
         self.sensors = Sensors()
-
-
-
-        
