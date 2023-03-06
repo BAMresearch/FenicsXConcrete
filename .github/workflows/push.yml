@@ -50,7 +50,7 @@ jobs:
         run: |
           cd $GITHUB_WORKSPACE/tests/          
           # grab the coverage output and also print it to the sreen
-          coverage run -m pytest 
+          pytest -s -W error::UserWarning --cov ../fenicsxconcrete --cov-report=xml  # testing coverage!!!
           COVERAGE_REPORT=$(coverage report -m | tee /dev/stderr)
           # extract the percentage of the total coverage, e.g. `75%`
           COVERAGE_PCT=$(echo $COVERAGE_REPORT | \
