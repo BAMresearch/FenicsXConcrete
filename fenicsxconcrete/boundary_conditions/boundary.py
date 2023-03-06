@@ -1,6 +1,7 @@
 """Based on Philipp Diercks implementation for multi -
 helpers to define boundaries"""
 
+from typing import Union
 import numpy as np
 
 """Design
@@ -36,7 +37,7 @@ dolfinx:
 """
 
 
-def plane_at(coordinate, dim):
+def plane_at(coordinate: float, dim: Union[str, int]):
     """return callable that determines boundary geometrically
 
     Parameters

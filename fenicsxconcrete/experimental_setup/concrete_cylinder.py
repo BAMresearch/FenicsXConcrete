@@ -13,23 +13,18 @@ from fenicsxconcrete.boundary_conditions.boundary import plane_at, point_at
 from fenicsxconcrete.boundary_conditions.bcs import BoundaryConditions
 
 
-def generate_cylinder_mesh(radius, height, mesh_density):
+def generate_cylinder_mesh(radius:float, height:float, mesh_density:float) -> df.mesh.Mesh:
     """Uses gmsh to generate a cylinder mesh for fenics
 
     Paramters
     ---------
-    radius : float
-        radius of the cylinder
-    height : float
-        height of the cylinder
-    mesh_density : float
-        defines the size of the elements
-        defines the minimum number of element edges in the height of the cylinder
+    radius : radius of the cylinder
+    height : height of the cylinder
+    mesh_density : defines the size of the elements and the minimum number of element edges in the height of the cylinder
 
     Returns
     -------
-    mesh : dolfin.cpp.mesh.Mesh object
-        cylinder mesh for dolfin
+    mesh : cylinder mesh for dolfin
     """
 
     # file names and location
@@ -83,7 +78,7 @@ def generate_cylinder_mesh(radius, height, mesh_density):
 class ConcreteCylinderExperiment(Experiment):
     """A cylinder mesh for a uni-axial displacement load"""
 
-    def __init__(self, parameters=None):
+    def __init__(self, parameters: dict=None):
         """initializes the object
 
         Standard parameters are set
@@ -91,8 +86,7 @@ class ConcreteCylinderExperiment(Experiment):
 
         Parameters
         ----------
-        parameters : dictionary, optional
-            dictionary with parameters that can override the default values
+        parameters : dictionary with parameters that can override the default values
         """
         # initialize a set of default parameters
         p = Parameters()
@@ -165,18 +159,16 @@ class ConcreteCylinderExperiment(Experiment):
         else:
             raise Exception(f"wrong dimension {self.p['dim']} for problem setup")
 
-    def create_displacement_boundary(self, V):
+    def create_displacement_boundary(self, V:df.fem.FunctionSpace) -> list:
         """Defines the displacement boundary conditions
 
         Parameters
         ----------
-            V : FunctionSpace
-                Function space of the structure
+            V : Function space of the structure
 
         Returns
         -------
-            displ_bc : list
-                A list of DirichletBC objects, defining the boundary conditions
+            displ_bc : A list of DirichletBC objects, defining the boundary conditions
         """
 
         # define boundary conditions generator
@@ -224,13 +216,12 @@ class ConcreteCylinderExperiment(Experiment):
 
         return bc_generator.bcs
 
-    def apply_displ_load(self, top_displacement):
+    def apply_displ_load(self, top_displacement:float):
         """Updates the applied displacement load
 
         Parameters
         ----------
-        top_displacement : float
-            Displacement of the top boundary in mm, > 0 ; tension, < 0 ; compression
+        top_displacement : Displacement of the top boundary in mm, > 0 ; tension, < 0 ; compression
         """
 
         self.top_displacement.value = top_displacement.magnitude
