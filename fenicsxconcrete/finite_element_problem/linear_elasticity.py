@@ -5,6 +5,7 @@ from petsc4py.PETSc import ScalarType
 from fenicsxconcrete.helper import Parameters
 from fenicsxconcrete.unit_registry import ureg
 from fenicsxconcrete.finite_element_problem.base_material import MaterialProblem
+from fenicsxconcrete.experimental_setup.cantilever_beam import CantileverBeam
 
 
 class LinearElasticity(MaterialProblem):
@@ -61,13 +62,15 @@ class LinearElasticity(MaterialProblem):
     @staticmethod
     def default_parameters():
         """returns a dictionary with required parameters and a set of working values as example"""
+        # default setup for this material
+        experiment = CantileverBeam(CantileverBeam.default_parameters())
 
         model_parameters = {}
         model_parameters['rho'] = 7750 * ureg('kg/m^3')
         model_parameters['E'] = 210e9 * ureg('N/m^2')
         model_parameters['nu'] = 0.28 * ureg('')
 
-        return model_parameters
+        return experiment, model_parameters
 
 
     # Stress computation for linear elastic problem 
