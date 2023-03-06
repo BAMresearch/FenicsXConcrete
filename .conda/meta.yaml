@@ -4,15 +4,17 @@
 
 package:
   name: {{ name|lower }}
-  version: {{ environ.get('GIT_DESCRIBE_TAG', '') }}
+  version: 0.0.1
+  # version: {{ environ.get('GIT_DESCRIBE_TAG', '') }}
 
 source:
-  git_rev: {{ environ.get('GIT_DESCRIBE_TAG', '') }}
   git_url: https://github.com/BAMresearch/FenicsXConcrete
+  git_tag: 26-update-github-actions-to-build-conda-package
+  # git_rev: {{ environ.get('GIT_DESCRIBE_TAG', '') }}
 
 build:
-  skip: True  # [win]
-  script: {{ PYTHON }} -m pip install . -vv
+  skip: True  # [win or osx]
+  script: {{ PYTHON }} -m pip install . --no-deps --ignore-installed -vv
   number: 0
 
 requirements:
@@ -31,13 +33,14 @@ test:
     - fenicsxconcrete
 
   source_files:
-    - tests/*
+    - tests
 
   requires:
     - pytest
 
   commands:
     - pytest tests
+
 about:
   home: https://github.com/BAMresearch/FenicsXConcrete
   license: MIT
