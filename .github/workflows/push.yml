@@ -78,11 +78,11 @@ jobs:
           echo "COVERAGE_COL=$(echo $COVERAGE_COL)" >> $GITHUB_ENV
           echo "BRANCH_NAME=$(echo $BRANCH_NAME)" >> $GITHUB_ENV
 
-      # Upload the coverage value to gist only once
+      # Upload the coverage value to gist
       - name: Upload coverage to gist
-        uses: schneegans/dynamic-badges-action@v1.1.0
+        uses: schneegans/dynamic-badges-action@v1.6.0
         with:
-          auth: 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
+          auth: ${{ secrets.GIST_SECRET }}
           gistID: c10a5b6d0714b1fe2344eb60918e92f8
           filename: fenicsxconcrete_${{ env.BRANCH_NAME }}_coverage.json
           label: coverage
