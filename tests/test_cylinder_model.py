@@ -47,7 +47,8 @@ def test_force_response_2D():
     sensor = ReactionForceSensorBottom()
     measured = simple_setup(p, displacement, sensor)
 
-    assert measured == pytest.approx(p.E * p.radius * 2 * displacement / p.height)
+    result = p.E * p.radius * 2 * displacement / p.height
+    assert measured == pytest.approx(result.magnitude)
 
 
 def test_force_response_3D():
@@ -64,5 +65,6 @@ def test_force_response_3D():
     measured = simple_setup(p, displacement, sensor)
 
     # due to meshing errors, only aproximate results to be expected. within 1% is good enough
-    assert measured == pytest.approx(p.E * np.pi * p.radius**2 * displacement / p.height, 0.01)
+    result=p.E * np.pi * p.radius**2 * displacement / p.height
+    assert measured == pytest.approx(result.magnitude, 0.01)
 
