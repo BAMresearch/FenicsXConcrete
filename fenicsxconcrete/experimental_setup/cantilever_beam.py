@@ -20,7 +20,6 @@ class CantileverBeam(Experiment):
         # initialize default parameters for the setup
         default_p = Parameters()
         default_p['degree'] = 2 * ureg('')  # polynomial degree
-        default_p['load'] = 0 * ureg('N')  # TODO: find a better way
 
         # updating parameters, overriding defaults
         default_p.update(parameters)
@@ -48,6 +47,21 @@ class CantileverBeam(Experiment):
         else:
             raise ValueError(f'wrong dimension: {self.p["dim"]} is not implemented for problem setup')
 
+    @staticmethod
+    def default_parameters():
+        """returns a dictionary with required parameters and a set of working values as example"""
+        # this must de defined in each setup class
+
+        setup_parameters = {}
+        setup_parameters['length'] = 1 * ureg('m')
+        setup_parameters['height'] = 0.3 * ureg('m')
+        setup_parameters['width'] = 0.3 * ureg('m')  # only relevant for 3D case
+        setup_parameters['dim'] = 3 * ureg('')
+        setup_parameters['num_elements_length'] = 10 * ureg('')
+        setup_parameters['num_elements_height'] = 3 * ureg('')
+        setup_parameters['num_elements_width'] = 3 * ureg('')  # only relevant for 3D case
+
+        return setup_parameters
 
     def create_displacement_boundary(self, V):
         # define displacement boundary

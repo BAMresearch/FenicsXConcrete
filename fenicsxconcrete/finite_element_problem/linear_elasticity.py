@@ -58,6 +58,18 @@ class LinearElasticity(MaterialProblem):
                                                             bcs=bcs,
                                                             petsc_options={"ksp_type": "preonly", "pc_type": "lu"})
 
+    @staticmethod
+    def default_parameters():
+        """returns a dictionary with required parameters and a set of working values as example"""
+
+        model_parameters = {}
+        model_parameters['rho'] = 7750 * ureg('kg/m^3')
+        model_parameters['E'] = 210e9 * ureg('N/m^2')
+        model_parameters['nu'] = 0.28 * ureg('')
+
+        return model_parameters
+
+
     # Stress computation for linear elastic problem 
     def epsilon(self, u):
         return ufl.sym(ufl.grad(u)) 

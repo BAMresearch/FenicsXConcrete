@@ -4,7 +4,7 @@ from fenicsxconcrete.helper import Parameters
 from abc import ABC, abstractmethod
 
 
-class Experiment:
+class Experiment(ABC):
     """base class for experimental setups
 
     Attributes:
@@ -29,6 +29,13 @@ class Experiment:
     @abstractmethod
     def setup(self):
         """Is called by init, must be defined by child"""
+        pass
+
+    @staticmethod
+    @abstractmethod
+    def default_parameters():
+        """returns a dictionary with required parameters and a set of working values as example"""
+        # this must de defined in each setup class
         pass
 
     def create_displacement_boundary(self, V):
