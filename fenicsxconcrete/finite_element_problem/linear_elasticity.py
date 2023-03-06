@@ -7,7 +7,6 @@ from fenicsxconcrete.unit_registry import ureg
 from fenicsxconcrete.finite_element_problem.base_material import MaterialProblem
 from mpi4py import MPI
 
-
 class LinearElasticity(MaterialProblem):
     """Material definition for linear elasticity"""
 
