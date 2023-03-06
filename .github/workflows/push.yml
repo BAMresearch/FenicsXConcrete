@@ -86,6 +86,7 @@ jobs:
           gistID: c10a5b6d0714b1fe2344eb60918e92f8
           filename: fenicsxconcrete_${{ env.BRANCH_NAME }}_coverage.json
           label: coverage
+          message: ${{ env.COVERAGE_PCT }}
           valColorRange: ${{ env.COVERAGE_PCT }}
           maxColorRange: 95
           minColorRange: 50
