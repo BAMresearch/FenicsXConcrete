@@ -74,6 +74,7 @@ jobs:
           # active branch name
           BRANCH_NAME=$(echo ${GITHUB_REF#refs/heads/})
           # add them to the github env for later usage
+          echo "COVERAGE_NUM=$(echo $COVERAGE_NUM)" >> $GITHUB_ENV
           echo "COVERAGE_PCT=$(echo $COVERAGE_PCT)" >> $GITHUB_ENV
           echo "COVERAGE_COL=$(echo $COVERAGE_COL)" >> $GITHUB_ENV
           echo "BRANCH_NAME=$(echo $BRANCH_NAME)" >> $GITHUB_ENV
@@ -84,10 +85,22 @@ jobs:
           auth: ${{ secrets.GIST_TOKEN }}
           gistID: c10a5b6d0714b1fe2344eb60918e92f8
           filename: fenicsxconcrete_${{ env.BRANCH_NAME }}_coverage.json
-          label: Hello
-          message: ${{ env.COVERAGE_PCT }}
-          color: ${{ env.COVERAGE_COL }}
+          label: coverage
+          valColorRange: ${{ env.COVERAGE_PCT }}
+          maxColorRange: 95
+          minColorRange: 50
 #
+#            - name: Create Awesome Badge
+#              uses: schneegans/dynamic-badges-action@v1.6.0
+#              with:
+#                auth: ${{ secrets.GIST_TOKEN }}
+#                gistID: c10a5b6d0714b1fe2344eb60918e92f8
+#                filename: fenicsxconcrete_${{ env.BRANCH_NAME }}_coverage.json
+#                label: coverage
+#                message: ${{ env.COVERAGE_PCT }}
+#                color: ${{ env.COVERAGE_COL }}
+
+
 #      # Upload the coverage value to gist
 #      - name: Upload coverage to gist
 #        uses: schneegans/dynamic-badges-action@v1.6.0
