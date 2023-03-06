@@ -78,16 +78,26 @@ jobs:
           echo "COVERAGE_COL=$(echo $COVERAGE_COL)" >> $GITHUB_ENV
           echo "BRANCH_NAME=$(echo $BRANCH_NAME)" >> $GITHUB_ENV
 
-      # Upload the coverage value to gist
-      - name: Upload coverage to gist
+      - name: Create Awesome Badge
         uses: schneegans/dynamic-badges-action@v1.6.0
         with:
-          auth: ${{ secrets.GIST_TOKEN }}
-          gistID: c10a5b6d0714b1fe2344eb60918e92f8
-          filename: fenicsxconcrete_${{ env.BRANCH_NAME }}_coverage.json
-          label: coverage
-          message: ${{ env.COVERAGE_PCT }}
-          color: ${{ env.COVERAGE_COL }}
+          auth: ${{ secrets.GIST_SECRET }}
+          gistID: 6c3d5961e2846a9a7da95f1282540033
+          filename: test.json
+          label: Hello
+          message: World
+          color: orange
+#
+#      # Upload the coverage value to gist
+#      - name: Upload coverage to gist
+#        uses: schneegans/dynamic-badges-action@v1.6.0
+#        with:
+#          auth: ${{ secrets.GIST_TOKEN }}
+#          gistID: c10a5b6d0714b1fe2344eb60918e92f8
+#          filename: fenicsxconcrete_${{ env.BRANCH_NAME }}_coverage.json
+#          label: coverage
+#          message: ${{ env.COVERAGE_PCT }}
+#          color: ${{ env.COVERAGE_COL }}
 
 
 
