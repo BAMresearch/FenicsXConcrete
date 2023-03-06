@@ -49,37 +49,22 @@ jobs:
         shell: bash -l {0}
         run: |
           cd $GITHUB_WORKSPACE/tests/          
-          # grab the coverage output and also print it to the sreen
-          pytest -s -W error::UserWarning --cov ../fenicsxconcrete --cov-report=xml  # testing coverage!!!
+          # grab the coverage output and also print it to the screen
+          pytest -s -W error::UserWarning --cov ../fenicsxconcrete --cov-report=xml
+          
           COVERAGE_REPORT=$(coverage report -m | tee /dev/stderr)
           # extract the percentage of the total coverage, e.g. `75%`
-          COVERAGE_PCT=$(echo $COVERAGE_REPORT | \
-            grep -oP "TOTAL\s+\d+\s+\d+\s+(\d+%)" | grep -oP "\d+%")
+          COVERAGE_PCT=$(echo $COVERAGE_REPORT | grep -oP "TOTAL\s+\d+\s+\d+\s+(\d+%)" | grep -oP "\d+%")
           # get only the coverage number without the percentage symbol
           COVERAGE_NUM=$(echo $COVERAGE_PCT | grep -oP "\d+")
-          # get an indicative color
-          if (( COVERAGE_NUM <= 50 )); then
-            COVERAGE_COL="red"
-          elif (( COVERAGE_NUM <= 60 )); then
-            COVERAGE_COL="orange"
-          elif (( COVERAGE_NUM <= 70 )); then
-            COVERAGE_COL="yellow"
-          elif (( COVERAGE_NUM <= 80 )); then
-            COVERAGE_COL="yellowgreen"
-          elif (( COVERAGE_NUM <= 90 )); then
-            COVERAGE_COL="green"
-          else
-            COVERAGE_COL="brightgreen"
-          fi
           # active branch name
           BRANCH_NAME=$(echo ${GITHUB_REF#refs/heads/})
           # add them to the github env for later usage
           echo "COVERAGE_NUM=$(echo $COVERAGE_NUM)" >> $GITHUB_ENV
           echo "COVERAGE_PCT=$(echo $COVERAGE_PCT)" >> $GITHUB_ENV
-          echo "COVERAGE_COL=$(echo $COVERAGE_COL)" >> $GITHUB_ENV
           echo "BRANCH_NAME=$(echo $BRANCH_NAME)" >> $GITHUB_ENV
 
-      - name: Create Awesome Badge
+      - name: Create Coverage Badge
         uses: schneegans/dynamic-badges-action@v1.6.0
         with:
           auth: ${{ secrets.GIST_TOKEN }}
@@ -88,41 +73,5 @@ jobs:
           label: coverage
           message: ${{ env.COVERAGE_PCT }}
           valColorRange: ${{ env.COVERAGE_PCT }}
-          maxColorRange: 95
-          minColorRange: 50
-#
-#            - name: Create Awesome Badge
-#              uses: schneegans/dynamic-badges-action@v1.6.0
-#              with:
-#                auth: ${{ secrets.GIST_TOKEN }}
-#                gistID: c10a5b6d0714b1fe2344eb60918e92f8
-#                filename: fenicsxconcrete_${{ env.BRANCH_NAME }}_coverage.json
-#                label: coverage
-#                message: ${{ env.COVERAGE_PCT }}
-#                color: ${{ env.COVERAGE_COL }}
-
-
-#      # Upload the coverage value to gist
-#      - name: Upload coverage to gist
-#        uses: schneegans/dynamic-badges-action@v1.6.0
-#        with:
-#          auth: ${{ secrets.GIST_TOKEN }}
-#          gistID: c10a5b6d0714b1fe2344eb60918e92f8
-#          filename: fenicsxconcrete_${{ env.BRANCH_NAME }}_coverage.json
-#          label: coverage
-#          message: ${{ env.COVERAGE_PCT }}
-#          color: ${{ env.COVERAGE_COL }}
-
-
-
-
-
-#
-#
-#      - name: run-pytest
-#        shell: bash -l {0}
-#        run: |
-#          cd $GITHUB_WORKSPACE/tests/
-#          pytest -s -W error::UserWarning --cov ../fenicsxconcrete --cov-report=xml  # testing coverage!!!
-#          coverage report -m
-              
+          maxColorRange: 95  # value where ligth green starts
+          minColorRange: 50  # value where red starts
