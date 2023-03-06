@@ -62,7 +62,8 @@ jobs:
           # add them to the github env for later usage
           echo "COVERAGE_NUM=$(echo $COVERAGE_NUM)" >> $GITHUB_ENV
           echo "COVERAGE_PCT=$(echo $COVERAGE_PCT)" >> $GITHUB_ENV
-          echo "BRANCH_NAME=$(echo $BRANCH_NAME)" >> $GITHUB_ENV
+          # removing possible slashes in file names
+          echo "BRANCH_NAME=$(echo $BRANCH_NAME | sed "s/\//_/")" >> $GITHUB_ENV
 
       - name: Create Coverage Badge
         uses: schneegans/dynamic-badges-action@v1.6.0
