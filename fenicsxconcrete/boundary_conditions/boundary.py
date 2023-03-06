@@ -87,8 +87,6 @@ def within_range(start, end, tol=1e-6):
 
 def point_at(coord):
     p = to_floats(coord)
-    # assert len(p) == 3
-
     if len(p) == 3:
         def boundary(x):
             return np.logical_and(
