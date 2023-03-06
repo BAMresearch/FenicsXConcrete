@@ -1,6 +1,7 @@
 import dolfinx as df
 import numpy as np
 import ufl
+import pint
 from petsc4py.PETSc import ScalarType
 from fenicsxconcrete.helper import Parameters
 from fenicsxconcrete.unit_registry import ureg
@@ -11,7 +12,11 @@ from fenicsxconcrete.experimental_setup.cantilever_beam import CantileverBeam
 class LinearElasticity(MaterialProblem):
     """Material definition for linear elasticity"""
 
-    def __init__(self, experiment, parameters, pv_name='pv_output_linear_elasticity', pv_path=None):
+    def __init__(self,
+                 experiment,
+                 parameters : dict[str, pint.Quantity],
+                 pv_name='pv_output_linear_elasticity',
+                 pv_path=None):
         """defines default parameters, for the rest, see base class"""
 
         # adding default material parameter, will be overridden by outside input
@@ -60,7 +65,7 @@ class LinearElasticity(MaterialProblem):
                                                             petsc_options={"ksp_type": "preonly", "pc_type": "lu"})
 
     @staticmethod
-    def default_parameters():
+    def default_parameters() -> dict[str, pint.Quantity]:
         """returns a dictionary with required parameters and a set of working values as example"""
         # default setup for this material
         experiment = CantileverBeam(CantileverBeam.default_parameters())

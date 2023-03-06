@@ -2,6 +2,7 @@ import dolfinx as df
 import numpy as np
 from fenicsxconcrete.helper import Parameters
 from abc import ABC, abstractmethod
+import pint
 
 
 class Experiment(ABC):
@@ -13,7 +14,7 @@ class Experiment(ABC):
 
     """
 
-    def __init__(self, parameters):
+    def __init__(self, parameters: dict[str, pint.Quantity]):
         """Initialises the parent object
 
         This is needs to be called by children
@@ -33,12 +34,12 @@ class Experiment(ABC):
 
     @staticmethod
     @abstractmethod
-    def default_parameters():
+    def default_parameters() -> dict[str, pint.Quantity]:
         """returns a dictionary with required parameters and a set of working values as example"""
         # this must de defined in each setup class
         pass
 
-    def create_displacement_boundary(self, V):
+    def create_displacement_boundary(self, V) -> list:
         # define empty displacement boundary
         displ_bcs = []
 

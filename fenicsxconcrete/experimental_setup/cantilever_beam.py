@@ -6,6 +6,7 @@ import numpy as np
 import ufl
 from petsc4py.PETSc import ScalarType
 from fenicsxconcrete.unit_registry import ureg
+import pint
 
 class CantileverBeam(Experiment):
     """Sets up a cantilever beam, clamped on one side and loaded with gravity
@@ -14,7 +15,7 @@ class CantileverBeam(Experiment):
         see base class
     """
 
-    def __init__(self, parameters):
+    def __init__(self, parameters: dict[str, pint.Quantity]):
         """defines default parameters, for the rest, see base class"""
 
         # initialize default parameters for the setup
@@ -48,7 +49,7 @@ class CantileverBeam(Experiment):
             raise ValueError(f'wrong dimension: {self.p["dim"]} is not implemented for problem setup')
 
     @staticmethod
-    def default_parameters():
+    def default_parameters() -> dict[str, pint.Quantity]:
         """returns a dictionary with required parameters and a set of working values as example"""
         # this must de defined in each setup class
 
@@ -63,7 +64,7 @@ class CantileverBeam(Experiment):
 
         return setup_parameters
 
-    def create_displacement_boundary(self, V):
+    def create_displacement_boundary(self, V) -> list:
         # define displacement boundary
 
         # fenics will individually call this function for every node and will note the true or false value.

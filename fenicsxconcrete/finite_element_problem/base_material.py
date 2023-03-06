@@ -4,12 +4,17 @@ import sys
 from loguru import logger
 import logging
 from abc import ABC, abstractmethod
+import pint
 
 from fenicsxconcrete.helper import Parameters
 from fenicsxconcrete.sensor_definition.base_sensor import Sensors
 
 class MaterialProblem(ABC):
-    def __init__(self, experiment, parameters, pv_name='pv_output_full', pv_path=None):
+    def __init__(self,
+                 experiment,
+                 parameters: dict[str, pint.Quantity],
+                 pv_name='pv_output_full',
+                 pv_path=None):
         """"base material problem
 
         Parameters
@@ -88,7 +93,7 @@ class MaterialProblem(ABC):
 
     @staticmethod
     @abstractmethod
-    def default_parameters():
+    def default_parameters() -> dict[str, pint.Quantity]:
         """returns a dictionary with required parameters and a set of working values as example"""
         # this must de defined in each setup class
         pass
