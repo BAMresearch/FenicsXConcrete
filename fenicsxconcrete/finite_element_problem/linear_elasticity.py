@@ -5,6 +5,7 @@ from petsc4py.PETSc import ScalarType
 from fenicsxconcrete.helper import Parameters
 from fenicsxconcrete.unit_registry import ureg
 from fenicsxconcrete.finite_element_problem.base_material import MaterialProblem
+from mpi4py import MPI
 
 
 class LinearElasticity(MaterialProblem):
@@ -68,10 +69,15 @@ class LinearElasticity(MaterialProblem):
     def solve(self, t=1.0):        
         self.displacement = self.weak_form_problem.solve()
 
+        self.compute_residual()
+
         # get sensor data
         for sensor_name in self.sensors:
             # go through all sensors and measure
             self.sensors[sensor_name].measure(self, t)
+
+    def compute_residual(self):
+        self.residual = ufl.action(self.a, self.displacement) - self.L
 
     # paraview output
     # TODO move this to sensor definition!?!?!
