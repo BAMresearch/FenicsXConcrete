@@ -14,10 +14,10 @@ class LinearElasticity(MaterialProblem):
     """Material definition for linear elasticity"""
 
     def __init__(self,
-                 experiment,
-                 parameters : dict[str, pint.Quantity],
-                 pv_name='pv_output_linear_elasticity',
-                 pv_path=None):
+                 experiment: Experiment,
+                 parameters: dict[str, pint.Quantity],
+                 pv_name : str = 'pv_output_full',
+                 pv_path : str = None):
         """defines default parameters, for the rest, see base class"""
 
         # adding default material parameter, will be overridden by outside input
