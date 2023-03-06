@@ -4,9 +4,7 @@ from fenicsxconcrete.sensor_definition.other_sensor import ReactionForceSensorBo
 from fenicsxconcrete.experimental_setup.concrete_cylinder import (
     ConcreteCylinderExperiment,
 )
-from fenicsxconcrete.finite_element_problem.linear_elastic_material import (
-    linear_elasticity,
-)
+from fenicsxconcrete.finite_element_problem.linear_elasticity import LinearElasticity
 from fenicsxconcrete.helper import Parameters
 from fenicsxconcrete.unit_registry import ureg
 
@@ -24,7 +22,7 @@ def simple_setup(p, displacement, sensor):
 
     experiment = ConcreteCylinderExperiment(parameters)
 
-    problem = linear_elasticity(experiment, parameters)
+    problem = LinearElasticity(experiment, parameters)
     problem.add_sensor(sensor)
 
     problem.experiment.apply_displ_load(displacement)
@@ -41,9 +39,9 @@ def test_force_response_2D():
 
     p["E"] = 1023 * ureg("MPa")
     p["nu"] = 0.0 * ureg("")
-    p["radius"] = 6 * ureg("mm")
-    p["height"] = 12 * ureg("mm")
-    displacement = -3 * ureg("mm")
+    p["radius"] = 0.006 * ureg("m")
+    p["height"] = 0.012 * ureg("m")
+    displacement = -0.003 * ureg("m")
     p["dim"] = 2 * ureg("")
 
     sensor = ReactionForceSensorBottom()
@@ -57,20 +55,14 @@ def test_force_response_3D():
 
     p["E"] = 1023 * ureg("MPa")
     p["nu"] = 0.0 * ureg("")
-    p["radius"] = 6 * ureg("mm")
-    p["height"] = 12 * ureg("mm")
-    displacement = -3 * ureg("mm")
+    p["radius"] = 0.006 * ureg("m")
+    p["height"] = 0.012 * ureg("m")
+    displacement = -0.003 * ureg("m")
     p["dim"] = 3 * ureg("")
 
     sensor = ReactionForceSensorBottom()
     measured = simple_setup(p, displacement, sensor)
 
     # due to meshing errors, only aproximate results to be expected. within 1% is good enough
-    assert measured == pytest.approx(
-        p.E * np.pi * p.radius.magnitude**2 * displacement.magnitude / p.height.magnitude, 0.01
-    )
+    assert measured == pytest.approx(p.E * np.pi * p.radius**2 * displacement / p.height, 0.01)
 
-
-if __name__ == "__main__":
-    test_force_response_2D()
-    test_force_response_3D()
