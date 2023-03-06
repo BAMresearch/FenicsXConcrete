@@ -62,7 +62,7 @@ jobs:
           # add them to the github env for later usage
           echo "COVERAGE_NUM=$(echo $COVERAGE_NUM)" >> $GITHUB_ENV
           echo "COVERAGE_PCT=$(echo $COVERAGE_PCT)" >> $GITHUB_ENV
-          # removing all possible slashes in file names
+          # removing all possible slashes in file names, they seem to appear during Pull Requests
           echo "BRANCH_NAME=$(echo $BRANCH_NAME | sed "s/\//_/g")" >> $GITHUB_ENV
 
       - name: Create Coverage Badge
@@ -71,10 +71,8 @@ jobs:
           auth: ${{ secrets.GIST_TOKEN }}
           gistID: c10a5b6d0714b1fe2344eb60918e92f8
           filename: fenicsxconcrete_${{ env.BRANCH_NAME }}_coverage.json
-          #filename: fenicsxconcrete_TEST_coverage.json
           label: coverage
           message: ${{ env.COVERAGE_PCT }}
-          #message: ${{ env.BRANCH_NAME }}
           valColorRange: ${{ env.COVERAGE_PCT }}
           maxColorRange: 95  # value where ligth green starts
           minColorRange: 50  # value where red starts
