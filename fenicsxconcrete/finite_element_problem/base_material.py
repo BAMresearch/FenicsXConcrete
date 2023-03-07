@@ -109,6 +109,11 @@ class MaterialProblem(ABC):
         # define what to do, to solve this problem
         pass
 
+    @abstractmethod
+    def compute_residuals(self):
+        # define what to do, to compute the residuals. Called in solve
+        pass
+
     def add_sensor(self, sensor):
         self.sensors[sensor.name] = sensor
 

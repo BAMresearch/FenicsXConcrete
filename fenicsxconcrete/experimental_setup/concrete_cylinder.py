@@ -6,6 +6,7 @@ import gmsh
 import os
 import meshio
 import ufl
+import pint
 from mpi4py import MPI
 
 from fenicsxconcrete.unit_registry import ureg
@@ -78,7 +79,7 @@ def generate_cylinder_mesh(radius:float, height:float, mesh_density:float) -> df
 class ConcreteCylinderExperiment(Experiment):
     """A cylinder mesh for a uni-axial displacement load"""
 
-    def __init__(self, parameters: dict=None):
+    def __init__(self, parameters: dict[str, pint.Quantity]=None):
         """initializes the object
 
         Standard parameters are set
@@ -90,17 +91,7 @@ class ConcreteCylinderExperiment(Experiment):
         """
         # initialize a set of default parameters
         p = Parameters()
-        # boundary setting
-        p["bc_setting"] = "free" * ureg("")  # boundary setting, two options available: fixed and free
-        # fixed: constrained at top and bottom in transversal to loading
-        # free: no confinement perpendicular to loading surface
-        # mesh information
-        p["dim"] = 3 * ureg("")  # dimension of problem, 2D or 3D
-                                 # 2D version of the cylinder is a rectangle with plane strain assumption
-        p["mesh_density"] = 4 * ureg("")  # in 3D: number of faces on the side when generating a polyhedral approximation
-                                          # in 2D: number of elements in each direction
-        p["radius"] = 75 * ureg("mm")  # radius of cylinder to approximate in mm
-        p["height"] = 100 * ureg("mm")  # height of cylinder in mm
+        
 
         p['degree'] = 2 * ureg('')  # polynomial degree
 
@@ -159,6 +150,27 @@ class ConcreteCylinderExperiment(Experiment):
         else:
             raise Exception(f"wrong dimension {self.p['dim']} for problem setup")
 
+    @staticmethod
+    def default_parameters() -> dict[str, pint.Quantity]:
+        """returns a dictionary with required parameters and a set of working values as example"""
+        
+        default_parameters = {}
+        
+        # boundary setting
+        default_parameters["bc_setting"] = "free" * ureg("")  # boundary setting, two options available: fixed and free
+        # fixed: constrained at top and bottom in transversal to loading
+        # free: no confinement perpendicular to loading surface
+        
+        # mesh information
+        default_parameters["dim"] = 3 * ureg("")           # dimension of problem, 2D or 3D
+                                                           # 2D version of the cylinder is a rectangle with plane strain assumption
+        default_parameters["mesh_density"] = 4 * ureg("")  # in 3D: number of faces on the side when generating a polyhedral approximation
+                                                           # in 2D: number of elements in each direction
+        default_parameters["radius"] = 75 * ureg("mm")     # radius of cylinder to approximate in mm
+        default_parameters["height"] = 100 * ureg("mm")    # height of cylinder in mm
+        
+        return default_parameters
+
     def create_displacement_boundary(self, V:df.fem.FunctionSpace) -> list:
         """Defines the displacement boundary conditions
 
@@ -215,7 +227,7 @@ class ConcreteCylinderExperiment(Experiment):
             raise Exception(f"Wrong boundary setting: {self.p['bc_setting']}, for cylinder setup")
 
         return bc_generator.bcs
-
+    
     def apply_displ_load(self, top_displacement:float):
         """Updates the applied displacement load
 
