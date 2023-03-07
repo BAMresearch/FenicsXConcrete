@@ -6,9 +6,12 @@ import numpy as np
 import ufl
 from petsc4py.PETSc import ScalarType
 from fenicsxconcrete.unit_registry import ureg
+import pint
+#from fenicsxconcrete.finite_element_problem.linear_elasticity import LinearElasticity
+from fenicsxconcrete.finite_element_problem.base_material import MaterialProblem
 
 class TensileBeam(Experiment):
-    def __init__(self, parameters):
+    def __init__(self, parameters: dict[str, pint.Quantity]):
         # initialize a set of "basic parameters"
         default_p = Parameters()
         default_p['degree'] = 2 * ureg('')  # polynomial degree
@@ -39,7 +42,23 @@ class TensileBeam(Experiment):
         else:
             raise ValueError(f'wrong dimension: {self.p["dim"]} is not implemented for problem setup')
 
-    def create_displacement_boundary(self, V):
+    @staticmethod
+    def default_parameters() -> dict[str, pint.Quantity]:
+        """returns a dictionary with required parameters and a set of working values as example"""
+
+        setup_parameters = {}
+        setup_parameters['length'] = 1 * ureg('m')
+        setup_parameters['height'] = 0.3 * ureg('m')
+        setup_parameters['width'] = 0.3 * ureg('m')  # only relevant for 3D case
+        setup_parameters['dim'] = 3 * ureg('')
+        setup_parameters['num_elements_length'] = 10 * ureg('')
+        setup_parameters['num_elements_height'] = 3 * ureg('')
+        setup_parameters['num_elements_width'] = 3 * ureg('')  # only relevant for 3D case
+        setup_parameters['load'] = 2000 * ureg('kN')
+
+        return setup_parameters
+
+    def create_displacement_boundary(self, V) -> list:
         # define displacement boundary
 
         # fenics will individually call this function for every node and will note the true or false value.

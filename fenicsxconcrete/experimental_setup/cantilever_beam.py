@@ -6,6 +6,7 @@ import numpy as np
 import ufl
 from petsc4py.PETSc import ScalarType
 from fenicsxconcrete.unit_registry import ureg
+import pint
 
 class CantileverBeam(Experiment):
     """Sets up a cantilever beam, clamped on one side and loaded with gravity
@@ -14,13 +15,12 @@ class CantileverBeam(Experiment):
         see base class
     """
 
-    def __init__(self, parameters):
+    def __init__(self, parameters: dict[str, pint.Quantity]):
         """defines default parameters, for the rest, see base class"""
 
         # initialize default parameters for the setup
         default_p = Parameters()
         default_p['degree'] = 2 * ureg('')  # polynomial degree
-        default_p['load'] = 0 * ureg('N')  # TODO: find a better way
 
         # updating parameters, overriding defaults
         default_p.update(parameters)
@@ -48,8 +48,23 @@ class CantileverBeam(Experiment):
         else:
             raise ValueError(f'wrong dimension: {self.p["dim"]} is not implemented for problem setup')
 
+    @staticmethod
+    def default_parameters() -> dict[str, pint.Quantity]:
+        """returns a dictionary with required parameters and a set of working values as example"""
+        # this must de defined in each setup class
 
-    def create_displacement_boundary(self, V):
+        setup_parameters = {}
+        setup_parameters['length'] = 1 * ureg('m')
+        setup_parameters['height'] = 0.3 * ureg('m')
+        setup_parameters['width'] = 0.3 * ureg('m')  # only relevant for 3D case
+        setup_parameters['dim'] = 3 * ureg('')
+        setup_parameters['num_elements_length'] = 10 * ureg('')
+        setup_parameters['num_elements_height'] = 3 * ureg('')
+        setup_parameters['num_elements_width'] = 3 * ureg('')  # only relevant for 3D case
+
+        return setup_parameters
+
+    def create_displacement_boundary(self, V) -> list:
         # define displacement boundary
 
         # fenics will individually call this function for every node and will note the true or false value.

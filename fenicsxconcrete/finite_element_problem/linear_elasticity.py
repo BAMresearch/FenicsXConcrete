@@ -1,16 +1,23 @@
 import dolfinx as df
 import numpy as np
 import ufl
+import pint
 from petsc4py.PETSc import ScalarType
 from fenicsxconcrete.helper import Parameters
 from fenicsxconcrete.unit_registry import ureg
 from fenicsxconcrete.finite_element_problem.base_material import MaterialProblem
+from fenicsxconcrete.experimental_setup.cantilever_beam import CantileverBeam
+from fenicsxconcrete.experimental_setup.base_experiment import Experiment
 from mpi4py import MPI
 
 class LinearElasticity(MaterialProblem):
     """Material definition for linear elasticity"""
 
-    def __init__(self, experiment, parameters, pv_name='pv_output_linear_elasticity', pv_path=None):
+    def __init__(self,
+                 experiment: Experiment,
+                 parameters: dict[str, pint.Quantity],
+                 pv_name : str = 'pv_output_full',
+                 pv_path : str = None):
         """defines default parameters, for the rest, see base class"""
 
         # adding default material parameter, will be overridden by outside input
@@ -57,6 +64,20 @@ class LinearElasticity(MaterialProblem):
                                                             self.L,
                                                             bcs=bcs,
                                                             petsc_options={"ksp_type": "preonly", "pc_type": "lu"})
+
+    @staticmethod
+    def default_parameters() -> tuple[Experiment, [str, pint.Quantity]]:
+        """returns a dictionary with required parameters and a set of working values as example"""
+        # default setup for this material
+        experiment = CantileverBeam(CantileverBeam.default_parameters())
+
+        model_parameters = {}
+        model_parameters['rho'] = 7750 * ureg('kg/m^3')
+        model_parameters['E'] = 210e9 * ureg('N/m^2')
+        model_parameters['nu'] = 0.28 * ureg('')
+
+        return experiment, model_parameters
+
 
     # Stress computation for linear elastic problem 
     def epsilon(self, u):
