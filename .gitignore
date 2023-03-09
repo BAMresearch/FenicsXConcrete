@@ -133,3 +133,6 @@ dmypy.json
 # paraview output files, add exeption if you want to add a specific file
 *.h5
 *.xdmf
+
+# folder for pint cache
+*/.pint_cache/*

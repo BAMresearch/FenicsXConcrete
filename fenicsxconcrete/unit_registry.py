@@ -1,6 +1,8 @@
 import pint
+from pathlib import Path
 
-ureg = pint.UnitRegistry(cache_folder=":auto:")   # initialize unit registry
+path_to_cache = Path(__file__).parent / '.pint_cache'
+ureg = pint.UnitRegistry(cache_folder=path_to_cache)   # initialize unit registry
 
 # user defined dimensions
 ureg.define('[moment] = [force] * [length]')
