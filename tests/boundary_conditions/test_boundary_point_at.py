@@ -61,3 +61,4 @@ def test_vector_function_space():
 if __name__ == "__main__":
     test_function_space()
     test_vector_function_space()
+    test_type_error()
