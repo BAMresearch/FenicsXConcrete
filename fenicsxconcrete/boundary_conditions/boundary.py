@@ -124,11 +124,14 @@ def show_marked(domain, marker):
 
 
 def to_floats(values):
+    """convert to float and assure len(values)==3"""
     floats = []
     try:
         for v in values:
             floats.append(float(v))
+        while len(floats) < 3:
+            floats.append(0.)
     except TypeError:
-        floats = [float(values)]
+        floats = [float(values), 0., 0.]
 
     return floats
