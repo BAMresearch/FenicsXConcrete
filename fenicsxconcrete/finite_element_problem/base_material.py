@@ -5,6 +5,7 @@ from loguru import logger
 import logging
 from abc import ABC, abstractmethod
 import pint
+from fenicsxconcrete.unit_registry import ureg
 from fenicsxconcrete.experimental_setup.base_experiment import Experiment
 
 from fenicsxconcrete.helper import Parameters
@@ -31,10 +32,17 @@ class MaterialProblem(ABC):
 
         self.experiment = experiment
         self.mesh = self.experiment.mesh
-        # setting up paramters
-        # adding experimental parameters to material parameters
-        parameters.update(self.experiment.parameters)
-        self.parameters = parameters
+
+        # setting up default material parameters
+        default_fem_parameters = Parameters()
+        default_fem_parameters['log_level'] = 'INFO' * ureg('')
+        default_fem_parameters['g'] = 9.81 * ureg('m/s^2')
+
+        # adding experimental parameters to dictionary to combine to one
+        default_fem_parameters.update(self.experiment.parameters)
+        # update with input parameters
+        default_fem_parameters.update(parameters)
+        self.parameters = default_fem_parameters
         # remove units for use in fem model
         self.p = self.parameters.to_magnitude()
         self.experiment.p = self.p  # update experimental parameter list for use in e.g. boundary definition

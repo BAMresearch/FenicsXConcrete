@@ -20,14 +20,8 @@ def test_parameters():
         and parameters_combined["temperature"] == parameters_2["temperature"]
     )
 
-#
-# def test_parameter_dic_functions():
-#     parameters = Parameters()
-#
-#     # testing the get function
-#     parameters.get('g')
-#     print(parameters)
-#     parameters[None] = 'dummy' * ureg('')
-#     print(parameters)
-#     assert False
 
+def test_parameter_dic_functions():
+    parameters = Parameters()
+    # testing if adding None to dictionary works
+    parameters + None

@@ -7,12 +7,6 @@ class Parameters(UserDict):
     """
     A class that contains physical quantities for our model. Each new entry needs to be a pint quantity.
     """
-    # define constants / defaults
-    def __init__(self, dict=None, /, **kwargs):
-        super().__init__(dict, **kwargs)
-
-        self['g'] = 9.81 * ureg('m/s^2')
-        self['log_level'] = 'INFO' * ureg('')
 
     def __setitem__(self, key: str, value: pint.Quantity):
         assert isinstance(value, pint.Quantity)

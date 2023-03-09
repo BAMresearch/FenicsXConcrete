@@ -3,6 +3,7 @@ import numpy as np
 from fenicsxconcrete.helper import Parameters
 from abc import ABC, abstractmethod
 import pint
+from fenicsxconcrete.unit_registry import ureg
 
 
 class Experiment(ABC):
@@ -22,7 +23,15 @@ class Experiment(ABC):
         """
 
         # initialize parameter attributes
-        self.parameters = parameters
+        default_setup_parameters = Parameters()
+        # setting up default setup parameters
+        default_setup_parameters['degree'] = 2 * ureg('')  # polynomial degree
+
+        # update with input parameters
+        default_setup_parameters.update(parameters)
+        # as attribute
+        self.parameters = default_setup_parameters
+        # remove units for use in fem model
         self.p = self.parameters.to_magnitude()
 
         self.setup()

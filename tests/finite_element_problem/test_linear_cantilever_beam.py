@@ -47,6 +47,7 @@ def test_linear_cantilever_beam(dimension):
 
     # setting up the problem
     experiment = CantileverBeam(setup_parameters)         # Specifies the domain, discretises it and apply Dirichlet BCs
+
     problem = LinearElasticity(experiment, fem_parameters, pv_name=file_name, pv_path=data_path)
     problem.add_sensor(sensor)
 
