@@ -30,28 +30,27 @@ class Experiment(ABC):
     @abstractmethod
     def setup(self):
         """Is called by init, must be defined by child"""
-        pass
 
     @staticmethod
     @abstractmethod
     def default_parameters() -> dict[str, pint.Quantity]:
         """returns a dictionary with required parameters and a set of working values as example"""
-        # this must de defined in each setup class
-        pass
 
+    @abstractmethod
     def create_displacement_boundary(self, V) -> list:
-        # define empty displacement boundary
-        displ_bcs = []
+        """returns a list with displacement boundary conditions
 
-        return displ_bcs
+           this function is abstract until there is a need for a material that does not need a displacement boundary
+           once that is required, just make this a normal function that returns an empty list
+           """
 
-    def create_force_boundary(self, v):
+    def create_force_boundary(self, v = None):
         # define empty force boundary
         # TODO: is there a better solution???
 
         return None
 
-    def create_body_force(self, v):
+    def create_body_force(self, v = None):
         # define empty body force function
         # TODO: is there a better solution???
 

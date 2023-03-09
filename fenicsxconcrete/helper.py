@@ -18,14 +18,6 @@ class Parameters(UserDict):
         assert isinstance(value, pint.Quantity)
         self.data[key] = value.to_base_units()
 
-    def __getattr__(self, key: str):
-        return self[key]
-
-    # def __setattr__(self, key: str, value: pint.Quantity):
-    #     assert isinstance(value, pint.Quantity)
-    #     assert key in self
-    #     self[key] = value
-
     def __add__(self, other):
         if other == None:
             dic = self

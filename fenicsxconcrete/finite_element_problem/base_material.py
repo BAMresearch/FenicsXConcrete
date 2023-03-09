@@ -40,12 +40,7 @@ class MaterialProblem(ABC):
         self.experiment.p = self.p  # update experimental parameter list for use in e.g. boundary definition
 
         # set log level...
-        if self.p['log_level'] == 'NOTSET':
-            df.log.LogLevel(0)
-            logging.getLogger("FFC").setLevel(logging.NOTSET)
-            logging.getLogger("UFL").setLevel(logging.NOTSET)
-            logger.add(sys.stderr, level="NOTSET")
-        elif self.p['log_level'] == 'DEBUG':
+        if self.p['log_level'] == 'DEBUG':
             df.log.LogLevel(10)
             logging.getLogger("FFC").setLevel(logging.DEBUG)
             logging.getLogger("UFL").setLevel(logging.DEBUG)
@@ -72,7 +67,7 @@ class MaterialProblem(ABC):
             logger.add(sys.stderr, level="CRITICAL")
         else:
             level = self.p['log_level']
-            raise Exception(f'unknown log level {level}')
+            raise ValueError(f'unknown log level {level}')
 
         self.sensors = Sensors()  # list to hold attached sensors
 
@@ -96,18 +91,14 @@ class MaterialProblem(ABC):
     @abstractmethod
     def default_parameters() -> tuple[Experiment, dict[str, pint.Quantity]]:
         """returns a dictionary with required parameters and a set of working values as example"""
-        # this must de defined in each setup class
-        pass
 
     @abstractmethod
     def setup(self):
-        # initialization of this specific problem
-        pass
+        """Is called by init, must be defined by child"""
 
     @abstractmethod
     def solve(self):
-        # define what to do, to solve this problem
-        pass
+        """Must be defined by child"""
 
     def add_sensor(self, sensor):
         self.sensors[sensor.name] = sensor
