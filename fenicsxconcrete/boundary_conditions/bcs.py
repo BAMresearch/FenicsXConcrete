@@ -7,14 +7,22 @@ from petsc4py import PETSc
 
 
 def get_boundary_dofs(V, marker):
-    """get dofs on the boundary"""
+    """get dofs on the boundary specified by `marker`
+
+    Parameters
+    ----------
+    V : dolfinx.fem.FunctionSpace
+        The FE space.
+    marker : callable
+        A callable defining the boundary.
+    """
     domain = V.mesh
     gdim = domain.geometry.dim
     tdim = domain.topology.dim
     fdim = tdim - 1
     entities = dolfinx.mesh.locate_entities_boundary(domain, fdim, marker)
     dofs = dolfinx.fem.locate_dofs_topological(V, fdim, entities)
-    bc = dolfinx.fem.dirichletbc(np.array((0,) * gdim, dtype=PETSc.ScalarType), dofs)
+    bc = dolfinx.fem.dirichletbc(np.array((0,) * gdim, dtype=PETSc.ScalarType), dofs, V)
     dof_indices = bc.dof_indices()[0]
     return dof_indices
 
