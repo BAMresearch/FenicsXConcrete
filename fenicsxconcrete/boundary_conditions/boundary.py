@@ -103,7 +103,7 @@ def point_at(coord):
     return boundary
 
 
-def show_marked(domain, marker):
+def show_marked(domain, marker):  # pragma: no cover
     import dolfinx
     import matplotlib.pyplot as plt
 
