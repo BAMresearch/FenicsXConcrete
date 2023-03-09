@@ -5,33 +5,38 @@ import numpy as np
 
 """Design
 
-old dolfin: 
+old dolfin:
     here on needed a SubDomain object that defined the boundary geometrically.
     SubDomain could then be passed to DirichletBC.
-    Therefore, fenics_helpers.boundary was used to conveniently define boundaries
-    geometrically (would return a SubDomain).
+    Therefore, fenics_helpers.boundary was used to conveniently define
+    boundaries geometrically (would return a SubDomain).
 
 dolfinx:
     input to dirichletbc is now:
         1. (Function, array)
         2. ([Constant, array], array, FunctionSpace)
-    The array are the boundary_dofs which are determined via `locate_dofs_topological` or
-    `locate_dofs_geometrical`.
+    The array are the boundary_dofs which are determined via
+    `locate_dofs_topological` or `locate_dofs_geometrical`.
 
     Thus, multi.boundary could provide functions to:
-        (a) define callables that define complex geometry as input to locate_dofs_geometrical.
-        (b) define functions that compute entities of the mesh and pass this array to locate_dofs_topological.
+        (a) define callables that define complex geometry as input to
+            locate_dofs_geometrical.
+        (b) define functions that compute entities of the mesh and pass
+            this array to locate_dofs_topological.
 
-    (b) might use dolfinx.mesh.locate_entities and dolfinx.mesh.locate_entities_boundary
+    (b) might use dolfinx.mesh.locate_entities and
+        dolfinx.mesh.locate_entities_boundary
 
     Args:
         mesh: dolfinx.mesh.Mesh
         dim: tdim of the entities
-        marker: function that takes an array of points x and returns an array of booleans
+        marker: function that takes an array of points x and
+                returns an array of booleans
 
-    --> therefore, use of locate_dofs_topological again boils down to a geometrical description
-    of the boundary to be defined. The only difference is the possibility to filter wrt the tdim.
-    (this is not possible with locate_dofs_geometrical)
+    --> therefore, use of locate_dofs_topological again boils down
+        to a geometrical description of the boundary to be defined.
+        The only difference is the possibility to filter wrt the tdim.
+        (this is not possible with locate_dofs_geometrical)
 
 """
 
@@ -117,12 +122,13 @@ def show_marked(domain, marker):
     plt.scatter(xx, yy, facecolors="r", edgecolors="none", marker="o")
     plt.show()
 
+
 def to_floats(values):
     floats = []
     try:
         for v in values:
             floats.append(float(v))
-    except TypeError as e:
+    except TypeError:
         floats = [float(values)]
 
     return floats
