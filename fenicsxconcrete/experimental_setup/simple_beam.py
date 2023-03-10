@@ -70,26 +70,15 @@ class SimpleBeam(Experiment):
         # define displacement boundary
 
         bc_generator = BoundaryConditions(self.mesh, V)
-        #
-        # # getting nodes at the bottom of the mesh to apply correct boundary condition to arbitrary cylinder mesh
-        # mesh_points = self.mesh.geometry.x  # list of all nodal coordinates
-        # bottom_points = mesh_points[(mesh_points[:, 2] == 0.0)]  # copying the bottom nodes, z coord = 0.0
-        #
-        # # sorting by x coordinate
-        # x_min_boundary_point = bottom_points[bottom_points[:, 0].argsort(kind="mergesort")][0]
-        # x_max_boundary_point = bottom_points[bottom_points[:, 0].argsort(kind="mergesort")][-1]
-        # # sorting by y coordinate
-        # y_boundary_point = bottom_points[bottom_points[:, 1].argsort(kind="mergesort")][0]
-        #
-        # bc_generator.add_dirichlet_bc(np.float64(0.0), self.boundary_bottom(), 2, "geometrical", 2)
-        # bc_generator.add_dirichlet_bc(np.float64(0.0), point_at(x_min_boundary_point), 1, "geometrical", 1)
-        # bc_generator.add_dirichlet_bc(np.float64(0.0), point_at(x_max_boundary_point), 1, "geometrical", 1)
-        # bc_generator.add_dirichlet_bc(np.float64(0.0), point_at(y_boundary_point), 0, "geometrical", 0)
 
-        bc_generator.add_dirichlet_bc(np.array([0.0, 0.0, 0.0], dtype=ScalarType), boundary=self.boundary_left(),
+        # fix line in the left
+        bc_generator.add_dirichlet_bc(np.array([0.0, 0.0, 0.0], dtype=ScalarType),
+                                      boundary=self.boundary_left(),
                                       method="geometrical")
-        bc_generator.add_dirichlet_bc(np.array([0.0, 0.0, 0.0], dtype=ScalarType), boundary=self.boundary_right(),
-                                      method="geometrical")
+        # line with dof in x direction on the right
+        bc_generator.add_dirichlet_bc(np.float64(0.0), self.boundary_right(), 1, "geometrical", 0)
+        bc_generator.add_dirichlet_bc(np.float64(0.0), self.boundary_right(), 2, "geometrical", 0)
+
 
         return bc_generator.bcs
 
@@ -104,15 +93,8 @@ class SimpleBeam(Experiment):
 
     def boundary_left(self):
         if self.p['dim'] == 3:
-            return line_at([0,0],['x','z'])
+            return line_at([0, 0], ['x', 'z'])
 
     def boundary_right(self):
         if self.p['dim'] == 3:
-            return line_at([self.p['length'],0],['x','z'])
-
-
-    def boundary_bottom(self):
-        if self.p['dim'] == 2:
-            return plane_at(0.0, 1)
-        elif self.p['dim'] == 3:
-            return plane_at(0.0, 2)
+            return line_at([self.p['length'], 0], ['x', 'z'])

@@ -17,12 +17,12 @@ data_path = Path(__file__).parent / data_dir
 file_name = f'3pointBendingExample'
 
 setup_parameters = {}
-setup_parameters['length'] = 1 * ureg('m')
-setup_parameters['height'] = 0.3 * ureg('m')
+setup_parameters['length'] = 10 * ureg('m')
+setup_parameters['height'] = 0.5 * ureg('m')
 setup_parameters['width'] = 0.3 * ureg('m')  # only relevant for 3D case
 setup_parameters['dim'] = 3 * ureg('')
-setup_parameters['num_elements_length'] = 10 * ureg('')
-setup_parameters['num_elements_height'] = 3 * ureg('')
+setup_parameters['num_elements_length'] = 20 * ureg('')
+setup_parameters['num_elements_height'] = 4 * ureg('')
 setup_parameters['num_elements_width'] = 3 * ureg('')  # only relevant for 3D case
 
 fem_parameters = {}
