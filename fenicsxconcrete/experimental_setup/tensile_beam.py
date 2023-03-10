@@ -7,8 +7,6 @@ import ufl
 from petsc4py.PETSc import ScalarType
 from fenicsxconcrete.unit_registry import ureg
 import pint
-#from fenicsxconcrete.finite_element_problem.linear_elasticity import LinearElasticity
-from fenicsxconcrete.finite_element_problem.base_material import MaterialProblem
 
 class TensileBeam(Experiment):
     def __init__(self, parameters: dict[str, pint.Quantity]):

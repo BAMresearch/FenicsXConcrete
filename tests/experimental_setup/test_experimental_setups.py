@@ -1,12 +1,14 @@
 import pytest
 from fenicsxconcrete.experimental_setup.cantilever_beam import CantileverBeam
 from fenicsxconcrete.experimental_setup.tensile_beam import TensileBeam
+from fenicsxconcrete.experimental_setup.simple_beam import SimpleBeam
 import copy
 from fenicsxconcrete.finite_element_problem.linear_elasticity import LinearElasticity
 
 
 @pytest.mark.parametrize("setup", [CantileverBeam,
-                                   TensileBeam])
+                                   TensileBeam,
+                                   SimpleBeam])
 def test_default_parameters(setup):
     """This function creates experimental setups with the respective default dictionaries
 

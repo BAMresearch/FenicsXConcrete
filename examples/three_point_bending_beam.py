@@ -21,9 +21,11 @@ setup_parameters['length'] = 10 * ureg('m')
 setup_parameters['height'] = 0.5 * ureg('m')
 setup_parameters['width'] = 0.3 * ureg('m')  # only relevant for 3D case
 setup_parameters['dim'] = 2 * ureg('')
-setup_parameters['num_elements_length'] = 20 * ureg('')
+setup_parameters['num_elements_length'] = 10 * ureg('')
 setup_parameters['num_elements_height'] = 4 * ureg('')
 setup_parameters['num_elements_width'] = 3 * ureg('')  # only relevant for 3D case
+# TODO: how is the load defined??? is it the sum? is the per area?
+setup_parameters['load'] = 200000 * ureg('N/m^2')  # only relevant for 3D case
 
 fem_parameters = {}
 fem_parameters['rho'] = 7750 * ureg('kg/m^3')
