@@ -4,7 +4,7 @@ import dolfinx
 import numpy as np
 from mpi4py import MPI
 from petsc4py.PETSc import ScalarType
-from fenicsxconcrete.experimental_setup.boundary import point_at
+from fenicsxconcrete.boundary_conditions.boundary import point_at
 
 
 def test_function_space():

@@ -4,7 +4,7 @@ import dolfinx
 import numpy as np
 from mpi4py import MPI
 from petsc4py.PETSc import ScalarType
-from fenicsxconcrete.experimental_setup.bcs import BoundaryConditions
+from fenicsxconcrete.boundary_conditions.bcs import BoundaryConditions
 
 """Note: topological vs. geometrical
 
