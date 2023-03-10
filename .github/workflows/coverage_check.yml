@@ -18,7 +18,4 @@ jobs:
       - env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh api --header 'Accept: application/vnd.github+json' \
-                 --method POST /repos/octocat/Spoon-Knife/issues \
-                 -f title="Created with the REST API" \
-                 -f body="This is a test issue created by the REST API"
+          gh api --header 'Accept: application/vnd.github+json' --method POST /repos/octocat/Spoon-Knife/issues -f title="Created with the REST API" -f body="This is a test issue created by the REST API"
