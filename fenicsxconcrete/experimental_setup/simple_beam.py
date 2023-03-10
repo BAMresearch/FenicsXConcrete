@@ -8,7 +8,7 @@ from petsc4py.PETSc import ScalarType
 from fenicsxconcrete.unit_registry import ureg
 import pint
 from fenicsxconcrete.boundary_conditions.bcs import BoundaryConditions
-from fenicsxconcrete.boundary_conditions.boundary import plane_at, point_at
+from fenicsxconcrete.boundary_conditions.boundary import plane_at, point_at, line_at
 
 class SimpleBeam(Experiment):
     """Sets up a simply supported beam, fix on the left
@@ -86,8 +86,10 @@ class SimpleBeam(Experiment):
         # bc_generator.add_dirichlet_bc(np.float64(0.0), point_at(x_max_boundary_point), 1, "geometrical", 1)
         # bc_generator.add_dirichlet_bc(np.float64(0.0), point_at(y_boundary_point), 0, "geometrical", 0)
 
-        bc_generator.add_dirichlet_bc(df.fem.Constant(domain=self.mesh, c=(0, 0, 0)), self.boundary_bottom(),
-                                      "geometrical")
+        bc_generator.add_dirichlet_bc(np.array([0.0, 0.0, 0.0], dtype=ScalarType), boundary=self.boundary_left(),
+                                      method="geometrical")
+        bc_generator.add_dirichlet_bc(np.array([0.0, 0.0, 0.0], dtype=ScalarType), boundary=self.boundary_right(),
+                                      method="geometrical")
 
         return bc_generator.bcs
 
@@ -102,11 +104,11 @@ class SimpleBeam(Experiment):
 
     def boundary_left(self):
         if self.p['dim'] == 3:
-            return plane_at(0, 'x')
+            return line_at([0,0],['x','z'])
 
     def boundary_right(self):
         if self.p['dim'] == 3:
-            return plane_at(self.p['length'], 'x')
+            return line_at([self.p['length'],0],['x','z'])
 
 
     def boundary_bottom(self):
