@@ -1,68 +1,21 @@
-name: Set test status
-
+name: push
 on:
-  workflow_run:
-    workflows: ["push"]
-    types:
-      - completed
+  push:
+    branches-ignore:
+
+  pull_request:
+    branches: [ main ]
+
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+
 
 jobs:
-  set_status:
+  use_api:
     runs-on: ubuntu-latest
-    permissions:
-      statuses: write
+    permissions: {}
     steps:
-      - name: Create status
+      - env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          curl --request POST \
-          --url https://api.github.com/repos/${{ github.repository }}/statuses/${{ github.event.workflow_run.head_commit.id }} \
-          --header 'authorization: Bearer ${{ secrets.GITHUB_TOKEN }}' \
-          --header 'content-type: application/json' \
-          --data '{
-            "state": "${{ github.event.workflow_run.conclusion }}",
-            "context": "unit test (kube)",
-            "target_url": "${{ github.event.workflow_run.html_url }}"
-            }' \
-          --fail
-
-
-
-
-
-
-#
-#
-#jobs:
-#  logLatestRelease:
-#    runs-on: ubuntu-latest
-#    steps:
-#      - uses: octokit/request-action@v2.x
-#        id: get_latest_release
-#        with:
-#          route: GET /repos/{owner}/{repo}/releases/latest
-#          owner: octokit
-#          repo: request-action
-#        env:
-#          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-#      - run: "echo latest release: '${{ steps.get_latest_release.outputs.data }}'"
-#
-
-#
-#jobs:
-#  set_status:
-#    runs-on: ubuntu-latest
-#    permissions:
-#      statuses: write
-#    steps:
-#      - name: Create status
-#        run: |
-#          curl --request POST \
-#          --url https://api.github.com/repos/${{ github.repository }}/statuses/${{ github.event.workflow_run.head_commit.id }} \
-#          --header 'authorization: Bearer ${{ secrets.GITHUB_TOKEN }}' \
-#          --header 'content-type: application/json' \
-#          --data '{
-#            "state": "${{ github.event.workflow_run.conclusion }}",
-#            "context": "unit test (kube)",
-#            "target_url": "${{ github.event.workflow_run.html_url }}"
-#            }' \
-#          --fail
+          gh api /octocat
