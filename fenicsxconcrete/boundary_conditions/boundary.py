@@ -117,13 +117,17 @@ def within_range(start, end, tol=1e-6):
 
 def point_at(coord):
     p = to_floats(coord)
-    assert len(p) == 3
 
-    def boundary(x):
-        return np.logical_and(
-            np.logical_and(np.isclose(x[0], p[0]), np.isclose(x[1], p[1])),
-            np.isclose(x[2], p[2]),
-        )
+    if len(p) == 2:
+        def boundary(x):
+            return np.logical_and(np.isclose(x[0], p[0]), np.isclose(x[1], p[1]))
+
+    elif len(p) == 3:
+        def boundary(x):
+            return np.logical_and(
+                np.logical_and(np.isclose(x[0], p[0]), np.isclose(x[1], p[1])),
+                np.isclose(x[2], p[2]),
+            )
 
     return boundary
 

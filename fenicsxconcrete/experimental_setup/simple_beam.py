@@ -71,13 +71,22 @@ class SimpleBeam(Experiment):
 
         bc_generator = BoundaryConditions(self.mesh, V)
 
-        # fix line in the left
-        bc_generator.add_dirichlet_bc(np.array([0.0, 0.0, 0.0], dtype=ScalarType),
-                                      boundary=self.boundary_left(),
-                                      method="geometrical")
-        # line with dof in x direction on the right
-        bc_generator.add_dirichlet_bc(np.float64(0.0), self.boundary_right(), 1, "geometrical", 0)
-        bc_generator.add_dirichlet_bc(np.float64(0.0), self.boundary_right(), 2, "geometrical", 0)
+        if self.p['dim'] == 2:
+            # fix line in the left
+            bc_generator.add_dirichlet_bc(np.array([0.0, 0.0], dtype=ScalarType),
+                                          boundary=self.boundary_left(),
+                                          method="geometrical")
+            # line with dof in x direction on the right
+            bc_generator.add_dirichlet_bc(np.float64(0.0), self.boundary_right(), 1, "geometrical", 0)
+
+        elif self.p['dim'] == 3:
+            # fix line in the left
+            bc_generator.add_dirichlet_bc(np.array([0.0, 0.0, 0.0], dtype=ScalarType),
+                                          boundary=self.boundary_left(),
+                                          method="geometrical")
+            # line with dof in x direction on the right
+            bc_generator.add_dirichlet_bc(np.float64(0.0), self.boundary_right(), 1, "geometrical", 0)
+            bc_generator.add_dirichlet_bc(np.float64(0.0), self.boundary_right(), 2, "geometrical", 0)
 
 
         return bc_generator.bcs
@@ -92,9 +101,13 @@ class SimpleBeam(Experiment):
         return L
 
     def boundary_left(self):
-        if self.p['dim'] == 3:
+        if self.p['dim'] == 2:
+            return point_at([0, 0])
+        elif self.p['dim'] == 3:
             return line_at([0, 0], ['x', 'z'])
 
     def boundary_right(self):
-        if self.p['dim'] == 3:
+        if self.p['dim'] == 2:
+            return point_at([self.p['length'], 0])
+        elif self.p['dim'] == 3:
             return line_at([self.p['length'], 0], ['x', 'z'])
