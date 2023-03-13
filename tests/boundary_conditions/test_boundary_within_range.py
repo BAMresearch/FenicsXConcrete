@@ -3,7 +3,7 @@
 import dolfinx
 from mpi4py import MPI
 from petsc4py.PETSc import ScalarType
-from fenicsxconcrete.experimental_setup.boundary import within_range
+from fenicsxconcrete.boundary_conditions.boundary import within_range
 
 
 def test():
