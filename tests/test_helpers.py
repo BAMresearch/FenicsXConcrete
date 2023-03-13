@@ -24,4 +24,5 @@ def test_parameters():
 def test_parameter_dic_functions():
     parameters = Parameters()
     # testing if adding None to dictionary works
-    parameters + None
+    new = parameters + None
+    assert new is parameters
