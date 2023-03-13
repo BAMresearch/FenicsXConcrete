@@ -96,9 +96,6 @@ class ConcreteCylinderExperiment(Experiment):
         # initialize a set of default parameters
         p = Parameters()
         
-
-        p['degree'] = 2 * ureg('')  # polynomial degree
-
         p.update(parameters)
 
         super().__init__(p)
@@ -136,21 +133,23 @@ class ConcreteCylinderExperiment(Experiment):
                 bottom_area = df.fem.assemble_scalar(df.fem.form(1 * ds(2)))
 
                 return bottom_area, mesh
-
-            # create a discretized cylinder mesh with the same cross-sectional area as the round cylinder
-            target_area = np.pi * self.p['radius']**2
-            effective_radius = self.p['radius']
-            mesh_area = 0 
-            area_error = 1e-6
-            #
-            # iteratively improve the radius of the mesh till the bottom area matches the target
-            while abs(target_area - mesh_area) > target_area * area_error:
-                # generate mesh
-                self.p["mesh_radius"] = effective_radius  # not required, but maybe interesting as metadata
-                mesh_area, self.mesh = create_cylinder_mesh(effective_radius, self.p)
-                # new guess
-                effective_radius = np.sqrt(target_area / mesh_area) * effective_radius
-
+            
+            if self.p['degree'] == 1:
+                # create a discretized cylinder mesh with the same cross-sectional area as the round cylinder
+                target_area = np.pi * self.p['radius']**2
+                effective_radius = self.p['radius']
+                mesh_area = 0 
+                area_error = 1e-6
+                #
+                # iteratively improve the radius of the mesh till the bottom area matches the target
+                while abs(target_area - mesh_area) > target_area * area_error:
+                    # generate mesh
+                    self.p["mesh_radius"] = effective_radius  # not required, but maybe interesting as metadata
+                    mesh_area, self.mesh = create_cylinder_mesh(effective_radius, self.p)
+                    # new guess
+                    effective_radius = np.sqrt(target_area / mesh_area) * effective_radius
+            else:
+                mesh_area, self.mesh = create_cylinder_mesh(self.p['radius'], self.p)
         else:
             raise ValueError(f"wrong dimension {self.p['dim']} for problem setup")
 
@@ -172,6 +171,8 @@ class ConcreteCylinderExperiment(Experiment):
                                                            # in 2D: number of elements in each direction
         default_parameters["radius"] = 75 * ureg("mm")     # radius of cylinder to approximate in mm
         default_parameters["height"] = 100 * ureg("mm")    # height of cylinder in mm
+        default_parameters['degree'] = 2 * ureg('')        # polynomial degree of the mesh
+
         
         return default_parameters
 
