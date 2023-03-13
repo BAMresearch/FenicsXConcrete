@@ -22,9 +22,12 @@ def get_boundary_dofs(V, marker):
     fdim = tdim - 1
     entities = dolfinx.mesh.locate_entities_boundary(domain, fdim, marker)
     dofs = dolfinx.fem.locate_dofs_topological(V, fdim, entities)
-    bc = dolfinx.fem.dirichletbc(np.array((0,) * gdim, dtype=PETSc.ScalarType), dofs, V)
+    bc = dolfinx.fem.dirichletbc(
+            np.array((0,) * gdim, dtype=PETSc.ScalarType), dofs, V
+            )
     dof_indices = bc.dof_indices()[0]
     return dof_indices
+
 
 # adapted version of MechanicsBCs by Thomas Titscher
 class BoundaryConditions:
@@ -56,11 +59,14 @@ class BoundaryConditions:
         # handle facets and measure for neumann bcs
         self._neumann_bcs = []
         self._facet_markers = facet_markers
-        self._ds = ufl.Measure("ds", domain=domain, subdomain_data=facet_markers)
+        self._ds = ufl.Measure(
+                "ds", domain=domain, subdomain_data=facet_markers
+                )
         self._v = ufl.TestFunction(space)
 
     def add_dirichlet_bc(
-        self, value, boundary=None, sub=None, method="topological", entity_dim=None
+        self, value, boundary=None, sub=None, method="topological",
+        entity_dim=None
     ):
         """add a Dirichlet BC
 
@@ -79,7 +85,9 @@ class BoundaryConditions:
             A hint which method should be used to locate the dofs.
             Choice: 'topological' or 'geometrical'.
         entity_dim : optional, int
-            The entity dimension in case `method=topological`.
+            The dimension of the entities to be located topologically.
+            Note that `entity_dim` is required if `sub` is not None and
+            `method=geometrical`.
         """
         if boundary is None:
             assert isinstance(value, dolfinx.fem.DirichletBCMetaClass)
@@ -102,6 +110,7 @@ class BoundaryConditions:
                 dofs = dolfinx.fem.locate_dofs_topological(V, entity_dim, facets)
             else:
                 if sub is not None:
+                    # sub is not None and geometrical does not work
                     assert entity_dim is not None
                     facets = dolfinx.mesh.locate_entities_boundary(
                         self.domain, entity_dim, boundary
