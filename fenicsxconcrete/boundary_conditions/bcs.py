@@ -22,9 +22,7 @@ def get_boundary_dofs(V, marker):
     fdim = tdim - 1
     entities = dolfinx.mesh.locate_entities_boundary(domain, fdim, marker)
     dofs = dolfinx.fem.locate_dofs_topological(V, fdim, entities)
-    bc = dolfinx.fem.dirichletbc(
-            np.array((0,) * gdim, dtype=PETSc.ScalarType), dofs, V
-            )
+    bc = dolfinx.fem.dirichletbc(np.array((0,) * gdim, dtype=PETSc.ScalarType), dofs, V)
     dof_indices = bc.dof_indices()[0]
     return dof_indices
 
@@ -39,12 +37,12 @@ class BoundaryConditions:
         Computational domain of the problem.
     space : dolfinx.fem.FunctionSpace
         Finite element space defined on the domain.
-    facet_markers : optional, dolfinx.mesh.MeshTags
+    facet_tags : optional, dolfinx.mesh.MeshTags
         The mesh tags defining boundaries.
 
     """
 
-    def __init__(self, domain, space, facet_markers=None):
+    def __init__(self, domain, space, facet_tags=None):
         self.domain = domain
         self.V = space
 
@@ -58,17 +56,14 @@ class BoundaryConditions:
 
         # handle facets and measure for neumann bcs
         self._neumann_bcs = []
-        self._facet_markers = facet_markers
-        self._ds = ufl.Measure(
-                "ds", domain=domain, subdomain_data=facet_markers
-                )
+        self._facet_tags = facet_tags
+        self._ds = ufl.Measure("ds", domain=domain, subdomain_data=facet_tags)
         self._v = ufl.TestFunction(space)
 
     def add_dirichlet_bc(
-        self, value, boundary=None, sub=None, method="topological",
-        entity_dim=None
+        self, value, boundary=None, sub=None, method="topological", entity_dim=None
     ):
-        """add a Dirichlet BC
+        """add a Dirichlet bc
 
         Parameters
         ----------
@@ -89,14 +84,17 @@ class BoundaryConditions:
             Note that `entity_dim` is required if `sub` is not None and
             `method=geometrical`.
         """
-        if boundary is None:
-            assert isinstance(value, dolfinx.fem.DirichletBCMetaClass)
+        if isinstance(value, dolfinx.fem.DirichletBCMetaClass):
             self._bcs.append(value)
         else:
             assert method in ("topological", "geometrical")
             V = self.V.sub(sub) if sub is not None else self.V
 
-            if method == "topological":
+            # dolfinx.fem.locate_dofs_geometrical(Vsub, plane_at) raises
+            # RuntimeError
+            topological = method == "topological" or sub is not None
+
+            if topological:
                 assert entity_dim is not None
 
                 if isinstance(boundary, int):
@@ -104,30 +102,30 @@ class BoundaryConditions:
                         facets = self._facet_tags.find(boundary)
                     except AttributeError as atterr:
                         raise atterr("There are no facet tags defined!")
-                else:
+                elif isinstance(boundary, np.ndarray):
                     facets = boundary
-
-                dofs = dolfinx.fem.locate_dofs_topological(V, entity_dim, facets)
-            else:
-                if sub is not None:
-                    # sub is not None and geometrical does not work
-                    assert entity_dim is not None
+                else:
                     facets = dolfinx.mesh.locate_entities_boundary(
                         self.domain, entity_dim, boundary
                     )
-                    dofs = dolfinx.fem.locate_dofs_topological(V, entity_dim, facets)
-                else:
-                    dofs = dolfinx.fem.locate_dofs_geometrical(V, boundary)
 
-            if isinstance(value, (dolfinx.fem.Constant, np.ndarray, np.float64)):
-                bc = dolfinx.fem.dirichletbc(value, dofs, V)
+                dofs = dolfinx.fem.locate_dofs_topological(V, entity_dim, facets)
             else:
-                try:
-                    bc = dolfinx.fem.dirichletbc(value, dofs)
-                except AttributeError:
-                    f = dolfinx.fem.Function(V)
-                    f.interpolate(value)
-                    bc = dolfinx.fem.dirichletbc(f, dofs)
+                dofs = dolfinx.fem.locate_dofs_geometrical(V, boundary)
+
+            try:
+                bc = dolfinx.fem.dirichletbc(value, dofs, V)
+            except TypeError:
+                # value is Function and V cannot be passed
+                # TODO understand 4th constructor
+                # see dolfinx/fem/bcs.py line 127
+                bc = dolfinx.fem.dirichletbc(value, dofs)
+            except AttributeError:
+                # value has no Attribute `dtype`
+                f = dolfinx.fem.Function(V)
+                f.interpolate(value)
+                bc = dolfinx.fem.dirichletbc(f, dofs)
+
             self._bcs.append(bc)
 
     def add_neumann_bc(self, marker, value):
