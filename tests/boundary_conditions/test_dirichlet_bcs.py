@@ -213,6 +213,20 @@ def test_value_interpolation():
     assert np.allclose(np.ones_like(dofs) * my_value, bc.g.x.array[dofs])
 
 
+def test_clear():
+    n = 2
+    domain = dolfinx.mesh.create_unit_interval(MPI.COMM_WORLD, n)
+    V = dolfinx.fem.FunctionSpace(domain, ("Lagrange", 2))
+    bc_handler = BoundaryConditions(domain, V)
+    dofs = dolfinx.fem.locate_dofs_geometrical(V, plane_at(0., "x"))
+    bc = dolfinx.fem.dirichletbc(ScalarType(0), dofs, V)
+    assert not bc_handler.has_dirichlet
+    bc_handler.add_dirichlet_bc(bc)
+    assert bc_handler.has_dirichlet
+    bc_handler.clear(neumann=False)
+    assert not bc_handler.has_dirichlet
+
+
 if __name__ == "__main__":
     test_scalar_geom()
     test_scalar_topo()
@@ -222,3 +236,4 @@ if __name__ == "__main__":
     test_runtimeerror_geometrical()
     test_boundary_as_int()
     test_value_interpolation()
+    test_clear()
