@@ -14,7 +14,7 @@ class TensileBeam(Experiment):
     def __init__(self, parameters: dict[str, pint.Quantity]):
         # initialize a set of "basic parameters"
         default_p = Parameters()
-        default_p['degree'] = 2 * ureg('')  # polynomial degree
+        # default_p['dummy'] = 'example' * ureg('')  # example default parameter for this class
 
         # updating parameters, overriding defaults
         default_p.update(parameters)

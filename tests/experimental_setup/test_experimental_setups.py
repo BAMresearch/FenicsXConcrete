@@ -40,5 +40,3 @@ def test_default_parameters(setup):
     with pytest.raises(ValueError):
         setup_parameters['dim'] = 4 * ureg('')  # there is no 4D setup
         test_setup = setup(setup_parameters)
-
-
