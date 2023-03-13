@@ -59,6 +59,36 @@ def plane_at(coordinate, dim):
     return boundary
 
 
+def line_at(coordinates : list, dims : list):
+    """return callable that determines boundary geometrically
+
+    Parameters
+    ----------
+    coordinates
+    dims
+    """
+    assert len(coordinates) == 2
+    assert len(dims) == 2
+
+    # transform x,y,z str into integer
+    for i, dim in enumerate(dims):
+        if dim in ["x", "X"]:
+            dims[i] = 0
+        elif dim in ["y", "Y"]:
+            dims[i] = 1
+        elif dim in ["z", "Z"]:
+            dims[i] = 2
+        assert dims[i] in (0, 1, 2)
+
+    assert dims[0] != dims[1]
+
+    def boundary(x):
+        return np.logical_and(np.isclose(x[dims[0]], coordinates[0]),
+                              np.isclose(x[dims[1]], coordinates[1]))
+
+    return boundary
+
+
 def within_range(start, end, tol=1e-6):
     """mark the domain within range
 
@@ -87,13 +117,17 @@ def within_range(start, end, tol=1e-6):
 
 def point_at(coord):
     p = to_floats(coord)
-    assert len(p) == 3
 
-    def boundary(x):
-        return np.logical_and(
-            np.logical_and(np.isclose(x[0], p[0]), np.isclose(x[1], p[1])),
-            np.isclose(x[2], p[2]),
-        )
+    if len(p) == 2:
+        def boundary(x):
+            return np.logical_and(np.isclose(x[0], p[0]), np.isclose(x[1], p[1]))
+
+    elif len(p) == 3:
+        def boundary(x):
+            return np.logical_and(
+                np.logical_and(np.isclose(x[0], p[0]), np.isclose(x[1], p[1])),
+                np.isclose(x[2], p[2]),
+            )
 
     return boundary
 

@@ -1,5 +1,4 @@
 import pytest
-#from fenicsxconcrete.experimental_setup.cantilever_beam import CantileverBeam
 from fenicsxconcrete.finite_element_problem.linear_elasticity import LinearElasticity
 import copy
 
