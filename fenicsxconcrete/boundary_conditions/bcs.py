@@ -141,7 +141,7 @@ class BoundaryConditions:
 
         """
         if isinstance(marker, int):
-            assert marker in self._facet_markers.values
+            assert marker in self._facet_tags.values
 
         self._neumann_bcs.append([value, marker])
 
