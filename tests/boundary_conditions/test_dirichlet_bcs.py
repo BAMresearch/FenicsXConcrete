@@ -6,7 +6,8 @@ import numpy as np
 from mpi4py import MPI
 from petsc4py.PETSc import ScalarType
 from fenicsxconcrete.boundary_conditions.bcs import BoundaryConditions
-from fenicsxconcrete.boundary_conditions.boundary import plane_at
+from fenicsxconcrete.boundary_conditions.boundary import (
+        plane_at, create_facet_tags)
 
 """Note: topological vs. geometrical
 
@@ -172,6 +173,23 @@ def test_runtimeerror_geometrical():
         dolfinx.fem.locate_dofs_geometrical(Vsub, bottom)
 
 
+def test_boundary_as_int():
+    n = 5
+    domain = dolfinx.mesh.create_unit_square(MPI.COMM_WORLD, n, n)
+    V = dolfinx.fem.VectorFunctionSpace(domain, ("Lagrange", 2))
+    marker = 1011
+    bottom = {"bottom": (marker, plane_at(0., "y"))}
+    ft, marked = create_facet_tags(domain, bottom)
+
+    bc_handler = BoundaryConditions(domain, V, facet_tags=ft)
+    zero = ScalarType(0.)
+    with pytest.raises(ValueError):
+        bc_handler.add_dirichlet_bc(zero, boundary=0, sub=0, entity_dim=1)
+    assert not bc_handler.has_dirichlet
+    bc_handler.add_dirichlet_bc(zero, boundary=marker, sub=0, entity_dim=1)
+    assert bc_handler.has_dirichlet
+
+
 if __name__ == "__main__":
     test_scalar_geom()
     test_scalar_topo()
@@ -179,3 +197,4 @@ if __name__ == "__main__":
     test_vector_geom_component_wise()
     test_dirichletbc()
     test_runtimeerror_geometrical()
+    test_boundary_as_int()

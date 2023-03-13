@@ -102,6 +102,8 @@ class BoundaryConditions:
                         facets = self._facet_tags.find(boundary)
                     except AttributeError as atterr:
                         raise atterr("There are no facet tags defined!")
+                    if facets.size < 1:
+                        raise ValueError(f"Not able to find facets tagged with value {boundary=}.")
                 elif isinstance(boundary, np.ndarray):
                     facets = boundary
                 else:
