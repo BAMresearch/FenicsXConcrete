@@ -25,6 +25,7 @@ requirements:
     - python
     - pint
     - fenics-dolfinx
+    - loguru
 
 test:
   imports:
