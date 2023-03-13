@@ -68,12 +68,18 @@ def test_vector_geom():
     zero = np.array([0.0, 0.0], dtype=ScalarType)
     bc_handler.add_dirichlet_bc(zero, left, method="geometrical")
 
+    # use a Constant and constrain same dofs again for fun
+    bc_handler.add_dirichlet_bc(
+            dolfinx.fem.Constant(domain, ScalarType(0.)),
+            boundary_facets, sub=0, entity_dim=fdim
+            )
+
     bcs = bc_handler.bcs
     ndofs = 0
     for bc in bcs:
         ndofs += bc.dof_indices()[1]
 
-    assert ndofs == 64 + 34
+    assert ndofs == 64 + 34 + 64
 
 
 def test_vector_geom_component_wise():
