@@ -1,6 +1,7 @@
 """Based on Philipp Diercks implementation for multi -
 helpers to define boundaries"""
 
+import dolfinx
 import numpy as np
 
 """Design
@@ -135,3 +136,44 @@ def to_floats(values):
         floats = [float(values), 0., 0.]
 
     return floats
+
+
+def create_facet_tags(mesh, boundaries):
+    """create facet tags for given mesh
+
+    This code is part of the FEniCSx tutorial
+    by Jørgen S. Dokken.
+    See https://jsdokken.com/dolfinx-tutorial/chapter3/robin_neumann_dirichlet.html?highlight=sorted_facets#implementation # noqa: E501
+
+    Parameters
+    ----------
+    mesh : dolfinx.mesh.Mesh
+        The grid of the computational domain.
+    boundaries : dict
+        The definition of boundaries given by a name (key) and
+        a tuple (value) of an integer and a function.
+
+    Returns
+    -------
+    facet_tags : dolfinx.mesh.MeshTags
+        The mesh tags for the facets/boundary.
+    marked_boundary: dict
+        The name (key) and integer (value) defining the boundary.
+    """
+
+    facet_indices, facet_markers = [], []
+    fdim = mesh.topology.dim - 1
+    marked_boundary = {}
+    for key, (marker, locator) in boundaries.items():
+        facets = dolfinx.mesh.locate_entities(mesh, fdim, locator)
+        facet_indices.append(facets)
+        facet_markers.append(np.full_like(facets, marker))
+        if facets.size > 0:
+            marked_boundary[key] = marker
+    facet_indices = np.hstack(facet_indices).astype(np.int32)
+    facet_markers = np.hstack(facet_markers).astype(np.int32)
+    sorted_facets = np.argsort(facet_indices)
+    facet_tags = dolfinx.mesh.meshtags(
+        mesh, fdim, facet_indices[sorted_facets], facet_markers[sorted_facets]
+    )
+    return facet_tags, marked_boundary
