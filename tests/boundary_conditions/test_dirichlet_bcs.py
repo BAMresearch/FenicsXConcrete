@@ -1,10 +1,12 @@
 """Based on Philipp Diercks implementation for multi"""
 
+import pytest
 import dolfinx
 import numpy as np
 from mpi4py import MPI
 from petsc4py.PETSc import ScalarType
 from fenicsxconcrete.boundary_conditions.bcs import BoundaryConditions
+from fenicsxconcrete.boundary_conditions.boundary import plane_at
 
 """Note: topological vs. geometrical
 
@@ -58,7 +60,8 @@ def test_vector_geom():
     # constrain entire boundary only for the x-component
     boundary_facets = dolfinx.mesh.exterior_facet_indices(domain.topology)
     bc_handler.add_dirichlet_bc(
-        ScalarType(0), boundary_facets, sub=0, method="topological", entity_dim=fdim
+        ScalarType(0), boundary_facets, sub=0, method="topological",
+        entity_dim=fdim
     )
     # constrain left boundary as well
     zero = np.array([0.0, 0.0], dtype=ScalarType)
@@ -88,7 +91,8 @@ def test_vector_geom_component_wise():
     domain.topology.create_connectivity(fdim, tdim)
 
     zero = ScalarType(0.)
-    bc_handler.add_dirichlet_bc(zero, left, method="geometrical", sub=0, entity_dim=fdim)
+    bc_handler.add_dirichlet_bc(
+            zero, left, method="geometrical", sub=0, entity_dim=fdim)
 
     bcs = bc_handler.bcs
     ndofs = 0
@@ -131,7 +135,8 @@ def test_scalar_topo():
 
     # entire boundary; should have (n+1+n)*4 - 4 = 8n dofs
     boundary_facets = dolfinx.mesh.exterior_facet_indices(domain.topology)
-    bc_handler.add_dirichlet_bc(ScalarType(0), boundary_facets, entity_dim=fdim)
+    bc_handler.add_dirichlet_bc(
+            ScalarType(0), boundary_facets, entity_dim=fdim)
 
     bcs = bc_handler.bcs
     my_bc = bcs[0]
@@ -142,8 +147,35 @@ def test_scalar_topo():
     assert my_bc.g.value == 0.0
 
 
+def test_dirichletbc():
+    """add instance of dolfinx.fem.dirichletbc"""
+    n = 20
+    domain = dolfinx.mesh.create_unit_square(MPI.COMM_WORLD, n, n)
+    V = dolfinx.fem.FunctionSpace(domain, ("Lagrange", 2))
+    bc_handler = BoundaryConditions(domain, V)
+    dofs = dolfinx.fem.locate_dofs_geometrical(V, plane_at(0., "x"))
+    bc = dolfinx.fem.dirichletbc(ScalarType(0), dofs, V)
+    assert not bc_handler.has_dirichlet
+    bc_handler.add_dirichlet_bc(bc)
+    assert bc_handler.has_dirichlet
+
+
+def test_runtimeerror_geometrical():
+    """test method geometrical raises RuntimeError if sub
+    is not None"""
+    n = 20
+    domain = dolfinx.mesh.create_unit_square(MPI.COMM_WORLD, n, n)
+    V = dolfinx.fem.VectorFunctionSpace(domain, ("Lagrange", 2))
+    Vsub = V.sub(0)
+    bottom = plane_at(0., "y")
+    with pytest.raises(RuntimeError):
+        dolfinx.fem.locate_dofs_geometrical(Vsub, bottom)
+
+
 if __name__ == "__main__":
     test_scalar_geom()
     test_scalar_topo()
     test_vector_geom()
     test_vector_geom_component_wise()
+    test_dirichletbc()
+    test_runtimeerror_geometrical()
