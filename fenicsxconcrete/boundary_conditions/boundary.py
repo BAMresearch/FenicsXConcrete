@@ -1,6 +1,7 @@
 """Based on Philipp Diercks implementation for multi -
 helpers to define boundaries"""
 
+from typing import Union
 import numpy as np
 
 """Design
@@ -36,7 +37,7 @@ dolfinx:
 """
 
 
-def plane_at(coordinate, dim):
+def plane_at(coordinate: float, dim: Union[str, int]):
     """return callable that determines boundary geometrically
 
     Parameters
@@ -87,14 +88,15 @@ def within_range(start, end, tol=1e-6):
 
 def point_at(coord):
     p = to_floats(coord)
-    assert len(p) == 3
-
-    def boundary(x):
-        return np.logical_and(
-            np.logical_and(np.isclose(x[0], p[0]), np.isclose(x[1], p[1])),
-            np.isclose(x[2], p[2]),
-        )
-
+    if len(p) == 3:
+        def boundary(x):
+            return np.logical_and(
+                np.logical_and(np.isclose(x[0], p[0]), np.isclose(x[1], p[1])),
+                np.isclose(x[2], p[2]),
+            )
+    elif len(p) == 2:
+        def boundary(x):
+            return np.logical_and(np.isclose(x[0], p[0]), np.isclose(x[1], p[1]))
     return boundary
 
 

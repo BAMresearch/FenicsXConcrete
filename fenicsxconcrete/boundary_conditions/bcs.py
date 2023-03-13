@@ -24,16 +24,13 @@ class BoundaryConditions:
 
     Parameters
     ----------
-    domain : dolfinx.mesh.Mesh
-        Computational domain of the problem.
-    space : dolfinx.fem.FunctionSpace
-        Finite element space defined on the domain.
-    facet_markers : optional, dolfinx.mesh.MeshTags
-        The mesh tags defining boundaries.
+    domain : Computational domain of the problem.
+    space : Finite element space defined on the domain.
+    facet_markers : The mesh tags defining boundaries.
 
     """
 
-    def __init__(self, domain, space, facet_markers=None):
+    def __init__(self, domain: dolfinx.mesh.Mesh, space:dolfinx.fem.FunctionSpace, facet_markers:dolfinx.mesh.MeshTagsMetaClass=None):
         self.domain = domain
         self.V = space
 

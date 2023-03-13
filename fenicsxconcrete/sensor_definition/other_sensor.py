@@ -1,6 +1,8 @@
 import dolfinx as df
+import ufl
 import numpy as np
 from fenicsxconcrete.sensor_definition.base_sensor import Sensor
+from fenicsxconcrete.boundary_conditions.bcs import BoundaryConditions
 
 class TemperatureSensor(Sensor):
     """A sensor that measure temperature at a specific point in celsius"""
@@ -133,14 +135,16 @@ class ReactionForceSensorBottom(Sensor):
         # boundary condition
         bottom_surface = problem.experiment.boundary_bottom()
 
-        v_reac = df.Function(problem.V)
-        if problem.p.dim == 2:
-            bc_z = df.DirichletBC(problem.V.sub(1), df.Constant(1.), bottom_surface)
-        elif problem.p.dim == 3:
-            bc_z = df.DirichletBC(problem.V.sub(2), df.Constant(1.), bottom_surface)
+        v_reac = df.fem.Function(problem.V)
+        bc_generator = BoundaryConditions(problem.mesh, problem.V)
+        if problem.p['dim'] == 2:
+            bc_generator.add_dirichlet_bc(df.fem.Constant(domain=problem.mesh, c= 1.), bottom_surface, 1, "geometrical", 1)
 
-        bc_z.apply(v_reac.vector())
-        computed_force = (-df.assemble(df.action(problem.residual, v_reac)))
+        elif problem.p['dim'] == 3:
+            bc_generator.add_dirichlet_bc(df.fem.Constant(domain=problem.mesh, c= 1.), bottom_surface, 2, "geometrical", 2)
+
+        df.fem.set_bc(v_reac.vector, bc_generator.bcs)
+        computed_force = (-df.fem.assemble_scalar(df.fem.form(ufl.action(problem.residual, v_reac))))
 
         self.data.append(computed_force)
         self.time.append(t)
