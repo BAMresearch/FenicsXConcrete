@@ -97,22 +97,21 @@ class MaterialProblem(ABC):
     def default_parameters() -> tuple[Experiment, dict[str, pint.Quantity]]:
         """returns a dictionary with required parameters and a set of working values as example"""
         # this must de defined in each setup class
-        pass
 
     @abstractmethod
     def setup(self):
         # initialization of this specific problem
-        pass
+        """ Implemented in child if needed """
 
     @abstractmethod
     def solve(self):
         # define what to do, to solve this problem
-        pass
+        """ Implemented in child if needed """
 
     @abstractmethod
     def compute_residuals(self):
         # define what to do, to compute the residuals. Called in solve
-        pass
+        """ Implemented in child if needed """
 
     def add_sensor(self, sensor):
         self.sensors[sensor.name] = sensor

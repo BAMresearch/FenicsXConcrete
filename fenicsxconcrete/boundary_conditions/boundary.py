@@ -94,7 +94,7 @@ def point_at(coord):
                 np.logical_and(np.isclose(x[0], p[0]), np.isclose(x[1], p[1])),
                 np.isclose(x[2], p[2]),
             )
-    if len(p) == 2:
+    elif len(p) == 2:
         def boundary(x):
             return np.logical_and(np.isclose(x[0], p[0]), np.isclose(x[1], p[1]))
     return boundary

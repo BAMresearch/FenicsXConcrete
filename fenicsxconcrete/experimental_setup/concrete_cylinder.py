@@ -14,7 +14,7 @@ from fenicsxconcrete.boundary_conditions.boundary import plane_at, point_at
 from fenicsxconcrete.boundary_conditions.bcs import BoundaryConditions
 
 
-def generate_cylinder_mesh(radius:float, height:float, mesh_density:float) -> df.mesh.Mesh:
+def generate_cylinder_mesh(radius:float, height:float, mesh_density:float, element_degree:int = 2) -> df.mesh.Mesh:
     """Uses gmsh to generate a cylinder mesh for fenics
 
     Paramters
@@ -22,6 +22,7 @@ def generate_cylinder_mesh(radius:float, height:float, mesh_density:float) -> df
     radius : radius of the cylinder
     height : height of the cylinder
     mesh_density : defines the size of the elements and the minimum number of element edges in the height of the cylinder
+    element_degree: degree of the discretization elements, quadratic geometry by default
 
     Returns
     -------
@@ -55,6 +56,9 @@ def generate_cylinder_mesh(radius:float, height:float, mesh_density:float) -> df
     gmsh.option.setNumber("Mesh.CharacteristicLengthMax", characteristic_length)
     # setting for minimal length, arbitrarily chosen as half the max value
     gmsh.option.setNumber("Mesh.CharacteristicLengthMin", characteristic_length / 2)
+    # setting the order of the elements
+    gmsh.option.setNumber("Mesh.ElementOrder", element_degree)
+    gmsh.model.mesh.setOrder(element_degree)
     gmsh.model.mesh.generate(dim)
 
     # save it to disk as msh in folder
@@ -120,7 +124,7 @@ class ConcreteCylinderExperiment(Experiment):
             # until the bottom surface area matches that of a circle with the initially defined radius
             def create_cylinder_mesh(radius, p):
                 # generate cylinder mesh using gmsh
-                mesh = generate_cylinder_mesh(radius, p['height'], p['mesh_density'])
+                mesh = generate_cylinder_mesh(radius, p['height'], p['mesh_density'], p['degree'])
                 facets = df.mesh.locate_entities_boundary(mesh, 2, plane_at(0.0, 2))
                 tdim = mesh.topology.dim
                 f_v = mesh.topology.connectivity(tdim - 1, 0).array.reshape(-1, 3)
@@ -148,7 +152,7 @@ class ConcreteCylinderExperiment(Experiment):
                 effective_radius = np.sqrt(target_area / mesh_area) * effective_radius
 
         else:
-            raise Exception(f"wrong dimension {self.p['dim']} for problem setup")
+            raise ValueError(f"wrong dimension {self.p['dim']} for problem setup")
 
     @staticmethod
     def default_parameters() -> dict[str, pint.Quantity]:
@@ -190,13 +194,13 @@ class ConcreteCylinderExperiment(Experiment):
             if self.p['dim'] == 2:
                 bc_generator.add_dirichlet_bc(self.top_displacement, self.boundary_top(), 1, "geometrical", 1)
                 bc_generator.add_dirichlet_bc(np.float64(0.0), self.boundary_top(), 0, "geometrical", 0)
-                bc_generator.add_dirichlet_bc(df.fem.Constant(domain=self.mesh, c=(0, 0)), self.boundary_bottom(), "geometrical")
+                bc_generator.add_dirichlet_bc(df.fem.Constant(domain=self.mesh, c=(0.0, 0.0)), self.boundary_bottom(), None, "geometrical")
             elif self.p['dim']== 3:
 
                 bc_generator.add_dirichlet_bc(self.top_displacement, self.boundary_top(), 2, "geometrical", 2)
                 bc_generator.add_dirichlet_bc(np.float64(0.0), self.boundary_top(), 0, "geometrical", 0)
                 bc_generator.add_dirichlet_bc(np.float64(0.0), self.boundary_top(), 1, "geometrical", 1)
-                bc_generator.add_dirichlet_bc(df.fem.Constant(domain=self.mesh, c=(0, 0, 0)), self.boundary_bottom(), "geometrical")
+                bc_generator.add_dirichlet_bc(df.fem.Constant(domain=self.mesh, c=(0.0, 0.0, 0.0)), self.boundary_bottom(), None, "geometrical")
 
         elif self.p['bc_setting'] == "free":
             if self.p['dim'] == 2:
@@ -222,9 +226,9 @@ class ConcreteCylinderExperiment(Experiment):
                 bc_generator.add_dirichlet_bc(np.float64(0.0), point_at(y_boundary_point), 0, "geometrical", 0)
             
             else:
-                raise Exception(f"dim setting: {self.p['dim']}, not implemented for cylinder bc setup: free")
+                raise ValueError(f"dim setting: {self.p['dim']}, not implemented for cylinder bc setup: free")
         else:
-            raise Exception(f"Wrong boundary setting: {self.p['bc_setting']}, for cylinder setup")
+            raise ValueError(f"Wrong boundary setting: {self.p['bc_setting']}, for cylinder setup")
 
         return bc_generator.bcs
     
