@@ -20,7 +20,7 @@ class CantileverBeam(Experiment):
 
         # initialize default parameters for the setup
         default_p = Parameters()
-        default_p['dummy'] = 'example' * ureg('')  # example default parameter for this class
+        # default_p['dummy'] = 'example' * ureg('')  # example default parameter for this class
 
         # updating parameters, overriding defaults
         default_p.update(parameters)

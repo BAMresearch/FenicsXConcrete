@@ -10,6 +10,7 @@ from fenicsxconcrete.experimental_setup.base_experiment import Experiment
 
 from fenicsxconcrete.helper import Parameters
 from fenicsxconcrete.sensor_definition.base_sensor import Sensors
+from fenicsxconcrete.sensor_definition.base_sensor import Sensor
 
 class MaterialProblem(ABC):
     def __init__(self,
@@ -108,8 +109,11 @@ class MaterialProblem(ABC):
     def solve(self):
         """Must be defined by child"""
 
-    def add_sensor(self, sensor):
-        self.sensors[sensor.name] = sensor
+    def add_sensor(self, sensor: Sensor):
+        if isinstance(sensor, Sensor):
+            self.sensors[sensor.name] = sensor
+        else:
+            raise ValueError('The sensor must be of the class Sensor')
 
     def clean_sensor_data(self):
         for sensor_object in self.sensors.values():

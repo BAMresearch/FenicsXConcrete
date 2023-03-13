@@ -26,3 +26,13 @@ def test_log_levels(log_level):
     else:
         with pytest.raises(ValueError):
             LinearElasticity(default_experiment, fem_parameters)
+
+
+def test_sensor_error():
+    """This function tests the add sensor function"""
+
+    default_experiment, fem_parameters = LinearElasticity.default_parameters()
+    problem = LinearElasticity(default_experiment, fem_parameters)
+
+    with pytest.raises(ValueError):
+        problem.add_sensor('not a sensor')
