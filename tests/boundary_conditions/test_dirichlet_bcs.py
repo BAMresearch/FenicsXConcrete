@@ -181,13 +181,36 @@ def test_boundary_as_int():
     bottom = {"bottom": (marker, plane_at(0., "y"))}
     ft, marked = create_facet_tags(domain, bottom)
 
+    bch_wo_ft = BoundaryConditions(domain, V)
     bc_handler = BoundaryConditions(domain, V, facet_tags=ft)
+
     zero = ScalarType(0.)
+    with pytest.raises(AttributeError):
+        bch_wo_ft.add_dirichlet_bc(zero, boundary=0, sub=0, entity_dim=1)
     with pytest.raises(ValueError):
         bc_handler.add_dirichlet_bc(zero, boundary=0, sub=0, entity_dim=1)
     assert not bc_handler.has_dirichlet
     bc_handler.add_dirichlet_bc(zero, boundary=marker, sub=0, entity_dim=1)
     assert bc_handler.has_dirichlet
+
+
+def test_value_interpolation():
+    n = 50
+    domain = dolfinx.mesh.create_unit_interval(MPI.COMM_WORLD, n)
+    V = dolfinx.fem.FunctionSpace(domain, ("Lagrange", 2))
+    my_value = 17.2
+
+    def expression(x):
+        return np.ones_like(x[0]) * my_value
+
+    def everywhere(x):
+        return np.full(x[0].shape, True, dtype=bool)
+
+    bc_handler = BoundaryConditions(domain, V)
+    bc_handler.add_dirichlet_bc(expression, everywhere, entity_dim=0)
+    bc = bc_handler.bcs[0]
+    dofs = bc.dof_indices()[0]
+    assert np.allclose(np.ones_like(dofs) * my_value, bc.g.x.array[dofs])
 
 
 if __name__ == "__main__":
@@ -198,3 +221,4 @@ if __name__ == "__main__":
     test_dirichletbc()
     test_runtimeerror_geometrical()
     test_boundary_as_int()
+    test_value_interpolation()
