@@ -1,37 +1,43 @@
 """Based on Philipp Diercks implementation for multi -
 helpers to define boundaries"""
 
+import dolfinx
 import numpy as np
 
 """Design
 
-old dolfin: 
+old dolfin:
     here on needed a SubDomain object that defined the boundary geometrically.
     SubDomain could then be passed to DirichletBC.
-    Therefore, fenics_helpers.boundary was used to conveniently define boundaries
-    geometrically (would return a SubDomain).
+    Therefore, fenics_helpers.boundary was used to conveniently define
+    boundaries geometrically (would return a SubDomain).
 
 dolfinx:
     input to dirichletbc is now:
         1. (Function, array)
         2. ([Constant, array], array, FunctionSpace)
-    The array are the boundary_dofs which are determined via `locate_dofs_topological` or
-    `locate_dofs_geometrical`.
+    The array are the boundary_dofs which are determined via
+    `locate_dofs_topological` or `locate_dofs_geometrical`.
 
     Thus, multi.boundary could provide functions to:
-        (a) define callables that define complex geometry as input to locate_dofs_geometrical.
-        (b) define functions that compute entities of the mesh and pass this array to locate_dofs_topological.
+        (a) define callables that define complex geometry as input to
+            locate_dofs_geometrical.
+        (b) define functions that compute entities of the mesh and pass
+            this array to locate_dofs_topological.
 
-    (b) might use dolfinx.mesh.locate_entities and dolfinx.mesh.locate_entities_boundary
+    (b) might use dolfinx.mesh.locate_entities and
+        dolfinx.mesh.locate_entities_boundary
 
     Args:
         mesh: dolfinx.mesh.Mesh
         dim: tdim of the entities
-        marker: function that takes an array of points x and returns an array of booleans
+        marker: function that takes an array of points x and
+                returns an array of booleans
 
-    --> therefore, use of locate_dofs_topological again boils down to a geometrical description
-    of the boundary to be defined. The only difference is the possibility to filter wrt the tdim.
-    (this is not possible with locate_dofs_geometrical)
+    --> therefore, use of locate_dofs_topological again boils down
+        to a geometrical description of the boundary to be defined.
+        The only difference is the possibility to filter wrt the tdim.
+        (this is not possible with locate_dofs_geometrical)
 
 """
 
@@ -98,7 +104,7 @@ def point_at(coord):
     return boundary
 
 
-def show_marked(domain, marker):
+def show_marked(domain, marker):  # pragma: no cover
     import dolfinx
     import matplotlib.pyplot as plt
 
@@ -117,12 +123,57 @@ def show_marked(domain, marker):
     plt.scatter(xx, yy, facecolors="r", edgecolors="none", marker="o")
     plt.show()
 
+
 def to_floats(values):
+    """convert to float and assure len(values)==3"""
     floats = []
     try:
         for v in values:
             floats.append(float(v))
-    except TypeError as e:
-        floats = [float(values)]
+        while len(floats) < 3:
+            floats.append(0.)
+    except TypeError:
+        floats = [float(values), 0., 0.]
 
     return floats
+
+
+def create_facet_tags(mesh, boundaries):
+    """create facet tags for given mesh
+
+    This code is part of the FEniCSx tutorial
+    by Jørgen S. Dokken.
+    See https://jsdokken.com/dolfinx-tutorial/chapter3/robin_neumann_dirichlet.html?highlight=sorted_facets#implementation # noqa: E501
+
+    Parameters
+    ----------
+    mesh : dolfinx.mesh.Mesh
+        The grid of the computational domain.
+    boundaries : dict
+        The definition of boundaries given by a name (key) and
+        a tuple (value) of an integer and a function.
+
+    Returns
+    -------
+    facet_tags : dolfinx.mesh.MeshTags
+        The mesh tags for the facets/boundary.
+    marked_boundary: dict
+        The name (key) and integer (value) defining the boundary.
+    """
+
+    facet_indices, facet_markers = [], []
+    fdim = mesh.topology.dim - 1
+    marked_boundary = {}
+    for key, (marker, locator) in boundaries.items():
+        facets = dolfinx.mesh.locate_entities(mesh, fdim, locator)
+        facet_indices.append(facets)
+        facet_markers.append(np.full_like(facets, marker))
+        if facets.size > 0:
+            marked_boundary[key] = marker
+    facet_indices = np.hstack(facet_indices).astype(np.int32)
+    facet_markers = np.hstack(facet_markers).astype(np.int32)
+    sorted_facets = np.argsort(facet_indices)
+    facet_tags = dolfinx.mesh.meshtags(
+        mesh, fdim, facet_indices[sorted_facets], facet_markers[sorted_facets]
+    )
+    return facet_tags, marked_boundary
