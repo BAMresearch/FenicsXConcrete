@@ -1,6 +1,7 @@
-"""Based on Philipp Diercks implementation for multi -
-helpers to define boundaries"""
+"""Easy definition of boundaries."""
 
+from collections.abc import Callable, Iterable
+from typing import Union
 import dolfinx
 import numpy as np
 
@@ -42,14 +43,9 @@ dolfinx:
 """
 
 
-def plane_at(coordinate, dim):
-    """return callable that determines boundary geometrically
+def plane_at(coordinate: float, dim: Union[str, int]) -> Callable[[np.ndarray], np.ndarray]:
+    """Returns Callable that defines a plane where `x[dim]` equals `coordinate`."""
 
-    Parameters
-    ----------
-    coordinate : float
-    dim : str or int
-    """
     if dim in ["x", "X"]:
         dim = 0
     if dim in ["y", "Y"]:
@@ -65,11 +61,16 @@ def plane_at(coordinate, dim):
     return boundary
 
 
-def within_range(start, end, tol=1e-6):
-    """mark the domain within range
+def within_range(start: Iterable[int, float], end: Iterable[int, float], tol: float=1e-6) -> Callable[[np.ndarray], np.ndarray]:
+    """Returns Callable that defines a range.
 
-    Note: best used together with dolfinx.mesh.locate_entities_boundary
-    and topological definition of the Dirichlet bc
+    It is best used together with `dolfinx.mesh.locate_entities_boundary`
+    and topological definition of the Dirichlet BC, because the Callable
+    will mark the whole range and not just the boundary.
+
+    Args:
+      start: The start point of the range.
+      end: The end point of the range.
     """
     start = to_floats(start)
     end = to_floats(end)
@@ -91,7 +92,8 @@ def within_range(start, end, tol=1e-6):
     return boundary
 
 
-def point_at(coord):
+def point_at(coord: Iterable[int, float]) -> Callable[[np.ndarray], np.ndarray]:
+    """Returns Callable that defines a point."""
     p = to_floats(coord)
     assert len(p) == 3
 
@@ -124,41 +126,36 @@ def show_marked(domain, marker):  # pragma: no cover
     plt.show()
 
 
-def to_floats(values):
-    """convert to float and assure len(values)==3"""
+def to_floats(x: Iterable[int, float]) -> list[float]:
+    """Converts `x` to a 3d coordinate."""
     floats = []
     try:
-        for v in values:
+        for v in x:
             floats.append(float(v))
         while len(floats) < 3:
             floats.append(0.)
     except TypeError:
-        floats = [float(values), 0., 0.]
+        floats = [float(x), 0., 0.]
 
     return floats
 
 
-def create_facet_tags(mesh, boundaries):
-    """create facet tags for given mesh
+def create_facet_tags(mesh: dolfinx.mesh.Mesh, boundaries: dict) -> tuple[np.ndarray, dict]:
+    """Creates facet tags for the given mesh.
 
     This code is part of the FEniCSx tutorial
     by Jørgen S. Dokken.
     See https://jsdokken.com/dolfinx-tutorial/chapter3/robin_neumann_dirichlet.html?highlight=sorted_facets#implementation # noqa: E501
 
-    Parameters
-    ----------
-    mesh : dolfinx.mesh.Mesh
-        The grid of the computational domain.
-    boundaries : dict
-        The definition of boundaries given by a name (key) and
-        a tuple (value) of an integer and a function.
+    Args:
+      mesh: The computational domain.
+      boundaries: The definition of boundaries where each key is a string
+        and each value is a tuple of an integer and a marker function.
 
-    Returns
-    -------
-    facet_tags : dolfinx.mesh.MeshTags
-        The mesh tags for the facets/boundary.
-    marked_boundary: dict
-        The name (key) and integer (value) defining the boundary.
+    Returns:
+      A tuple (facet_tags, marked_boundary) where facet_tags is an array
+      with dtype int and marked_boundary is a dict where each key is a string
+      and each value is an int.
     """
 
     facet_indices, facet_markers = [], []
