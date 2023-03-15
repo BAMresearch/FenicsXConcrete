@@ -2,12 +2,14 @@ name: fenicsxconcrete
 channels:
   - conda-forge
 dependencies:
+  # runtime
   - fenics-dolfinx
   - pint
+  - loguru
+  # tests
   - pytest
-  - python-gmsh
-  - meshio
-  - pytest-cov
+  - coverage
+  - toml
   - pip
   - pip:
       - -e .
