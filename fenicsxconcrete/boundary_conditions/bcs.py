@@ -1,4 +1,6 @@
-"""Based on Philipp Diercks implementation for multi"""
+"""Easy definition of Dirichlet and Neumann BCs."""
+
+from collections.abc import Callable
 
 import dolfinx
 import ufl
@@ -6,23 +8,15 @@ import numpy as np
 from petsc4py import PETSc
 
 
-def get_boundary_dofs(V, marker):
-    """get dofs on the boundary specified by `marker`
-
-    Parameters
-    ----------
-    V : dolfinx.fem.FunctionSpace
-        The FE space.
-    marker : callable
-        A callable defining the boundary.
-    """
+def get_boundary_dofs(V: dolfinx.fem.FunctionSpace, marker: Callable[[np.ndarray], np.ndarray]) -> np.ndarray:
+    """Returns dofs on the boundary specified by geometrical `marker`."""
     domain = V.mesh
-    gdim = domain.geometry.dim
     tdim = domain.topology.dim
     fdim = tdim - 1
     entities = dolfinx.mesh.locate_entities_boundary(domain, fdim, marker)
     dofs = dolfinx.fem.locate_dofs_topological(V, fdim, entities)
-    bc = dolfinx.fem.dirichletbc(np.array((0,) * gdim, dtype=PETSc.ScalarType), dofs, V)
+    g = dolfinx.fem.Function(V)
+    bc = dolfinx.fem.dirichletbc(g, dofs)
     dof_indices = bc.dof_indices()[0]
     return dof_indices
 
