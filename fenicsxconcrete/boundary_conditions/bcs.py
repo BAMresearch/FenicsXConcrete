@@ -90,8 +90,9 @@ class BoundaryConditions:
             assert method in ("topological", "geometrical")
             V = self.V.sub(sub) if sub is not None else self.V
 
-            # dolfinx.fem.locate_dofs_geometrical(Vsub, plane_at) raises
-            # RuntimeError
+            # if sub is not None and method=="geometrical"
+            # dolfinx.fem.locate_dofs_geometrical(V, boundary) will raise a RuntimeError
+            # because dofs of a subspace cannot be tabulated
             topological = method == "topological" or sub is not None
 
             if topological:
