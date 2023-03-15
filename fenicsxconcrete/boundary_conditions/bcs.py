@@ -1,6 +1,7 @@
 """Easy definition of Dirichlet and Neumann BCs."""
 
 from collections.abc import Callable
+from typing import Union
 
 import dolfinx
 import ufl
@@ -23,20 +24,25 @@ def get_boundary_dofs(V: dolfinx.fem.FunctionSpace, marker: Callable[[np.ndarray
 
 # adapted version of MechanicsBCs by Thomas Titscher
 class BoundaryConditions:
-    """Handles dirichlet and neumann boundary conditions
+    """Handles Dirichlet and Neumann boundary conditions.
 
-    Parameters
-    ----------
-    domain : dolfinx.mesh.Mesh
-        Computational domain of the problem.
-    space : dolfinx.fem.FunctionSpace
-        Finite element space defined on the domain.
-    facet_tags : optional, dolfinx.mesh.MeshTags
-        The mesh tags defining boundaries.
-
+    Attributes:
+        domain: The computational domain.
+        V: The finite element space.
     """
 
-    def __init__(self, domain, space, facet_tags=None):
+    def __init__(self, domain: dolfinx.mesh.Mesh, space: dolfinx.fem.FunctionSpace, facet_tags: np.ndarray=None):
+        """Initializes the instance based on domain and FE space.
+
+        It sets up lists to hold the Dirichlet and Neumann BCs
+        as well as the required `ufl` objects to define Neumann
+        BCs if `facet_tags` is not None.
+
+        Args:
+          domain: The computational domain.
+          space: The finite element space.
+          facet_tags: The mesh tags defining boundaries.
+        """
         self.domain = domain
         self.V = space
 
@@ -55,28 +61,25 @@ class BoundaryConditions:
         self._v = ufl.TestFunction(space)
 
     def add_dirichlet_bc(
-        self, value, boundary=None, sub=None, method="topological", entity_dim=None
-    ):
-        """add a Dirichlet bc
+            self, value: Union[dolfinx.fem.Function, dolfinx.fem.Constant, dolfinx.fem.DirichletBCMetaClass, np.ndarray, Callable[[np.ndarray], np.ndarray]], boundary: Union[int, np.ndarray, Callable[[np.ndarray], np.ndarray]]=None, sub: int=None, method: str="topological", entity_dim: int=None
+    ) -> None:
+        """Adds a Dirichlet bc.
 
-        Parameters
-        ----------
-        value : Function, Constant or np.ndarray or DirichletBCMetaClass
-            The Dirichlet function or boundary condition.
-        boundary : optional, callable or np.ndarray or int
-            The part of the boundary whose dofs should be constrained.
+        Args:
+          value: Anything that *might* be used to define the Dirichlet function.
+            It can be a `Function`, a `Callable` which is then interpolated
+            or an already existing Dirichlet BC, or ... (see type hint).
+          boundary: The part of the boundary whose dofs should be constrained.
             This can be a callable defining the boundary geometrically or
             an array of entity tags or an integer marking the boundary if
             `facet_tags` is not None.
-        sub : optional, int
-            If `sub` is not None the subspace `V.sub(sub)` will be constrained.
-        method : optional, str
-            A hint which method should be used to locate the dofs.
-            Choice: 'topological' or 'geometrical'.
-        entity_dim : optional, int
-            The dimension of the entities to be located topologically.
-            Note that `entity_dim` is required if `sub` is not None and
-            `method=geometrical`.
+          sub: If `sub` is not None the subspace `V.sub(sub)` will be
+            constrained.
+          method: A hint which method should be used to locate the dofs.
+            Choices: 'topological' or 'geometrical'.
+          entity_dim: The dimension of the entities to be located
+            topologically. Note that `entity_dim` is required if `sub`
+            is not None and `method=geometrical`.
         """
         if isinstance(value, dolfinx.fem.DirichletBCMetaClass):
             self._bcs.append(value)
@@ -125,36 +128,34 @@ class BoundaryConditions:
 
             self._bcs.append(bc)
 
-    def add_neumann_bc(self, marker, value):
-        """adds a Neumann BC.
+    def add_neumann_bc(self, marker: int, value) -> None:
+        """Adds a Neumann BC.
 
-        Parameters
-        ----------
-        marker : int
-        value : some ufl type
-            The neumann data, e.g. traction vector.
-
+        Args:
+          marker: The id of the boundary where Neumann BC should be applied.
+          value: The Neumann data, e.g. a traction vector. This has
+            to be a valid `ufl` object.
         """
-        if isinstance(marker, int):
-            assert marker in self._facet_tags.values
+        if not marker in self._facet_tags.values:
+            raise ValueError(f"No facet tags defined for {marker=}.")
 
         self._neumann_bcs.append([value, marker])
 
     @property
-    def has_neumann(self):
+    def has_neumann(self) -> bool:
         return len(self._neumann_bcs) > 0
 
     @property
-    def has_dirichlet(self):
+    def has_dirichlet(self) -> bool:
         return len(self._bcs) > 0
 
     @property
-    def bcs(self):
-        """returns list of dirichlet bcs"""
+    def bcs(self) -> list[dolfinx.fem.DirichletBCMetaClass]:
+        """The list of Dirichlet BCs."""
         return self._bcs
 
-    def clear(self, dirichlet=True, neumann=True):
-        """clear list of boundary conditions"""
+    def clear(self, dirichlet: bool=True, neumann: bool=True) -> None:
+        """Clears list of Dirichlet and/or Neumann BCs."""
         if dirichlet:
             self._bcs.clear()
         if neumann:
@@ -162,7 +163,7 @@ class BoundaryConditions:
 
     @property
     def neumann_bcs(self):
-        """returns ufl form of (sum of) neumann bcs"""
+        """The ufl form of (sum of) Neumann BCs"""
         r = 0
         for expression, marker in self._neumann_bcs:
             r += ufl.inner(expression, self._v) * self._ds(marker)

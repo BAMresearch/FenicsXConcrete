@@ -1,3 +1,4 @@
+import pytest
 import dolfinx
 import numpy as np
 from mpi4py import MPI
@@ -38,6 +39,10 @@ def test_constant_traction():
 
     bch.clear(dirichlet=False)
     assert not bch.has_neumann
+
+    # try to add non-existent marker
+    with pytest.raises(ValueError):
+        bch.add_neumann_bc(666, traction)
 
 
 if __name__ == "__main__":
