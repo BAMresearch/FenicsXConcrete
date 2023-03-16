@@ -3,7 +3,10 @@
 import dolfinx
 import numpy as np
 from mpi4py import MPI
-from fenicsxconcrete.boundary_conditions.bcs import BoundaryConditions, get_boundary_dofs
+from fenicsxconcrete.boundary_conditions.bcs import (
+    BoundaryConditions,
+    get_boundary_dofs,
+)
 from fenicsxconcrete.boundary_conditions.boundary import plane_at
 
 
@@ -24,7 +27,7 @@ def num_square_dofs(ncells, deg, dim):
         n = ncells + 1
     elif deg == 2:
         n = 2 * ncells + 1
-    return n ** 2 * dim
+    return n**2 * dim
 
 
 def test_whole_boundary():
@@ -71,10 +74,10 @@ def test_xy_plane():
     dim = 3
 
     domain = dolfinx.mesh.create_unit_cube(
-            MPI.COMM_WORLD, n, n, n, dolfinx.mesh.CellType.hexahedron
-            )
+        MPI.COMM_WORLD, n, n, n, dolfinx.mesh.CellType.hexahedron
+    )
     V = dolfinx.fem.VectorFunctionSpace(domain, ("Lagrange", degree), dim=dim)
-    xy_plane = plane_at(0., "z")
+    xy_plane = plane_at(0.0, "z")
 
     # option (a)
     bc_handler = BoundaryConditions(domain, V)

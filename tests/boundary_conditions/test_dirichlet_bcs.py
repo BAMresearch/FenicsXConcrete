@@ -6,8 +6,7 @@ import numpy as np
 from mpi4py import MPI
 from petsc4py.PETSc import ScalarType
 from fenicsxconcrete.boundary_conditions.bcs import BoundaryConditions
-from fenicsxconcrete.boundary_conditions.boundary import (
-        plane_at, create_facet_tags)
+from fenicsxconcrete.boundary_conditions.boundary import plane_at, create_facet_tags
 
 """Note: topological vs. geometrical
 
@@ -61,8 +60,7 @@ def test_vector_geom():
     # constrain entire boundary only for the x-component
     boundary_facets = dolfinx.mesh.exterior_facet_indices(domain.topology)
     bc_handler.add_dirichlet_bc(
-        ScalarType(0), boundary_facets, sub=0, method="topological",
-        entity_dim=fdim
+        ScalarType(0), boundary_facets, sub=0, method="topological", entity_dim=fdim
     )
     # constrain left boundary as well
     zero = np.array([0.0, 0.0], dtype=ScalarType)
@@ -70,9 +68,11 @@ def test_vector_geom():
 
     # use a Constant and constrain same dofs again for fun
     bc_handler.add_dirichlet_bc(
-            dolfinx.fem.Constant(domain, ScalarType(0.)),
-            boundary_facets, sub=0, entity_dim=fdim
-            )
+        dolfinx.fem.Constant(domain, ScalarType(0.0)),
+        boundary_facets,
+        sub=0,
+        entity_dim=fdim,
+    )
 
     bcs = bc_handler.bcs
     ndofs = 0
@@ -97,9 +97,10 @@ def test_vector_geom_component_wise():
     fdim = tdim - 1
     domain.topology.create_connectivity(fdim, tdim)
 
-    zero = ScalarType(0.)
+    zero = ScalarType(0.0)
     bc_handler.add_dirichlet_bc(
-            zero, left, method="geometrical", sub=0, entity_dim=fdim)
+        zero, left, method="geometrical", sub=0, entity_dim=fdim
+    )
 
     bcs = bc_handler.bcs
     ndofs = 0
@@ -142,8 +143,7 @@ def test_scalar_topo():
 
     # entire boundary; should have (n+1+n)*4 - 4 = 8n dofs
     boundary_facets = dolfinx.mesh.exterior_facet_indices(domain.topology)
-    bc_handler.add_dirichlet_bc(
-            ScalarType(0), boundary_facets, entity_dim=fdim)
+    bc_handler.add_dirichlet_bc(ScalarType(0), boundary_facets, entity_dim=fdim)
 
     bcs = bc_handler.bcs
     my_bc = bcs[0]
@@ -160,7 +160,7 @@ def test_dirichletbc():
     domain = dolfinx.mesh.create_unit_square(MPI.COMM_WORLD, n, n)
     V = dolfinx.fem.FunctionSpace(domain, ("Lagrange", 2))
     bc_handler = BoundaryConditions(domain, V)
-    dofs = dolfinx.fem.locate_dofs_geometrical(V, plane_at(0., "x"))
+    dofs = dolfinx.fem.locate_dofs_geometrical(V, plane_at(0.0, "x"))
     bc = dolfinx.fem.dirichletbc(ScalarType(0), dofs, V)
     assert not bc_handler.has_dirichlet
     bc_handler.add_dirichlet_bc(bc)
@@ -174,7 +174,7 @@ def test_runtimeerror_geometrical():
     domain = dolfinx.mesh.create_unit_square(MPI.COMM_WORLD, n, n)
     V = dolfinx.fem.VectorFunctionSpace(domain, ("Lagrange", 2))
     Vsub = V.sub(0)
-    bottom = plane_at(0., "y")
+    bottom = plane_at(0.0, "y")
     with pytest.raises(RuntimeError):
         dolfinx.fem.locate_dofs_geometrical(Vsub, bottom)
 
@@ -184,13 +184,13 @@ def test_boundary_as_int():
     domain = dolfinx.mesh.create_unit_square(MPI.COMM_WORLD, n, n)
     V = dolfinx.fem.VectorFunctionSpace(domain, ("Lagrange", 2))
     marker = 1011
-    bottom = {"bottom": (marker, plane_at(0., "y"))}
+    bottom = {"bottom": (marker, plane_at(0.0, "y"))}
     ft, marked = create_facet_tags(domain, bottom)
 
     bch_wo_ft = BoundaryConditions(domain, V)
     bc_handler = BoundaryConditions(domain, V, facet_tags=ft)
 
-    zero = ScalarType(0.)
+    zero = ScalarType(0.0)
     with pytest.raises(AttributeError):
         bch_wo_ft.add_dirichlet_bc(zero, boundary=0, sub=0, entity_dim=1)
     with pytest.raises(ValueError):
@@ -224,7 +224,7 @@ def test_clear():
     domain = dolfinx.mesh.create_unit_interval(MPI.COMM_WORLD, n)
     V = dolfinx.fem.FunctionSpace(domain, ("Lagrange", 2))
     bc_handler = BoundaryConditions(domain, V)
-    dofs = dolfinx.fem.locate_dofs_geometrical(V, plane_at(0., "x"))
+    dofs = dolfinx.fem.locate_dofs_geometrical(V, plane_at(0.0, "x"))
     bc = dolfinx.fem.dirichletbc(ScalarType(0), dofs, V)
     assert not bc_handler.has_dirichlet
     bc_handler.add_dirichlet_bc(bc)

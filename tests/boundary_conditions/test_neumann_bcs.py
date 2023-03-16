@@ -3,25 +3,23 @@ import dolfinx
 import numpy as np
 from mpi4py import MPI
 from petsc4py import PETSc
-from fenicsxconcrete.boundary_conditions.boundary import (
-        create_facet_tags,
-        plane_at)
+from fenicsxconcrete.boundary_conditions.boundary import create_facet_tags, plane_at
 from fenicsxconcrete.boundary_conditions.bcs import BoundaryConditions
 
 
 def test_constant_traction():
     n = 10
     domain = dolfinx.mesh.create_unit_square(
-            MPI.COMM_WORLD, n, n, dolfinx.mesh.CellType.quadrilateral
-            )
+        MPI.COMM_WORLD, n, n, dolfinx.mesh.CellType.quadrilateral
+    )
     V = dolfinx.fem.VectorFunctionSpace(domain, ("Lagrange", 1))
     rmarker = 12
-    my_boundaries = {"right": (rmarker, plane_at(0., "x"))}
+    my_boundaries = {"right": (rmarker, plane_at(0.0, "x"))}
     ft, mb = create_facet_tags(domain, my_boundaries)
     bch = BoundaryConditions(domain, V, facet_tags=ft)
 
-    tmax = 234.
-    traction = dolfinx.fem.Constant(domain, PETSc.ScalarType((tmax, 0.)))
+    tmax = 234.0
+    traction = dolfinx.fem.Constant(domain, PETSc.ScalarType((tmax, 0.0)))
     assert not bch.has_neumann
     bch.add_neumann_bc(rmarker, traction)
     assert bch.has_neumann

@@ -10,7 +10,7 @@ from fenicsxconcrete.boundary_conditions.boundary import point_at
 def test_type_error():
     """test TypeError in conversion to float"""
     n = 10
-    domain = dolfinx.mesh.create_interval(MPI.COMM_WORLD, n, [0., 10.])
+    domain = dolfinx.mesh.create_interval(MPI.COMM_WORLD, n, [0.0, 10.0])
     V = dolfinx.fem.FunctionSpace(domain, ("Lagrange", 1))
     x = point_at(5)
     dofs = dolfinx.fem.locate_dofs_geometrical(V, x)
@@ -51,9 +51,7 @@ def test_vector_function_space():
     nodal_dofs = np.array([], dtype=np.int32)
     for x in points:
         dofs = dolfinx.fem.locate_dofs_geometrical(V, point_at(x))
-        bc = dolfinx.fem.dirichletbc(
-                np.array([0, 0], dtype=ScalarType), dofs, V
-                )
+        bc = dolfinx.fem.dirichletbc(np.array([0, 0], dtype=ScalarType), dofs, V)
         nodal_dofs = np.append(nodal_dofs, bc.dof_indices()[0])
     assert nodal_dofs.size == 8
 

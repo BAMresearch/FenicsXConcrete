@@ -68,7 +68,7 @@ def test_cube():
     nodal_value = 42
     bc = dolfinx.fem.dirichletbc(ScalarType(nodal_value), dofs, V)
     ndofs = bc.dof_indices()[1]
-    assert ndofs == (nx+1)*(ny+1)
+    assert ndofs == (nx + 1) * (ny + 1)
     assert bc.g.value == nodal_value
 
 
