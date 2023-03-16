@@ -1,7 +1,8 @@
 """Easy definition of boundaries."""
 
-from collections.abc import Callable, Iterable
-from typing import Union
+import typing
+import numpy.typing
+
 import dolfinx
 import numpy as np
 
@@ -43,8 +44,8 @@ dolfinx:
 """
 
 
-def plane_at(coordinate: float, dim: Union[str, int]) -> Callable[[np.ndarray], np.ndarray]:
-    """Returns Callable that defines a plane where `x[dim]` equals `coordinate`."""
+def plane_at(coordinate: float, dim: typing.Union[str, int]) -> typing.Callable:
+    """Defines a plane where `x[dim]` equals `coordinate`."""
 
     if dim in ["x", "X"]:
         dim = 0
@@ -61,8 +62,12 @@ def plane_at(coordinate: float, dim: Union[str, int]) -> Callable[[np.ndarray], 
     return boundary
 
 
-def within_range(start: Iterable[int, float], end: Iterable[int, float], tol: float=1e-6) -> Callable[[np.ndarray], np.ndarray]:
-    """Returns Callable that defines a range.
+def within_range(
+    start: typing.Union[typing.Iterable[int], typing.Iterable[float]],
+    end: typing.Union[typing.Iterable[int], typing.Iterable[float]],
+    tol: float = 1e-6,
+) -> typing.Callable:
+    """Defines a range.
 
     It is best used together with `dolfinx.mesh.locate_entities_boundary`
     and topological definition of the Dirichlet BC, because the Callable
@@ -92,8 +97,10 @@ def within_range(start: Iterable[int, float], end: Iterable[int, float], tol: fl
     return boundary
 
 
-def point_at(coord: Iterable[int, float]) -> Callable[[np.ndarray], np.ndarray]:
-    """Returns Callable that defines a point."""
+def point_at(
+    coord: typing.Union[typing.Iterable[int], typing.Iterable[float]]
+) -> typing.Callable:
+    """Defines a point."""
     p = to_floats(coord)
     assert len(p) == 3
 
@@ -106,9 +113,34 @@ def point_at(coord: Iterable[int, float]) -> Callable[[np.ndarray], np.ndarray]:
     return boundary
 
 
-def show_marked(domain, marker):  # pragma: no cover
-    import dolfinx
+def show_marked(
+    domain: dolfinx.mesh.Mesh,
+    marker: typing.Callable,
+    filename: typing.Optional[str] = None,
+) -> None:
+    """Shows dof coordinates marked by `marker`.
+
+    Notes:
+      This is useful for debugging boundary conditions.
+      Currently this only works for domains of topological
+      dimension 2.
+
+    Args:
+      domain: The computational domain.
+      marker: A function that takes an array of points ``x`` with shape
+        ``(gdim, num_points)`` and returns an array of booleans of
+        length ``num_points``, evaluating to ``True`` for entities whose
+        degree-of-freedom should be returned.
+      filename: Save figure to this path.
+        If None, the figure is shown (default).
+    """
     import matplotlib.pyplot as plt
+
+    tdim = domain.topology.dim
+    if tdim in (1, 3):
+        raise NotImplementedError(
+            f"Not implemented for mesh of topological dimension {tdim=}."
+        )
 
     V = dolfinx.fem.FunctionSpace(domain, ("Lagrange", 1))
     dofs = dolfinx.fem.locate_dofs_geometrical(V, marker)
@@ -123,25 +155,33 @@ def show_marked(domain, marker):  # pragma: no cover
     plt.scatter(x, y, facecolors="none", edgecolors="k", marker="o")
     xx, yy = marked.T
     plt.scatter(xx, yy, facecolors="r", edgecolors="none", marker="o")
-    plt.show()
+
+    if filename is not None:
+        plt.savefig(filename)
+    else:
+        plt.show()  # pragma: no cover
 
 
-def to_floats(x: Iterable[int, float]) -> list[float]:
+def to_floats(
+    x: typing.Union[typing.Iterable[int], typing.Iterable[float]]
+) -> list[float]:
     """Converts `x` to a 3d coordinate."""
     floats = []
     try:
         for v in x:
             floats.append(float(v))
         while len(floats) < 3:
-            floats.append(0.)
+            floats.append(0.0)
     except TypeError:
-        floats = [float(x), 0., 0.]
+        floats = [float(x), 0.0, 0.0]
 
     return floats
 
 
-def create_facet_tags(mesh: dolfinx.mesh.Mesh, boundaries: dict) -> tuple[np.ndarray, dict]:
-    """Creates facet tags for the given mesh.
+def create_facet_tags(
+    mesh: dolfinx.mesh.Mesh, boundaries: dict
+) -> tuple[np.ndarray, dict]:
+    """Creates facet tags for the given mesh and boundaries.
 
     This code is part of the FEniCSx tutorial
     by Jørgen S. Dokken.

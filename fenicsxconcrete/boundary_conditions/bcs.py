@@ -1,15 +1,16 @@
 """Easy definition of Dirichlet and Neumann BCs."""
 
-from collections.abc import Callable
-from typing import Union
+import typing
+import numpy.typing as npt
 
 import dolfinx
 import ufl
 import numpy as np
-from petsc4py import PETSc
 
 
-def get_boundary_dofs(V: dolfinx.fem.FunctionSpace, marker: Callable[[np.ndarray], np.ndarray]) -> np.ndarray:
+def get_boundary_dofs(
+    V: dolfinx.fem.FunctionSpace, marker: typing.Callable
+) -> np.ndarray:
     """Returns dofs on the boundary specified by geometrical `marker`."""
     domain = V.mesh
     tdim = domain.topology.dim
@@ -31,7 +32,12 @@ class BoundaryConditions:
         V: The finite element space.
     """
 
-    def __init__(self, domain: dolfinx.mesh.Mesh, space: dolfinx.fem.FunctionSpace, facet_tags: np.ndarray=None):
+    def __init__(
+        self,
+        domain: dolfinx.mesh.Mesh,
+        space: dolfinx.fem.FunctionSpace,
+        facet_tags: typing.Optional[npt.NDArray] = None,
+    ):
         """Initializes the instance based on domain and FE space.
 
         It sets up lists to hold the Dirichlet and Neumann BCs
@@ -61,7 +67,18 @@ class BoundaryConditions:
         self._v = ufl.TestFunction(space)
 
     def add_dirichlet_bc(
-            self, value: Union[dolfinx.fem.Function, dolfinx.fem.Constant, dolfinx.fem.DirichletBCMetaClass, np.ndarray, Callable[[np.ndarray], np.ndarray]], boundary: Union[int, np.ndarray, Callable[[np.ndarray], np.ndarray]]=None, sub: int=None, method: str="topological", entity_dim: int=None
+        self,
+        value: typing.Union[
+            dolfinx.fem.Function,
+            dolfinx.fem.Constant,
+            dolfinx.fem.DirichletBCMetaClass,
+            npt.NDArray,
+            typing.Callable,
+        ],
+        boundary: typing.Union[int, npt.NDArray, typing.Callable] = None,
+        sub: int = None,
+        method: str = "topological",
+        entity_dim: typing.Optional[int] = None,
     ) -> None:
         """Adds a Dirichlet bc.
 
@@ -101,7 +118,9 @@ class BoundaryConditions:
                     except AttributeError:
                         raise AttributeError("There are no facet tags defined!")
                     if facets.size < 1:
-                        raise ValueError(f"Not able to find facets tagged with value {boundary=}.")
+                        raise ValueError(
+                            f"Not able to find facets tagged with value {boundary=}."
+                        )
                 elif isinstance(boundary, np.ndarray):
                     facets = boundary
                 else:
@@ -136,7 +155,7 @@ class BoundaryConditions:
           value: The Neumann data, e.g. a traction vector. This has
             to be a valid `ufl` object.
         """
-        if not marker in self._facet_tags.values:
+        if marker not in self._facet_tags.values:
             raise ValueError(f"No facet tags defined for {marker=}.")
 
         self._neumann_bcs.append([value, marker])
@@ -154,7 +173,7 @@ class BoundaryConditions:
         """The list of Dirichlet BCs."""
         return self._bcs
 
-    def clear(self, dirichlet: bool=True, neumann: bool=True) -> None:
+    def clear(self, dirichlet: bool = True, neumann: bool = True) -> None:
         """Clears list of Dirichlet and/or Neumann BCs."""
         if dirichlet:
             self._bcs.clear()
