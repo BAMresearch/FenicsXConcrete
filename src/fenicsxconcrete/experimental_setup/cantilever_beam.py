@@ -7,14 +7,20 @@ import ufl
 from petsc4py.PETSc import ScalarType
 from fenicsxconcrete.unit_registry import ureg
 import pint
-#from fenicsxconcrete.finite_element_problem.linear_elasticity import LinearElasticity
-from fenicsxconcrete.finite_element_problem.base_material import MaterialProblem
 
-class TensileBeam(Experiment):
+class CantileverBeam(Experiment):
+    """Sets up a cantilever beam, clamped on one side and loaded with gravity
+
+    Attributes:
+        see base class
+    """
+
     def __init__(self, parameters: dict[str, pint.Quantity]):
-        # initialize a set of "basic parameters"
+        """defines default parameters, for the rest, see base class"""
+
+        # initialize default parameters for the setup
         default_p = Parameters()
-        default_p['degree'] = 2 * ureg('')  # polynomial degree
+        # default_p['dummy'] = 'example' * ureg('')  # example default parameter for this class
 
         # updating parameters, overriding defaults
         default_p.update(parameters)
@@ -45,6 +51,7 @@ class TensileBeam(Experiment):
     @staticmethod
     def default_parameters() -> dict[str, pint.Quantity]:
         """returns a dictionary with required parameters and a set of working values as example"""
+        # this must de defined in each setup class
 
         setup_parameters = {}
         setup_parameters['length'] = 1 * ureg('m')
@@ -54,7 +61,6 @@ class TensileBeam(Experiment):
         setup_parameters['num_elements_length'] = 10 * ureg('')
         setup_parameters['num_elements_height'] = 3 * ureg('')
         setup_parameters['num_elements_width'] = 3 * ureg('')  # only relevant for 3D case
-        setup_parameters['load'] = 2000 * ureg('kN')
 
         return setup_parameters
 
@@ -74,27 +80,11 @@ class TensileBeam(Experiment):
 
         return displacement_bcs
 
-    def create_force_boundary(self,v):
-        boundaries = [(1, lambda x: np.isclose(x[0], self.p['length'])),
-        (2, lambda x: np.isclose(x[0], 0))]
-
-        facet_indices, facet_markers = [], []
-        fdim = self.mesh.topology.dim - 1
-        for (marker, locator) in boundaries:
-            facets = df.mesh.locate_entities(self.mesh, fdim, locator)
-            facet_indices.append(facets)
-            facet_markers.append(np.full_like(facets, marker))
-        facet_indices = np.hstack(facet_indices).astype(np.int32)
-        facet_markers = np.hstack(facet_markers).astype(np.int32)
-        sorted_facets = np.argsort(facet_indices)
-        facet_tag = df.mesh.meshtags(self.mesh, fdim, facet_indices[sorted_facets], facet_markers[sorted_facets])
-
-        _ds = ufl.Measure("ds", domain=self.mesh, subdomain_data=facet_tag)
-
+    def create_body_force(self, v):
         force_vector = np.zeros(self.p['dim'])
-        force_vector[0] = self.p['load']
+        force_vector[-1] = -self.p['rho']*self.p['g']  # works for 2D and 3D
 
-        T = df.fem.Constant(self.mesh, ScalarType(force_vector))
-        L = ufl.dot(T, v) * _ds(1)
+        f = df.fem.Constant(self.mesh, ScalarType(force_vector))
+        L = ufl.dot(f, v) * ufl.dx
 
         return L

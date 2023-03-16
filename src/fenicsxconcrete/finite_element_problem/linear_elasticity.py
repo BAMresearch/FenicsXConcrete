@@ -22,7 +22,7 @@ class LinearElasticity(MaterialProblem):
 
         # adding default material parameter, will be overridden by outside input
         default_p = Parameters()
-        default_p['dummy'] = 42 * ureg('')   # just an example, maybe useful for other material classes?
+        #default_p['dummy'] = 'example' * ureg('')  # example default parameter for this class
 
         # updating parameters, overriding defaults
         default_p.update(parameters)
