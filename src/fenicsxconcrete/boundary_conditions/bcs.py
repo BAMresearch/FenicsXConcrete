@@ -1,5 +1,7 @@
 """Based on Philipp Diercks implementation for multi"""
 
+import logging
+
 import dolfinx
 import ufl
 import numpy as np
@@ -34,6 +36,7 @@ class BoundaryConditions:
     """
 
     def __init__(self, domain, space, facet_markers=None):
+        self.logger = logging.getLogger("fenicsxconcrete.boundary_conditions.bcs.BoundaryConditions")
         self.domain = domain
         self.V = space
 
@@ -50,6 +53,8 @@ class BoundaryConditions:
         self._facet_markers = facet_markers
         self._ds = ufl.Measure("ds", domain=domain, subdomain_data=facet_markers)
         self._v = ufl.TestFunction(space)
+
+        self.logger.info("hello world")
 
     def add_dirichlet_bc(
         self, value, boundary=None, sub=None, method="topological", entity_dim=None
