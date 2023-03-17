@@ -32,7 +32,8 @@ def test_default_parameters(setup):
 
 # to imporve coverage, I want to test the error messages
 @pytest.mark.parametrize("setup", [CantileverBeam,
-                                   TensileBeam])
+                                   TensileBeam,
+                                   SimpleBeam])
 def test_default_parameters(setup):
     setup_parameters = setup.default_parameters()
 
