@@ -1,7 +1,7 @@
 import numpy as np
 
 from fenicsxconcrete.sensor_definition.other_sensor import ReactionForceSensorBottom
-from fenicsxconcrete.experimental_setup.concrete_cylinder import ConcreteCylinderExperiment
+from fenicsxconcrete.experimental_setup.compression_cylinder import CompressionCylinder
 from fenicsxconcrete.finite_element_problem.linear_elasticity import LinearElasticity
 from fenicsxconcrete.helper import Parameters
 from fenicsxconcrete.unit_registry import ureg
@@ -17,7 +17,7 @@ def simple_setup(p, displacement, sensor, bc_setting):
     parameters["mesh_density"] = 10 * ureg("")
     parameters = parameters + p
 
-    experiment = ConcreteCylinderExperiment(parameters)
+    experiment = CompressionCylinder(parameters)
 
     problem = LinearElasticity(experiment, parameters)
     problem.add_sensor(sensor)

@@ -80,7 +80,7 @@ def generate_cylinder_mesh(radius:float, height:float, mesh_density:float, eleme
     return mesh
 
 
-class ConcreteCylinderExperiment(Experiment):
+class CompressionCylinder(Experiment):
     """A cylinder mesh for a uni-axial displacement load"""
 
     def __init__(self, parameters: dict[str, pint.Quantity]=None):
