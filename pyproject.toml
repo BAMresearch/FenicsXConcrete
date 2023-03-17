@@ -1,9 +1,34 @@
 [build-system]
-requires = [
-    "setuptools>=42",
-    "wheel"
-]
+requires = ["setuptools>=61.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
+[project]
+authors = [
+  { name="Jörg F. Unger", email="joerg.unger@bam.de" },
+]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Topic :: Scientific/Engineering",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+]
+dependencies = [
+  "fenics-dolfinx",
+  "pint",
+  "loguru",
+]
+description = "Implementation of structural problems for concrete structures using FEniCSx"
+license = {file = "LICENSE"}
+name = "fenicsxconcrete"
+readme = "REAMDE.md"
+requires-python = ">=3.7"
+version = "0.0.1"
+
+[project.optional-dependencies]
+tests = ["pytest", "coverage", "toml"]
+
+[project.urls]
+repository = "https://github.com/BAMresearch/FenicsXConcrete.git"
+
 [tool.coverage.run]
-source = ["fenicsxconcrete"]
+source = ["src"]
