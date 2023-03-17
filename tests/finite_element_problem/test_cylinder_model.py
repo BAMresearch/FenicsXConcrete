@@ -47,7 +47,7 @@ def test_free_force_response_2D():
     sensor = ReactionForceSensorBottom()
     measured = simple_setup(p, displacement, sensor, p["bc_setting"])
 
-    result = p.E * p.radius * 2 * displacement / p.height
+    result = p['E'] * p['radius'] * 2 * displacement / p['height']
     assert measured == pytest.approx(result.magnitude)
 
 def test_fixed_force_response_2D():
@@ -66,7 +66,7 @@ def test_fixed_force_response_2D():
     sensor = ReactionForceSensorBottom()
     measured = simple_setup(p, displacement, sensor, p["bc_setting"])
 
-    result = p.E * p.radius * 2 * displacement / p.height
+    result = p['E'] * p['radius'] * 2 * displacement / p['height']
     assert measured == pytest.approx(result.magnitude)
 
 @pytest.mark.parametrize("degree", [1, 2])
@@ -87,7 +87,7 @@ def test_free_force_response_3D(degree):
     measured = simple_setup(p, displacement, sensor, p["bc_setting"])
 
     # due to meshing errors, only aproximate results to be expected. within 1% is good enough
-    result=p.E * np.pi * p.radius**2 * displacement / p.height
+    result=p['E'] * np.pi * p['radius']**2 * displacement / p['height']
     assert measured == pytest.approx(result.magnitude, 0.01)
 
 @pytest.mark.parametrize("degree", [1, 2])
@@ -108,7 +108,7 @@ def test_fixed_force_response_3D(degree):
     measured = simple_setup(p, displacement, sensor, p["bc_setting"])
 
     # due to meshing errors, only aproximate results to be expected. within 1% is good enough
-    result=p.E * np.pi * p.radius**2 * displacement / p.height
+    result=p['E'] * np.pi * p['radius']**2 * displacement / p['height']
     assert measured == pytest.approx(result.magnitude, 0.01)
 
 
