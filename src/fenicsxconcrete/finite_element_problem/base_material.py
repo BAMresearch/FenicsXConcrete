@@ -5,10 +5,12 @@ from loguru import logger
 import logging
 from abc import ABC, abstractmethod
 import pint
+from fenicsxconcrete.unit_registry import ureg
 from fenicsxconcrete.experimental_setup.base_experiment import Experiment
 
 from fenicsxconcrete.helper import Parameters
 from fenicsxconcrete.sensor_definition.base_sensor import Sensors
+from fenicsxconcrete.sensor_definition.base_sensor import Sensor
 
 class MaterialProblem(ABC):
     def __init__(self,
@@ -31,21 +33,23 @@ class MaterialProblem(ABC):
 
         self.experiment = experiment
         self.mesh = self.experiment.mesh
-        # setting up paramters
-        # adding experimental parameters to material parameters
-        parameters.update(self.experiment.parameters)
-        self.parameters = parameters
+
+        # setting up default material parameters
+        default_fem_parameters = Parameters()
+        default_fem_parameters['log_level'] = 'INFO' * ureg('')
+        default_fem_parameters['g'] = 9.81 * ureg('m/s^2')
+
+        # adding experimental parameters to dictionary to combine to one
+        default_fem_parameters.update(self.experiment.parameters)
+        # update with input parameters
+        default_fem_parameters.update(parameters)
+        self.parameters = default_fem_parameters
         # remove units for use in fem model
         self.p = self.parameters.to_magnitude()
         self.experiment.p = self.p  # update experimental parameter list for use in e.g. boundary definition
 
         # set log level...
-        if self.p['log_level'] == 'NOTSET':
-            df.log.LogLevel(0)
-            logging.getLogger("FFC").setLevel(logging.NOTSET)
-            logging.getLogger("UFL").setLevel(logging.NOTSET)
-            logger.add(sys.stderr, level="NOTSET")
-        elif self.p['log_level'] == 'DEBUG':
+        if self.p['log_level'] == 'DEBUG':
             df.log.LogLevel(10)
             logging.getLogger("FFC").setLevel(logging.DEBUG)
             logging.getLogger("UFL").setLevel(logging.DEBUG)
@@ -72,7 +76,7 @@ class MaterialProblem(ABC):
             logger.add(sys.stderr, level="CRITICAL")
         else:
             level = self.p['log_level']
-            raise Exception(f'unknown log level {level}')
+            raise ValueError(f'unknown log level {level}')
 
         self.sensors = Sensors()  # list to hold attached sensors
 
@@ -96,21 +100,20 @@ class MaterialProblem(ABC):
     @abstractmethod
     def default_parameters() -> tuple[Experiment, dict[str, pint.Quantity]]:
         """returns a dictionary with required parameters and a set of working values as example"""
-        # this must de defined in each setup class
-        pass
 
     @abstractmethod
     def setup(self):
-        # initialization of this specific problem
-        pass
+        """Is called by init, must be defined by child"""
 
     @abstractmethod
     def solve(self):
-        # define what to do, to solve this problem
-        pass
+        """Must be defined by child"""
 
-    def add_sensor(self, sensor):
-        self.sensors[sensor.name] = sensor
+    def add_sensor(self, sensor: Sensor):
+        if isinstance(sensor, Sensor):
+            self.sensors[sensor.name] = sensor
+        else:
+            raise ValueError('The sensor must be of the class Sensor')
 
     def clean_sensor_data(self):
         for sensor_object in self.sensors.values():
