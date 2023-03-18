@@ -54,8 +54,6 @@ class BoundaryConditions:
         self._ds = ufl.Measure("ds", domain=domain, subdomain_data=facet_markers)
         self._v = ufl.TestFunction(space)
 
-        self.logger.info("hello world")
-
     def add_dirichlet_bc(
         self, value, boundary=None, sub=None, method="topological", entity_dim=None
     ):

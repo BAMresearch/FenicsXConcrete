@@ -1,16 +1,17 @@
-import dolfinx as df
-from pathlib import Path
 import sys
-from loguru import logger
 import logging
+from pathlib import Path
 from abc import ABC, abstractmethod
+
+import dolfinx as df
 import pint
+
 from fenicsxconcrete.unit_registry import ureg
 from fenicsxconcrete.experimental_setup.base_experiment import Experiment
-
 from fenicsxconcrete.helper import Parameters
 from fenicsxconcrete.sensor_definition.base_sensor import Sensors
 from fenicsxconcrete.sensor_definition.base_sensor import Sensor
+
 
 class MaterialProblem(ABC):
     def __init__(self,
@@ -31,6 +32,7 @@ class MaterialProblem(ABC):
                 Name of the paraview path, if paraview output is generated
         """
 
+        self.logger = logging.getLogger("fenicsxconcrete.finite_element_problem.base_material.MaterialProblem")
         self.experiment = experiment
         self.mesh = self.experiment.mesh
 
@@ -49,34 +51,35 @@ class MaterialProblem(ABC):
         self.experiment.p = self.p  # update experimental parameter list for use in e.g. boundary definition
 
         # set log level...
-        if self.p['log_level'] == 'DEBUG':
-            df.log.LogLevel(10)
-            logging.getLogger("FFC").setLevel(logging.DEBUG)
-            logging.getLogger("UFL").setLevel(logging.DEBUG)
-            logger.add(sys.stderr, level="DEBUG")
-        elif self.p['log_level'] == 'INFO':
-            df.log.LogLevel(20)
-            logging.getLogger("FFC").setLevel(logging.INFO)
-            logging.getLogger("UFL").setLevel(logging.INFO)
-            logger.add(sys.stderr, level="INFO")
-        elif self.p['log_level'] == 'WARNING':
-            df.log.LogLevel(30)
-            logging.getLogger("FFC").setLevel(logging.WARNING)
-            logging.getLogger("UFL").setLevel(logging.WARNING)
-            logger.add(sys.stderr, level="WARNING")
-        elif self.p['log_level'] == 'ERROR':
-            df.log.LogLevel(40)
-            logging.getLogger("FFC").setLevel(logging.ERROR)
-            logging.getLogger("UFL").setLevel(logging.ERROR)
-            logger.add(sys.stderr, level="ERROR")
-        elif self.p['log_level'] == 'CRITICAL':
-            df.log.LogLevel(50)
-            logging.getLogger("FFC").setLevel(logging.CRITICAL)
-            logging.getLogger("UFL").setLevel(logging.CRITICAL)
-            logger.add(sys.stderr, level="CRITICAL")
-        else:
-            level = self.p['log_level']
-            raise ValueError(f'unknown log level {level}')
+        self.logger.setLevel(self.p['log_level'])
+        # if self.p['log_level'] == 'DEBUG':
+        #     df.log.LogLevel(10)
+        #     logging.getLogger("FFC").setLevel(logging.DEBUG)
+        #     logging.getLogger("UFL").setLevel(logging.DEBUG)
+        #     logger.add(sys.stderr, level="DEBUG")
+        # elif self.p['log_level'] == 'INFO':
+        #     df.log.LogLevel(20)
+        #     logging.getLogger("FFC").setLevel(logging.INFO)
+        #     logging.getLogger("UFL").setLevel(logging.INFO)
+        #     logger.add(sys.stderr, level="INFO")
+        # elif self.p['log_level'] == 'WARNING':
+        #     df.log.LogLevel(30)
+        #     logging.getLogger("FFC").setLevel(logging.WARNING)
+        #     logging.getLogger("UFL").setLevel(logging.WARNING)
+        #     logger.add(sys.stderr, level="WARNING")
+        # elif self.p['log_level'] == 'ERROR':
+        #     df.log.LogLevel(40)
+        #     logging.getLogger("FFC").setLevel(logging.ERROR)
+        #     logging.getLogger("UFL").setLevel(logging.ERROR)
+        #     logger.add(sys.stderr, level="ERROR")
+        # elif self.p['log_level'] == 'CRITICAL':
+        #     df.log.LogLevel(50)
+        #     logging.getLogger("FFC").setLevel(logging.CRITICAL)
+        #     logging.getLogger("UFL").setLevel(logging.CRITICAL)
+        #     logger.add(sys.stderr, level="CRITICAL")
+        # else:
+        #     level = self.p['log_level']
+        #     raise ValueError(f'unknown log level {level}')
 
         self.sensors = Sensors()  # list to hold attached sensors
 
