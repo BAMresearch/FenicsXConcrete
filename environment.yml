@@ -5,7 +5,6 @@ dependencies:
   # runtime
   - fenics-dolfinx
   - pint
-  - loguru
   # tests
   - pytest
   - coverage

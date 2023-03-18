@@ -15,7 +15,6 @@ classifiers = [
 dependencies = [
   "fenics-dolfinx",
   "pint",
-  "loguru",
 ]
 description = "Implementation of structural problems for concrete structures using FEniCSx"
 license = {file = "LICENSE"}
