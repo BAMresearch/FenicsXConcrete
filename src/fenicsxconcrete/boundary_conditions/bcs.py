@@ -49,6 +49,7 @@ class BoundaryConditions:
           space: The finite element space.
           facet_tags: The mesh tags defining boundaries.
         """
+
         self.domain = domain
         self.V = space
 
