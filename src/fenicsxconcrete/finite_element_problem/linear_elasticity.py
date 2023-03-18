@@ -8,7 +8,7 @@ from fenicsxconcrete.unit_registry import ureg
 from fenicsxconcrete.finite_element_problem.base_material import MaterialProblem
 from fenicsxconcrete.experimental_setup.cantilever_beam import CantileverBeam
 from fenicsxconcrete.experimental_setup.base_experiment import Experiment
-
+from mpi4py import MPI
 
 class LinearElasticity(MaterialProblem):
     """Material definition for linear elasticity"""
@@ -66,7 +66,7 @@ class LinearElasticity(MaterialProblem):
                                                             petsc_options={"ksp_type": "preonly", "pc_type": "lu"})
 
     @staticmethod
-    def default_parameters() -> tuple[Experiment, [str, pint.Quantity]]:
+    def default_parameters() -> tuple[Experiment, dict[str, pint.Quantity]]:
         """returns a dictionary with required parameters and a set of working values as example"""
         # default setup for this material
         experiment = CantileverBeam(CantileverBeam.default_parameters())
@@ -89,10 +89,16 @@ class LinearElasticity(MaterialProblem):
     def solve(self, t=1.0):        
         self.displacement = self.weak_form_problem.solve()
 
+        # TODO Defined as abstractmethod. Should it depend on sensor instead of material?
+        self.compute_residuals()
+
         # get sensor data
         for sensor_name in self.sensors:
             # go through all sensors and measure
             self.sensors[sensor_name].measure(self, t)
+
+    def compute_residuals(self):
+        self.residual = ufl.action(self.a, self.displacement) - self.L
 
     # paraview output
     # TODO move this to sensor definition!?!?!
