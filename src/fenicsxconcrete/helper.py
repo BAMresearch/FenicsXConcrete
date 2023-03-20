@@ -14,7 +14,7 @@ class Parameters(UserDict):
         assert isinstance(value, pint.Quantity)
         self.data[key] = value.to_base_units()
 
-    def __add__(self, other: Optional[Parameters]) -> "Parameters":
+    def __add__(self, other: Optional[Parameters]) -> Parameters:
         if other == None:
             dic = self
         else:

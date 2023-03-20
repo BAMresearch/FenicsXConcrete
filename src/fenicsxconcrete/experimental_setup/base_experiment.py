@@ -6,6 +6,8 @@ from fenicsxconcrete.helper import Parameters
 from abc import ABC, abstractmethod
 import pint
 from fenicsxconcrete.unit_registry import ureg
+from typing import Optional
+from ufl.argument import Argument
 
 
 class Experiment(ABC):
@@ -17,7 +19,7 @@ class Experiment(ABC):
 
     """
 
-    def __init__(self, parameters: dict[str, pint.Quantity]):
+    def __init__(self, parameters: dict[str, pint.Quantity]) -> None:
         """Initialises the parent object
 
         This is needs to be called by children
@@ -55,13 +57,13 @@ class Experiment(ABC):
            once that is required, just make this a normal function that returns an empty list
            """
 
-    def create_force_boundary(self, v = None):
+    def create_force_boundary(self, v: Optional[Argument] = None) -> None:
         # define empty force boundary
         # TODO: is there a better solution???
 
         return None
 
-    def create_body_force(self, v = None):
+    def create_body_force(self, v: Optional[Argument] = None) -> None:
         # define empty body force function
         # TODO: is there a better solution???
 
