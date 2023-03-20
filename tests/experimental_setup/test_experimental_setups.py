@@ -5,12 +5,13 @@ from fenicsxconcrete.experimental_setup.compression_cylinder import CompressionC
 import copy
 from fenicsxconcrete.unit_registry import ureg
 from fenicsxconcrete.finite_element_problem.linear_elasticity import LinearElasticity
+from typing import Type, Union
 
 
 @pytest.mark.parametrize("setup", [CantileverBeam,
                                    TensileBeam,
                                    CompressionCylinder])
-def test_default_parameters(setup):
+def test_default_parameters(setup: Union[Type[TensileBeam], Type[CompressionCylinder], Type[CantileverBeam]]) -> None:
     """This function creates experimental setups with the respective default dictionaries
 
     This makes sure all relevant values are included"""
@@ -34,7 +35,7 @@ def test_default_parameters(setup):
 @pytest.mark.parametrize("setup", [CantileverBeam,
                                    TensileBeam,
                                    CompressionCylinder])
-def test_default_parameters(setup):
+def test_default_parameters(setup: Union[Type[TensileBeam], Type[CompressionCylinder], Type[CantileverBeam]]) -> None:
     setup_parameters = setup.default_parameters()
 
     with pytest.raises(ValueError):

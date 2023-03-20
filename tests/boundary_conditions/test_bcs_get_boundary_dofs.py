@@ -10,7 +10,7 @@ from fenicsxconcrete.boundary_conditions.bcs import (
 from fenicsxconcrete.boundary_conditions.boundary import plane_at
 
 
-def num_square_boundary_dofs(n, deg, dim, num_edges=4):
+def num_square_boundary_dofs(n: int, deg: int, dim: int, num_edges: int=4) -> int:
     """returns number of dofs for a square
     assumes quadrilateral cells and structured grid
 
@@ -22,7 +22,7 @@ def num_square_boundary_dofs(n, deg, dim, num_edges=4):
     return num_edges * n * deg * dim
 
 
-def num_square_dofs(ncells, deg, dim):
+def num_square_dofs(ncells: int, deg: int, dim: int) -> int:
     if deg == 1:
         n = ncells + 1
     elif deg == 2:
@@ -30,7 +30,7 @@ def num_square_dofs(ncells, deg, dim):
     return n**2 * dim
 
 
-def test_whole_boundary():
+def test_whole_boundary() -> None:
     """test for bcs on ∂Ω
 
     compare options
@@ -68,7 +68,7 @@ def test_whole_boundary():
     assert dofs.size == num_square_boundary_dofs(n, degree, dim)
 
 
-def test_xy_plane():
+def test_xy_plane() -> None:
     n = 4
     degree = 2
     dim = 3

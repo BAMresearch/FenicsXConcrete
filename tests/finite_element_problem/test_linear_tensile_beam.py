@@ -7,11 +7,12 @@ from fenicsxconcrete.unit_registry import ureg
 from fenicsxconcrete.experimental_setup.tensile_beam import TensileBeam
 from fenicsxconcrete.finite_element_problem.linear_elasticity import LinearElasticity
 from fenicsxconcrete.sensor_definition.displacement_sensor import DisplacementSensor
+from typing import List, Union
 
 
 @pytest.mark.parametrize("dimension", [[2, [8.71973440e-06, 5.12000403e-07]],
                                        [3, [9.44327797e-06, 4.00000088e-07, 4.00000088e-07]]])
-def test_linear_tensile_beam(dimension):
+def test_linear_tensile_beam(dimension: List[Union[int, List[float]]]) -> None:
     dim = dimension[0]
     result = dimension[1]
 
