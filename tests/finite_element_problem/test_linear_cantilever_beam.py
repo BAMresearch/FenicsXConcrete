@@ -6,11 +6,12 @@ from fenicsxconcrete.unit_registry import ureg
 from fenicsxconcrete.experimental_setup.cantilever_beam import CantileverBeam
 from fenicsxconcrete.finite_element_problem.linear_elasticity import LinearElasticity
 from fenicsxconcrete.sensor_definition.displacement_sensor import DisplacementSensor
+from typing import List, Union
 
 
 @pytest.mark.parametrize("dimension,results", [[2, [-1.10366991e-06, -6.02823499e-06]],
                                        [3, [-1.18487757e-06,  3.58357285e-10, -6.42126235e-06]]])
-def test_linear_cantilever_beam(dimension,results):
+def test_linear_cantilever_beam(dimension:int,results: List[float]) -> None:
 
     # setup paths and directories
     data_dir = 'data_files'

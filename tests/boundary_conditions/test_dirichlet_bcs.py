@@ -41,7 +41,7 @@ fix_uy = dirichletbc(ScalarType(0), bottom_boundary_dofs_y, V.sub(1))
 """
 
 
-def test_vector_geom():
+def test_vector_geom() -> None:
     domain = dolfinx.mesh.create_unit_square(
         MPI.COMM_WORLD, 8, 8, dolfinx.mesh.CellType.quadrilateral
     )
@@ -82,7 +82,7 @@ def test_vector_geom():
     assert ndofs == 64 + 34 + 64
 
 
-def test_vector_geom_component_wise():
+def test_vector_geom_component_wise() -> None:
     domain = dolfinx.mesh.create_unit_square(
         MPI.COMM_WORLD, 8, 8, dolfinx.mesh.CellType.quadrilateral
     )
@@ -110,7 +110,7 @@ def test_vector_geom_component_wise():
     assert ndofs == 17
 
 
-def test_scalar_geom():
+def test_scalar_geom() -> None:
     domain = dolfinx.mesh.create_unit_square(MPI.COMM_WORLD, 8, 8)
     V = dolfinx.fem.FunctionSpace(domain, ("Lagrange", 2))
 
@@ -130,7 +130,7 @@ def test_scalar_geom():
     assert my_bc.g.value == 0.0
 
 
-def test_scalar_topo():
+def test_scalar_topo() -> None:
     n = 20
     domain = dolfinx.mesh.create_unit_square(MPI.COMM_WORLD, n, n)
     V = dolfinx.fem.FunctionSpace(domain, ("Lagrange", 2))
@@ -154,7 +154,7 @@ def test_scalar_topo():
     assert my_bc.g.value == 0.0
 
 
-def test_dirichletbc():
+def test_dirichletbc() -> None:
     """add instance of dolfinx.fem.dirichletbc"""
     n = 20
     domain = dolfinx.mesh.create_unit_square(MPI.COMM_WORLD, n, n)
@@ -167,7 +167,7 @@ def test_dirichletbc():
     assert bc_handler.has_dirichlet
 
 
-def test_runtimeerror_geometrical():
+def test_runtimeerror_geometrical() -> None:
     """test method geometrical raises RuntimeError if sub
     is not None"""
     n = 20
@@ -179,7 +179,7 @@ def test_runtimeerror_geometrical():
         dolfinx.fem.locate_dofs_geometrical(Vsub, bottom)
 
 
-def test_boundary_as_int():
+def test_boundary_as_int() -> None:
     n = 5
     domain = dolfinx.mesh.create_unit_square(MPI.COMM_WORLD, n, n)
     V = dolfinx.fem.VectorFunctionSpace(domain, ("Lagrange", 2))
@@ -200,7 +200,7 @@ def test_boundary_as_int():
     assert bc_handler.has_dirichlet
 
 
-def test_value_interpolation():
+def test_value_interpolation() -> None:
     n = 50
     domain = dolfinx.mesh.create_unit_interval(MPI.COMM_WORLD, n)
     V = dolfinx.fem.FunctionSpace(domain, ("Lagrange", 2))
@@ -219,7 +219,7 @@ def test_value_interpolation():
     assert np.allclose(np.ones_like(dofs) * my_value, bc.g.x.array[dofs])
 
 
-def test_clear():
+def test_clear() -> None:
     n = 2
     domain = dolfinx.mesh.create_unit_interval(MPI.COMM_WORLD, n)
     V = dolfinx.fem.FunctionSpace(domain, ("Lagrange", 2))
