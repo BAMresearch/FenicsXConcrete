@@ -1,4 +1,3 @@
-from typing import List, Union
 
 import dolfinx as df
 import numpy as np

@@ -1,5 +1,4 @@
 from abc import ABC, abstractmethod
-from typing import Optional
 
 import dolfinx as df
 import pint
@@ -57,7 +56,6 @@ class Experiment(ABC):
         this function is abstract until there is a need for a material that does not need a displacement boundary
         once that is required, just make this a normal function that returns an empty list
         """
-        pass
 
     def create_force_boundary(
         self, v: ufl.argument.Argument | None = None

@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from collections import UserDict  # because: https://realpython.com/inherit-python-dict/
-from typing import Dict, Optional, Union
 
 import pint
 

@@ -1,5 +1,4 @@
 import os
-from typing import Optional
 from collections.abc import Callable
 
 import dolfinx as df

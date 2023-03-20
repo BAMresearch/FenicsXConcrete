@@ -2,7 +2,6 @@ import logging
 import sys
 from abc import ABC, abstractmethod
 from pathlib import Path, PosixPath
-from typing import Optional, Union
 
 import dolfinx as df
 import pint
@@ -115,19 +114,16 @@ class MaterialProblem(ABC):
     def setup(self) -> None:
         # initialization of this specific problem
         """Implemented in child if needed"""
-        pass
 
     @abstractmethod
     def solve(self) -> None:
         # define what to do, to solve this problem
         """Implemented in child if needed"""
-        pass
 
     @abstractmethod
     def compute_residuals(self) -> None:
         # define what to do, to compute the residuals. Called in solve
         """Implemented in child if needed"""
-        pass
 
     def add_sensor(self, sensor: Sensor) -> None:
         if isinstance(sensor, Sensor):
