@@ -9,6 +9,10 @@ from fenicsxconcrete.finite_element_problem.base_material import MaterialProblem
 from fenicsxconcrete.experimental_setup.cantilever_beam import CantileverBeam
 from fenicsxconcrete.experimental_setup.base_experiment import Experiment
 from mpi4py import MPI
+from typing import Optional
+from ufl.algebra import Sum
+from ufl.argument import Argument
+from ufl.tensoralgebra import Sym
 
 class LinearElasticity(MaterialProblem):
     """Material definition for linear elasticity"""
@@ -17,7 +21,7 @@ class LinearElasticity(MaterialProblem):
                  experiment: Experiment,
                  parameters: dict[str, pint.Quantity],
                  pv_name : str = 'pv_output_full',
-                 pv_path : str = None):
+                 pv_path : str = None) -> None:
         """defines default parameters, for the rest, see base class"""
 
         # adding default material parameter, will be overridden by outside input
@@ -29,7 +33,7 @@ class LinearElasticity(MaterialProblem):
 
         super().__init__(experiment, default_p, pv_name, pv_path)
 
-    def setup(self):
+    def setup(self) -> None:
         # compute different set of elastic moduli
         self.lambda_ = df.fem.Constant(self.mesh,
                                        self.p['E'] * self.p['nu'] / ((1 + self.p['nu']) * (1 - 2 * self.p['nu'])))
@@ -80,13 +84,13 @@ class LinearElasticity(MaterialProblem):
 
 
     # Stress computation for linear elastic problem 
-    def epsilon(self, u):
+    def epsilon(self, u: Argument) -> Sym:
         return ufl.sym(ufl.grad(u)) 
 
-    def sigma(self, u):
+    def sigma(self, u: Argument) -> Sum:
         return self.lambda_ * ufl.nabla_div(u) * ufl.Identity(self.p['dim']) + 2 * self.mu * self.epsilon(u)
 
-    def solve(self, t=1.0):        
+    def solve(self, t: float=1.0) -> None:        
         self.displacement = self.weak_form_problem.solve()
 
         # TODO Defined as abstractmethod. Should it depend on sensor instead of material?
@@ -97,12 +101,12 @@ class LinearElasticity(MaterialProblem):
             # go through all sensors and measure
             self.sensors[sensor_name].measure(self, t)
 
-    def compute_residuals(self):
+    def compute_residuals(self) -> None:
         self.residual = ufl.action(self.a, self.displacement) - self.L
 
     # paraview output
     # TODO move this to sensor definition!?!?!
-    def pv_plot(self, t=0):
+    def pv_plot(self, t: int=0) -> None:
         # TODO add possibility for multiple time steps???
         # Displacement Plot
 

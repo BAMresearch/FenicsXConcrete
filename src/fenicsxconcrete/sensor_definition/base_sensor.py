@@ -1,5 +1,7 @@
+from __future__ import annotations
 import dolfinx as df
 import numpy as np
+
 
 
 class Sensors(dict):
@@ -17,7 +19,7 @@ class Sensors(dict):
         assert key in self
         self[key] = value
 
-    def __setitem__(self, initial_key, value):
+    def __setitem__(self, initial_key: str, value: Sensor) -> None:
         # check if key exists, if so, add a number to the name
         i = 2
         key = initial_key
@@ -38,7 +40,7 @@ class Sensor:
         raise NotImplementedError()
 
     @property
-    def name(self):
+    def name(self) -> str:
         return self.__class__.__name__
 
     def data_max(self, value):

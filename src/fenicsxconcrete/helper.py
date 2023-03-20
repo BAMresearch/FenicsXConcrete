@@ -1,6 +1,8 @@
+from __future__ import annotations
 import pint
 from fenicsxconcrete.unit_registry import ureg
 from collections import UserDict  # because: https://realpython.com/inherit-python-dict/
+from typing import Dict, Optional, Union
 
 
 class Parameters(UserDict):
@@ -12,14 +14,14 @@ class Parameters(UserDict):
         assert isinstance(value, pint.Quantity)
         self.data[key] = value.to_base_units()
 
-    def __add__(self, other):
+    def __add__(self, other: Optional[Parameters]) -> "Parameters":
         if other == None:
             dic = self
         else:
             dic = Parameters({**self, **other})
         return dic
 
-    def to_magnitude(self):
+    def to_magnitude(self) -> Dict[str, Union[int, str, float]]:
 
         magnitude_dictionary = {}
         for key in self.keys():

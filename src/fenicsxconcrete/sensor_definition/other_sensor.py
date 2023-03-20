@@ -3,6 +3,7 @@ import ufl
 import numpy as np
 from fenicsxconcrete.sensor_definition.base_sensor import Sensor
 from fenicsxconcrete.boundary_conditions.bcs import BoundaryConditions
+from fenicsxconcrete.finite_element_problem.linear_elasticity import LinearElasticity
 
 class TemperatureSensor(Sensor):
     """A sensor that measure temperature at a specific point in celsius"""
@@ -121,11 +122,11 @@ class MaxYieldSensor(Sensor):
 class ReactionForceSensorBottom(Sensor):
     """A sensor that measure the reaction force at the bottom perpendicular to the surface"""
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.data = []
         self.time = []
 
-    def measure(self, problem, t=1.0):
+    def measure(self, problem: LinearElasticity, t: float=1.0) -> None:
         """
         Arguments:
             problem : FEM problem object

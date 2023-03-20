@@ -1,5 +1,6 @@
+from __future__ import annotations
 import dolfinx as df
-from pathlib import Path
+from pathlib import PosixPath, Path
 import sys
 from loguru import logger
 import logging
@@ -11,13 +12,17 @@ from fenicsxconcrete.experimental_setup.base_experiment import Experiment
 from fenicsxconcrete.helper import Parameters
 from fenicsxconcrete.sensor_definition.base_sensor import Sensors
 from fenicsxconcrete.sensor_definition.base_sensor import Sensor
+from fenicsxconcrete.experimental_setup.cantilever_beam import CantileverBeam
+from fenicsxconcrete.experimental_setup.compression_cylinder import CompressionCylinder
+from fenicsxconcrete.experimental_setup.tensile_beam import TensileBeam
+from typing import Optional, Union
 
 class MaterialProblem(ABC):
     def __init__(self,
-                 experiment,
+                 experiment: Union[CompressionCylinder, CantileverBeam, TensileBeam],
                  parameters: dict[str, pint.Quantity],
-                 pv_name='pv_output_full',
-                 pv_path=None):
+                 pv_name: str='pv_output_full',
+                 pv_path: Optional[PosixPath]=None) -> None:
         """"base material problem
 
         Parameters
@@ -117,16 +122,16 @@ class MaterialProblem(ABC):
         # define what to do, to compute the residuals. Called in solve
         """ Implemented in child if needed """
 
-    def add_sensor(self, sensor: Sensor):
+    def add_sensor(self, sensor: Sensor) -> None:
         if isinstance(sensor, Sensor):
             self.sensors[sensor.name] = sensor
         else:
             raise ValueError('The sensor must be of the class Sensor')
 
-    def clean_sensor_data(self):
+    def clean_sensor_data(self) -> None:
         for sensor_object in self.sensors.values():
             sensor_object.data.clear()
 
-    def delete_sensor(self):
+    def delete_sensor(self) -> None:
         del self.sensors
         self.sensors = Sensors()

@@ -6,6 +6,11 @@ import numpy.typing as npt
 import dolfinx
 import ufl
 import numpy as np
+from dolfinx.fem.bcs import DirichletBCMetaClass
+from dolfinx.fem.function import Constant, Function, FunctionSpace
+from dolfinx.mesh import Mesh
+from numpy import ndarray
+from ufl.form import Form
 
 
 def get_boundary_dofs(
@@ -37,7 +42,7 @@ class BoundaryConditions:
         domain: dolfinx.mesh.Mesh,
         space: dolfinx.fem.FunctionSpace,
         facet_tags: typing.Optional[npt.NDArray] = None,
-    ):
+    ) -> None:
         """Initializes the instance based on domain and FE space.
 
         It sets up lists to hold the Dirichlet and Neumann BCs
@@ -148,7 +153,7 @@ class BoundaryConditions:
 
             self._bcs.append(bc)
 
-    def add_neumann_bc(self, marker: int, value) -> None:
+    def add_neumann_bc(self, marker: int, value: Constant) -> None:
         """Adds a Neumann BC.
 
         Args:
@@ -182,7 +187,7 @@ class BoundaryConditions:
             self._neumann_bcs.clear()
 
     @property
-    def neumann_bcs(self):
+    def neumann_bcs(self) -> Form:
         """The ufl form of (sum of) Neumann BCs"""
         r = 0
         for expression, marker in self._neumann_bcs:
