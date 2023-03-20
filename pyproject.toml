@@ -16,6 +16,8 @@ dependencies = [
   "fenics-dolfinx",
   "pint",
   "loguru",
+  "gmsh",
+  "meshio"
 ]
 description = "Implementation of structural problems for concrete structures using FEniCSx"
 license = {file = "LICENSE"}

@@ -7,6 +7,8 @@ dependencies:
   - pint
   - loguru
   - matplotlib
+  - python-gmsh
+  - meshio
   # tests
   - pytest
   - coverage
