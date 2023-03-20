@@ -1,4 +1,3 @@
-from __future__ import annotations
 
 import dolfinx as df
 import numpy as np

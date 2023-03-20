@@ -1,4 +1,4 @@
-from __future__ import annotations
+
 import dolfinx as df
 from pathlib import PosixPath, Path
 import sys
