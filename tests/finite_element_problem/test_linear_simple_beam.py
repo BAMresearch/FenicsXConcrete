@@ -9,20 +9,18 @@ from fenicsxconcrete.finite_element_problem.linear_elasticity import LinearElast
 from fenicsxconcrete.sensor_definition.displacement_sensor import DisplacementSensor
 
 
-@pytest.mark.parametrize("dimension", [[2, [0.00105057, -0.01310806]],
+@pytest.mark.parametrize("dimension, results", [[2, [0.00105057, -0.01310806]],
                                        [3, [1.13946512e-03,  1.42368783e-05, -1.42250453e-02]]])
-def test_linear_simple_beam(dimension):
-    dim = dimension[0]
-    result = dimension[1]
+def test_linear_simple_beam(dimension, results):
 
     # setup paths and directories
     data_dir = 'data_files'
     data_path = Path(__file__).parent / data_dir
 
     # define file name and path for paraview output
-    file_name = f'test_linear_simple_beam_{dim}d'
+    file_name = f'test_linear_simple_beam_{dimension}d'
     files = [data_path / (file_name + '.xdmf'),data_path / (file_name + '.h5')]
-    # delete file if it exisits (only relevant for local tests)
+    # delete file if it exists (only relevant for local tests)
     for file in files:
         if file.is_file():
             os.remove(file)
@@ -31,7 +29,7 @@ def test_linear_simple_beam(dimension):
     setup_parameters['length'] = 10 * ureg('m')
     setup_parameters['height'] = 0.5 * ureg('m')
     setup_parameters['width'] = 0.3 * ureg('m')  # only relevant for 3D case
-    setup_parameters['dim'] = dim * ureg('')
+    setup_parameters['dim'] = dimension * ureg('')
     setup_parameters['num_elements_length'] = 10 * ureg('')
     setup_parameters['num_elements_height'] = 3 * ureg('')
     setup_parameters['num_elements_width'] = 3 * ureg('')  # only relevant for 3D case
@@ -61,4 +59,4 @@ def test_linear_simple_beam(dimension):
 
     # check sensor output
     displacement_data = problem.sensors['DisplacementSensor'].data[-1]
-    assert displacement_data.magnitude == pytest.approx(result, 1e-5)
+    assert displacement_data.magnitude == pytest.approx(results, 1e-5)
