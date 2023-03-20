@@ -7,9 +7,15 @@ import ufl
 from petsc4py.PETSc import ScalarType
 from fenicsxconcrete.unit_registry import ureg
 import pint
+from typing import Optional
+from ufl.argument import Argument
+from ufl.form import Form
+
+# from fenicsxconcrete.finite_element_problem.linear_elasticity import LinearElasticity
+# from fenicsxconcrete.finite_element_problem.base_material import MaterialProblem
 
 class TensileBeam(Experiment):
-    def __init__(self, parameters: dict[str, pint.Quantity] | bool=None):
+    def __init__(self, parameters: dict[str, pint.Quantity] | bool=None) -> None:
         # initialize a set of "basic parameters"
         default_p = Parameters()
         # default_p['dummy'] = 'example' * ureg('')  # example default parameter for this class
@@ -19,7 +25,7 @@ class TensileBeam(Experiment):
 
         super().__init__(default_p)
 
-    def setup(self):
+    def setup(self) -> None:
         """defines the mesh for 2D or 3D"""
 
         if self.p['dim'] == 2:
@@ -72,7 +78,7 @@ class TensileBeam(Experiment):
 
         return displacement_bcs
 
-    def create_force_boundary(self,v):
+    def create_force_boundary(self,v: Argument) -> Form:
         boundaries = [(1, lambda x: np.isclose(x[0], self.p['length'])),
         (2, lambda x: np.isclose(x[0], 0))]
 
