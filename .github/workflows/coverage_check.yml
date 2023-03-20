@@ -21,6 +21,8 @@ jobs:
           echo $BRANCH_NAME  
           echo "$BRANCH_NAME" 
           echo "$GITHUB_REF"
+          curl -X GET "https://gist.githubusercontent.com/eriktamsen/c10a5b6d0714b1fe2344eb60918e92f8/raw/fenicsxconcrete_main_coverage.json"
+          curl -X GET "https://gist.githubusercontent.com/eriktamsen/c10a5b6d0714b1fe2344eb60918e92f8/raw/fenicsxconcrete_{$BRANCH_NAME}_coverage.json"
 
 
       - name: show content
