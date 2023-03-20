@@ -15,9 +15,18 @@ jobs:
     runs-on: ubuntu-latest
     permissions: {}
     steps:
-      - name: print stuff
+      - name: print brnach name
         run: |
           BRANCH_NAME=$(echo ${GITHUB_REF#refs/heads/} | sed "s/\//_/g")
           echo $BRANCH_NAME  
           echo "$BRANCH_NAME" 
           echo "$GITHUB_REF"
+
+      - uses: sergeysova/gist-read-action@v1
+        id: example-gist
+        with:
+          gist_id: c10a5b6d0714b1fe2344eb60918e92f8
+          file_name: fenicsxconcrete_main_coverage.json
+
+      - name: show content
+        run: echo "Hello ${{ steps.example-gist.outputs.content }}"
