@@ -61,6 +61,38 @@ def plane_at(coordinate: float, dim: typing.Union[str, int]) -> typing.Callable:
     return boundary
 
 
+def line_at(coordinates: list, dims: list):
+    """return callable that determines boundary geometrically
+
+    Parameters
+    ----------
+    coordinates
+    dims
+    """
+    assert len(coordinates) == 2
+    assert len(dims) == 2
+
+    # transform x,y,z str into integer
+    for i, dim in enumerate(dims):
+        if dim in ["x", "X"]:
+            dims[i] = 0
+        elif dim in ["y", "Y"]:
+            dims[i] = 1
+        elif dim in ["z", "Z"]:
+            dims[i] = 2
+        assert dims[i] in (0, 1, 2)
+
+    assert dims[0] != dims[1]
+
+    def boundary(x):
+        return np.logical_and(
+            np.isclose(x[dims[0]], coordinates[0]),
+            np.isclose(x[dims[1]], coordinates[1]),
+        )
+
+    return boundary
+
+
 def within_range(
     start: typing.Union[typing.Iterable[int], typing.Iterable[float]],
     end: typing.Union[typing.Iterable[int], typing.Iterable[float]],

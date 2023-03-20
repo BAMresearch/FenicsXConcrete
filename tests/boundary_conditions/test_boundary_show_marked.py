@@ -1,23 +1,23 @@
 import pathlib
 import tempfile
-import pytest
+
 import dolfinx
-from mpi4py import MPI
 import numpy as np
+import pytest
+from mpi4py import MPI
+
 from fenicsxconcrete.boundary_conditions.boundary import show_marked
-from dolfinx.mesh import Mesh
-from numpy import ndarray
 
 
-def everywhere(x: ndarray) -> ndarray:
+def everywhere(x: np.ndarray) -> np.ndarray:
     return np.full(x[0].shape, True, dtype=bool)
 
 
-def unit_interval() -> Mesh:
+def unit_interval() -> dolfinx.mesh.Mesh:
     return dolfinx.mesh.create_unit_interval(MPI.COMM_SELF, 10)
 
 
-def unit_cube() -> Mesh:
+def unit_cube() -> dolfinx.mesh.Mesh:
     return dolfinx.mesh.create_unit_cube(MPI.COMM_SELF, 2, 2, 2)
 
 
@@ -29,7 +29,7 @@ def test_write_fig() -> None:
 
 
 @pytest.mark.parametrize("domain", [unit_interval(), unit_cube()])
-def test_tdim(domain: Mesh) -> None:
+def test_tdim(domain: dolfinx.mesh.Mesh) -> None:
     with pytest.raises(NotImplementedError):
         show_marked(domain, everywhere)
 

@@ -37,7 +37,7 @@ class TemperatureSensor(Sensor):
 class MaxTemperatureSensor(Sensor):
     """A sensor that measure the maximum temperature at each timestep"""
 
-    def __init__(self, where: List[List[Union[int, float]]]) -> None:
+    def __init__(self) -> None:
         self.data = [0.0]
         self.time = [0.0]
         self.max = 0.0
@@ -84,7 +84,7 @@ class DOHSensor(Sensor):
 class MinDOHSensor(Sensor):
     """A sensor that measure the minimum degree of hydration at each timestep"""
 
-    def __init__(self, where: List[List[Union[int, float]]]) -> None:
+    def __init__(self) -> None:
         self.data = []
         self.time = []
 
