@@ -7,6 +7,20 @@ from petsc4py.PETSc import ScalarType
 from fenicsxconcrete.boundary_conditions.boundary import point_at
 
 
+def test_type_error():
+    """test TypeError in conversion to float"""
+    n = 10
+    domain = dolfinx.mesh.create_interval(MPI.COMM_WORLD, n, [0.0, 10.0])
+    V = dolfinx.fem.FunctionSpace(domain, ("Lagrange", 1))
+    x = point_at(5)
+    dofs = dolfinx.fem.locate_dofs_geometrical(V, x)
+    nodal_value = 42
+    bc = dolfinx.fem.dirichletbc(ScalarType(nodal_value), dofs, V)
+    ndofs = bc.dof_indices()[1]
+    assert ndofs == 1
+    assert bc.g.value == nodal_value
+
+
 def test_function_space():
     n = 101
     domain = dolfinx.mesh.create_unit_square(
@@ -15,7 +29,7 @@ def test_function_space():
     V = dolfinx.fem.FunctionSpace(domain, ("Lagrange", 2))
 
     h = 1.0 / n
-    my_point = point_at(np.array([h * 2, h * 5, 0.0]))
+    my_point = point_at(np.array([h * 2, h * 5]))
 
     dofs = dolfinx.fem.locate_dofs_geometrical(V, my_point)
     bc = dolfinx.fem.dirichletbc(ScalarType(42), dofs, V)
@@ -31,9 +45,9 @@ def test_vector_function_space():
     )
     V = dolfinx.fem.VectorFunctionSpace(domain, ("Lagrange", 2))
 
-    points = np.array(
-        [[0.0, 0.0, 0.0], [1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [1.0, 1.0, 0.0]]
-    )
+    # note the inconsistency in specifying the coordinates
+    # this is handled by `to_floats`
+    points = [0, [1.0], [0.0, 1.0], [1.0, 1.0, 0.0]]
     nodal_dofs = np.array([], dtype=np.int32)
     for x in points:
         dofs = dolfinx.fem.locate_dofs_geometrical(V, point_at(x))
@@ -45,3 +59,4 @@ def test_vector_function_space():
 if __name__ == "__main__":
     test_function_space()
     test_vector_function_space()
+    test_type_error()

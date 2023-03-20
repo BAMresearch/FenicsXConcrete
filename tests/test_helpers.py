@@ -19,3 +19,10 @@ def test_parameters():
         parameters_combined["length"] == parameters["length"]
         and parameters_combined["temperature"] == parameters_2["temperature"]
     )
+
+
+def test_parameter_dic_functions():
+    parameters = Parameters()
+    # testing if adding None to dictionary works
+    new = parameters + None
+    assert new is parameters

@@ -1,16 +1,18 @@
 {% set name = "FenicsXConcrete" %}
-{% set version = "0.0.0" %}
+{% set pyproject = load_file_data('../pyproject.toml', from_recipe_dir=true) %}
+# Use pyproject as single source for version variable
 
 package:
   name: {{ name|lower }}
-  version: {{ version }}
+  version: {{ pyproject.get('version') }}
 
 source:
-  url: https://github.com/BAMresearch/FenicsXConcrete/archive/refs/tags/{{ version }}.tar.gz
+  git_url: https://github.com/BAMresearch/FenicsXConcrete
+  git_tag: 26-update-github-actions-to-build-conda-package
 
 build:
-  skip: True  # [win]
-  script: {{ PYTHON }} -m pip install . -vv
+  skip: True  # [win or osx]
+  script: {{ PYTHON }} -m pip install . --no-deps --ignore-installed -vv
   number: 0
 
 requirements:
@@ -23,19 +25,21 @@ requirements:
     - python
     - pint
     - fenics-dolfinx
+    - loguru
 
 test:
   imports:
     - fenicsxconcrete
 
   source_files:
-    - tests/*
+    - tests
 
   requires:
     - pytest
 
   commands:
     - pytest tests
+
 about:
   home: https://github.com/BAMresearch/FenicsXConcrete
   license: MIT
