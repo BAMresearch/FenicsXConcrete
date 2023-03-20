@@ -6,6 +6,9 @@ dependencies:
   - fenics-dolfinx
   - pint
   - loguru
+  - matplotlib
+  - python-gmsh
+  - meshio
   # tests
   - pytest
   - coverage

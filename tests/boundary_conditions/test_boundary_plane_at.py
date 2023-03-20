@@ -7,7 +7,7 @@ from petsc4py.PETSc import ScalarType
 from fenicsxconcrete.boundary_conditions.boundary import plane_at
 
 
-def test():
+def test_square():
     domain = dolfinx.mesh.create_unit_square(
         MPI.COMM_WORLD, 8, 8, dolfinx.mesh.CellType.quadrilateral
     )
@@ -56,5 +56,22 @@ def test():
     assert bc.g.value == 666
 
 
+def test_cube():
+    nx, ny, nz = 4, 4, 4
+    domain = dolfinx.mesh.create_unit_cube(
+        MPI.COMM_WORLD, nx, ny, nz, dolfinx.mesh.CellType.hexahedron
+    )
+    V = dolfinx.fem.FunctionSpace(domain, ("Lagrange", 1))
+
+    xy_plane = plane_at(0.0, "z")
+    dofs = dolfinx.fem.locate_dofs_geometrical(V, xy_plane)
+    nodal_value = 42
+    bc = dolfinx.fem.dirichletbc(ScalarType(nodal_value), dofs, V)
+    ndofs = bc.dof_indices()[1]
+    assert ndofs == (nx + 1) * (ny + 1)
+    assert bc.g.value == nodal_value
+
+
 if __name__ == "__main__":
-    test()
+    test_square()
+    test_cube()
