@@ -18,6 +18,5 @@ jobs:
       - name: print stuff
         run: |
           BRANCH_NAME=$(echo ${GITHUB_REF#refs/heads/})
-          BRANCH_NAME=$(echo $env.BRANCH_NAME | sed "s/\//_/g")"
-          echo "fenicsxconcrete_${{ env.BRANCH_NAME }}_coverage.json"
+          echo BRANCH_NAME  
           echo "$GITHUB_REF"
