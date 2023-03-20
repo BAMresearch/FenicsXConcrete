@@ -6,7 +6,19 @@ from petsc4py.PETSc import ScalarType
 from fenicsxconcrete.boundary_conditions.boundary import within_range
 
 
-def test():
+def test_1d():
+    n = 10
+    domain = dolfinx.mesh.create_unit_interval(MPI.COMM_WORLD, n)
+    V = dolfinx.fem.FunctionSpace(domain, ("Lagrange", 1))
+    # test reordering of start and end
+    subdomain = within_range([0.75, 0.0, 0.0], [0.35, 0.0, 0.0])
+    dofs = dolfinx.fem.locate_dofs_geometrical(V, subdomain)
+    bc = dolfinx.fem.dirichletbc(ScalarType(12), dofs, V)
+    num_dofs = bc.dof_indices()[1]
+    assert num_dofs == 4
+
+
+def test_2d():
     n = 200
     domain = dolfinx.mesh.create_unit_square(
         MPI.COMM_WORLD, n, n, dolfinx.mesh.CellType.quadrilateral
@@ -29,4 +41,5 @@ def test():
 
 
 if __name__ == "__main__":
-    test()
+    test_1d()
+    test_2d()

@@ -5,10 +5,17 @@ dependencies:
   # runtime
   - fenics-dolfinx
   - pint
+  - matplotlib
+  - python-gmsh
+  - meshio
   # tests
   - pytest
   - coverage
   - toml
+  # docs
+  - sphinx
+  - myst-parser
+  - sphinx_rtd_theme
   - pip
   - pip:
       - -e .
