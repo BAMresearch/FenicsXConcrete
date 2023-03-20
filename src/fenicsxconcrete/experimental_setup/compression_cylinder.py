@@ -64,7 +64,6 @@ def generate_cylinder_mesh(radius:float, height:float, mesh_density:float, eleme
 
     # save it to disk as msh in folder
     if not folder_name.is_dir():
-    #if not os.path.exists(folder_name):  # create mesh folder if it does not exist
         os.mkdir(folder_name)
 
     # write file
@@ -74,7 +73,6 @@ def generate_cylinder_mesh(radius:float, height:float, mesh_density:float, eleme
     # convert msh to xdmf
     meshio_mesh = meshio.read(msh_file)
     meshio.write(xdmf_file, meshio_mesh)
-
 
     # read xdmf as dolfin mesh
     with df.io.XDMFFile(MPI.COMM_WORLD,xdmf_file,"r") as mesh_file:
