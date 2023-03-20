@@ -26,7 +26,7 @@ jobs:
           echo '------------------------'
           echo $CODE
           echo '------------------------'
-          NEWCODE=$(echo $CODE | sed "s/\//_/g")
+          NEWCODE=$(echo $CODE | sed 's/.{"message"}(.{8}).*/\1/')
           echo $NEWCODE
           
           #sed 's/.{"message"}(.{8}).*/\1/'
