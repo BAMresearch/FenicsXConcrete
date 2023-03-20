@@ -102,15 +102,13 @@ def point_at(
 ) -> typing.Callable:
     """Defines a point."""
     p = to_floats(coord)
-    if len(p) == 3:
-        def boundary(x):
-            return np.logical_and(
-                np.logical_and(np.isclose(x[0], p[0]), np.isclose(x[1], p[1])),
-                np.isclose(x[2], p[2]),
-            )
-    elif len(p) == 2:
-        def boundary(x):
-            return np.logical_and(np.isclose(x[0], p[0]), np.isclose(x[1], p[1]))
+
+    def boundary(x):
+        return np.logical_and(
+            np.logical_and(np.isclose(x[0], p[0]), np.isclose(x[1], p[1])),
+            np.isclose(x[2], p[2]),
+        )
+
     return boundary
 
 
@@ -163,9 +161,7 @@ def show_marked(
         plt.show()  # pragma: no cover
 
 
-def to_floats(
-    x: typing.Union[typing.Iterable[int], typing.Iterable[float]]
-) -> list[float]:
+def to_floats(x: typing.Union[typing.Iterable[int], typing.Iterable[float]]) -> list[float]:
     """Converts `x` to a 3d coordinate."""
     floats = []
     try:
