@@ -4,9 +4,11 @@ from pathlib import Path
 import pytest
 
 from fenicsxconcrete.experimental_setup.tensile_beam import TensileBeam
-from fenicsxconcrete.finite_element_problem.linear_elasticity import LinearElasticity
+from fenicsxconcrete.finite_element_problem.linear_elasticity import \
+    LinearElasticity
 from fenicsxconcrete.helper import Parameters
-from fenicsxconcrete.sensor_definition.displacement_sensor import DisplacementSensor
+from fenicsxconcrete.sensor_definition.displacement_sensor import \
+    DisplacementSensor
 from fenicsxconcrete.unit_registry import ureg
 
 
@@ -17,7 +19,7 @@ from fenicsxconcrete.unit_registry import ureg
         [3, [9.44327797e-06, 4.00000088e-07, 4.00000088e-07]],
     ],
 )
-def test_linear_tensile_beam(dimension, results):
+def test_linear_tensile_beam(dimension: int, results: list[float]) -> None:
 
     # setup paths and directories
     data_dir = "data_files"

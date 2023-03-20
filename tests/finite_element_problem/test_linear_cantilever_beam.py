@@ -5,8 +5,10 @@ from typing import List, Union
 import pytest
 
 from fenicsxconcrete.experimental_setup.cantilever_beam import CantileverBeam
-from fenicsxconcrete.finite_element_problem.linear_elasticity import LinearElasticity
-from fenicsxconcrete.sensor_definition.displacement_sensor import DisplacementSensor
+from fenicsxconcrete.finite_element_problem.linear_elasticity import \
+    LinearElasticity
+from fenicsxconcrete.sensor_definition.displacement_sensor import \
+    DisplacementSensor
 from fenicsxconcrete.unit_registry import ureg
 
 
