@@ -9,7 +9,7 @@ from fenicsxconcrete.unit_registry import ureg
 import pint
 
 class TensileBeam(Experiment):
-    def __init__(self, parameters: dict[str, pint.Quantity]):
+    def __init__(self, parameters: dict[str, pint.Quantity] | bool=None):
         # initialize a set of "basic parameters"
         default_p = Parameters()
         # default_p['dummy'] = 'example' * ureg('')  # example default parameter for this class
@@ -56,7 +56,7 @@ class TensileBeam(Experiment):
 
         return setup_parameters
 
-    def create_displacement_boundary(self, V) -> list:
+    def create_displacement_boundary(self, V: df.fem.FunctionSpace) -> list:
         # define displacement boundary
 
         # fenics will individually call this function for every node and will note the true or false value.

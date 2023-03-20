@@ -7,6 +7,8 @@ import ufl
 from petsc4py.PETSc import ScalarType
 from fenicsxconcrete.unit_registry import ureg
 import pint
+from ufl.argument import Argument
+from ufl.form import Form
 
 class CantileverBeam(Experiment):
     """Sets up a cantilever beam, clamped on one side and loaded with gravity
@@ -15,7 +17,7 @@ class CantileverBeam(Experiment):
         see base class
     """
 
-    def __init__(self, parameters: dict[str, pint.Quantity]):
+    def __init__(self, parameters: dict[str, pint.Quantity] | bool=None):
         """defines default parameters, for the rest, see base class"""
 
         # initialize default parameters for the setup
@@ -27,7 +29,7 @@ class CantileverBeam(Experiment):
 
         super().__init__(default_p)
 
-    def setup(self):
+    def setup(self) -> None:
         """defines the mesh for 2D or 3D"""
 
         if self.p['dim'] == 2:
@@ -80,7 +82,7 @@ class CantileverBeam(Experiment):
 
         return displacement_bcs
 
-    def create_body_force(self, v):
+    def create_body_force(self, v: Argument) -> Form:
         force_vector = np.zeros(self.p['dim'])
         force_vector[-1] = -self.p['rho']*self.p['g']  # works for 2D and 3D
 

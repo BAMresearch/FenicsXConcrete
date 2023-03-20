@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import dolfinx as df
 import numpy as np
 from fenicsxconcrete.helper import Parameters
@@ -46,7 +48,7 @@ class Experiment(ABC):
         """returns a dictionary with required parameters and a set of working values as example"""
 
     @abstractmethod
-    def create_displacement_boundary(self, V) -> list:
+    def create_displacement_boundary(self, V: df.fem.FunctionSpace) -> list:
         """returns a list with displacement boundary conditions
 
            this function is abstract until there is a need for a material that does not need a displacement boundary

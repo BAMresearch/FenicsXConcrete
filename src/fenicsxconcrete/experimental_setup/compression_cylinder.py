@@ -12,6 +12,9 @@ from mpi4py import MPI
 from fenicsxconcrete.unit_registry import ureg
 from fenicsxconcrete.boundary_conditions.boundary import plane_at, point_at
 from fenicsxconcrete.boundary_conditions.bcs import BoundaryConditions
+from dolfinx.fem.function import FunctionSpace
+from dolfinx.mesh import Mesh
+from typing import Callable, Optional
 
 
 def generate_cylinder_mesh(radius:float, height:float, mesh_density:float, element_degree:int = 2) -> df.mesh.Mesh:
@@ -83,7 +86,7 @@ def generate_cylinder_mesh(radius:float, height:float, mesh_density:float, eleme
 class CompressionCylinder(Experiment):
     """A cylinder mesh for a uni-axial displacement load"""
 
-    def __init__(self, parameters: dict[str, pint.Quantity]=None):
+    def __init__(self, parameters: dict[str, pint.Quantity] | bool=None) -> None:
         """initializes the object
 
         Standard parameters are set
@@ -103,7 +106,7 @@ class CompressionCylinder(Experiment):
         # initialize variable top_displacement
         self.top_displacement = df.fem.Constant(domain=self.mesh, c=0.0)  # applied via fkt: apply_displ_load(...)
 
-    def setup(self):
+    def setup(self) -> None:
         """Generates the mesh based on parameters
 
         This function is called during __init__
@@ -176,7 +179,7 @@ class CompressionCylinder(Experiment):
         
         return default_parameters
 
-    def create_displacement_boundary(self, V:df.fem.FunctionSpace) -> list:
+    def create_displacement_boundary(self, V: df.fem.FunctionSpace) -> list:
         """Defines the displacement boundary conditions
 
         Parameters
@@ -233,7 +236,7 @@ class CompressionCylinder(Experiment):
 
         return bc_generator.bcs
     
-    def apply_displ_load(self, top_displacement:float):
+    def apply_displ_load(self, top_displacement: pint.Quantity | float):
         """Updates the applied displacement load
 
         Parameters
@@ -243,13 +246,13 @@ class CompressionCylinder(Experiment):
 
         self.top_displacement.value = top_displacement.magnitude
 
-    def boundary_top(self):
+    def boundary_top(self) -> Callable:
         if self.p['dim'] == 2:
             return plane_at(self.p['height'], 1)
         elif self.p['dim'] == 3:
             return plane_at(self.p['height'], 2)
     
-    def boundary_bottom(self):
+    def boundary_bottom(self) -> Callable:
         if self.p['dim'] == 2:
             return plane_at(0.0, 1)
         elif self.p['dim'] == 3:

@@ -2,11 +2,13 @@ import dolfinx as df
 import numpy as np
 from fenicsxconcrete.unit_registry import ureg
 from fenicsxconcrete.sensor_definition.base_sensor import Sensor
+from fenicsxconcrete.finite_element_problem.linear_elasticity import LinearElasticity
+from typing import List, Union
 
 class DisplacementSensor(Sensor):
     """A sensor that measure displacement at a specific point"""
 
-    def __init__(self, where):
+    def __init__(self, where: List[List[Union[int, float]]]) -> None:
         """
         Arguments:
             where : Point
@@ -16,7 +18,7 @@ class DisplacementSensor(Sensor):
         self.data = []
         self.time = []
 
-    def measure(self, problem, t=1.0):
+    def measure(self, problem: LinearElasticity, t: float=1.0) -> None:
         """
         Arguments:
             problem : FEM problem object
