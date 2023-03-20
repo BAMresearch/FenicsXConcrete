@@ -1,7 +1,6 @@
 """Easy definition of boundaries."""
 
 import typing
-import numpy.typing
 
 import dolfinx
 import numpy as np
@@ -103,14 +102,18 @@ def point_at(
     """Defines a point."""
     p = to_floats(coord)
     if len(p) == 3:
+
         def boundary(x):
             return np.logical_and(
                 np.logical_and(np.isclose(x[0], p[0]), np.isclose(x[1], p[1])),
                 np.isclose(x[2], p[2]),
             )
+
     elif len(p) == 2:
+
         def boundary(x):
             return np.logical_and(np.isclose(x[0], p[0]), np.isclose(x[1], p[1]))
+
     return boundary
 
 
@@ -180,8 +183,8 @@ def to_floats(
 
 
 def create_facet_tags(
-    mesh: dolfinx.mesh.Mesh, boundaries: dict
-) -> tuple[np.ndarray, dict]:
+    mesh: dolfinx.mesh.Mesh, boundaries: dict[str, tuple[int, typing.Callable]]
+) -> tuple[np.ndarray, dict[str, int]]:
     """Creates facet tags for the given mesh and boundaries.
 
     This code is part of the FEniCSx tutorial
