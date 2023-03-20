@@ -18,6 +18,7 @@ extensions = [#["myst_parser", "autodoc2", 'sphinx.ext.napoleon']
     "sphinx.ext.autodoc",
     "sphinx.ext.napoleon",
     "sphinx.ext.viewcode",
+    'sphinx_rtd_theme',
 ]
 napoleon_google_docstring = True
 napoleon_numpy_docstring = True
@@ -33,6 +34,7 @@ exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
 # -- Options for HTML output -------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
 
-html_theme = 'alabaster'
-html_theme = "furo"
+#html_theme = 'alabaster'
+#html_theme = "furo"
+html_theme = 'sphinx_rtd_theme'
 html_static_path = ['_static']
