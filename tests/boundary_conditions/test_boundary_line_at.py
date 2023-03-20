@@ -8,7 +8,7 @@ from fenicsxconcrete.boundary_conditions.boundary import plane_at
 from fenicsxconcrete.boundary_conditions.boundary import line_at
 
 
-def test_cube():
+def test_cube() -> None:
     n = 4
     domain = dolfinx.mesh.create_unit_cube(
         MPI.COMM_WORLD, n, n, n, dolfinx.mesh.CellType.hexahedron

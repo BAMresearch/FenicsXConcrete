@@ -1,5 +1,4 @@
 """Easy definition of boundaries."""
-
 import typing
 
 import dolfinx
@@ -61,7 +60,7 @@ def plane_at(coordinate: float, dim: typing.Union[str, int]) -> typing.Callable:
     return boundary
 
 
-def line_at(coordinates: list, dims: list):
+def line_at(coordinates: list[float], dims: list[str]) -> typing.Callable:
     """return callable that determines boundary geometrically
 
     Parameters

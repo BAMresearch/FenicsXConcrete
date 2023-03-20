@@ -7,11 +7,12 @@ from fenicsxconcrete.unit_registry import ureg
 from fenicsxconcrete.experimental_setup.simple_beam import SimpleBeam
 from fenicsxconcrete.finite_element_problem.linear_elasticity import LinearElasticity
 from fenicsxconcrete.sensor_definition.displacement_sensor import DisplacementSensor
+from typing import List
 
 
 @pytest.mark.parametrize("dimension, results", [[2, [0.00105057, -0.01310806]],
                                        [3, [1.13946512e-03,  1.42368783e-05, -1.42250453e-02]]])
-def test_linear_simple_beam(dimension, results):
+def test_linear_simple_beam(dimension: int, results: List[float]) -> None:
 
     # setup paths and directories
     data_dir = 'data_files'
