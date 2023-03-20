@@ -26,6 +26,5 @@ jobs:
           echo '------------------------'
           echo $CODE
           echo '------------------------'
-          NEWCODE=$(echo $CODE | | grep -oP "\d+%")
+          NEWCODE=$(echo $CODE | grep -o -P '.{0,3}%')
           echo $NEWCODE
-          
