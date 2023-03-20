@@ -1,9 +1,7 @@
-import logging
-import dolfinx as df
-import numpy as np
-from fenicsxconcrete.helper import Parameters
 from abc import ABC, abstractmethod
 import pint
+
+from fenicsxconcrete.helper import Parameters
 from fenicsxconcrete.unit_registry import ureg
 
 
@@ -22,7 +20,6 @@ class Experiment(ABC):
         This is needs to be called by children
         Constant parameters are defined here
         """
-        self.logger = logging.getLogger("fenicsxconcrete.experimental_setup.base_experiment.Experiment")
 
         # initialize parameter attributes
         default_setup_parameters = Parameters()

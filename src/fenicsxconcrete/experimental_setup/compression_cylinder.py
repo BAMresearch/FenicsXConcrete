@@ -1,5 +1,5 @@
-from fenicsxconcrete.experimental_setup.base_experiment import Experiment
-from fenicsxconcrete.helper import Parameters
+import logging
+
 import dolfinx as df
 import numpy as np
 import gmsh
@@ -9,6 +9,8 @@ import ufl
 import pint
 from mpi4py import MPI
 
+from fenicsxconcrete.experimental_setup.base_experiment import Experiment
+from fenicsxconcrete.helper import Parameters
 from fenicsxconcrete.unit_registry import ureg
 from fenicsxconcrete.boundary_conditions.boundary import plane_at, point_at
 from fenicsxconcrete.boundary_conditions.bcs import BoundaryConditions
@@ -99,6 +101,7 @@ class CompressionCylinder(Experiment):
         p.update(parameters)
 
         super().__init__(p)
+        self.logger = logging.getLogger("fenicsxconcrete.experimental_setup.compression_cylinder.CompressionCylinder")
 
         # initialize variable top_displacement
         self.top_displacement = df.fem.Constant(domain=self.mesh, c=0.0)  # applied via fkt: apply_displ_load(...)

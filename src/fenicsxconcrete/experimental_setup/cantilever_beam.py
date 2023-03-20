@@ -1,12 +1,16 @@
-from fenicsxconcrete.experimental_setup.base_experiment import Experiment
-from fenicsxconcrete.helper import Parameters
+import logging
+
 import dolfinx as df
 from mpi4py import MPI
+from petsc4py.PETSc import ScalarType
 import numpy as np
 import ufl
-from petsc4py.PETSc import ScalarType
-from fenicsxconcrete.unit_registry import ureg
+
 import pint
+from fenicsxconcrete.experimental_setup.base_experiment import Experiment
+from fenicsxconcrete.helper import Parameters
+from fenicsxconcrete.unit_registry import ureg
+
 
 class CantileverBeam(Experiment):
     """Sets up a cantilever beam, clamped on one side and loaded with gravity
@@ -26,6 +30,7 @@ class CantileverBeam(Experiment):
         default_p.update(parameters)
 
         super().__init__(default_p)
+        self.logger = logging.getLogger("fenicsxconcrete.experimental_setup.cantilever_beam.CantileverBeam")
 
     def setup(self):
         """defines the mesh for 2D or 3D"""
