@@ -52,34 +52,6 @@ class MaterialProblem(ABC):
 
         # set log level...
         self.logger.setLevel(self.p['log_level'])
-        # if self.p['log_level'] == 'DEBUG':
-        #     df.log.LogLevel(10)
-        #     logging.getLogger("FFC").setLevel(logging.DEBUG)
-        #     logging.getLogger("UFL").setLevel(logging.DEBUG)
-        #     logger.add(sys.stderr, level="DEBUG")
-        # elif self.p['log_level'] == 'INFO':
-        #     df.log.LogLevel(20)
-        #     logging.getLogger("FFC").setLevel(logging.INFO)
-        #     logging.getLogger("UFL").setLevel(logging.INFO)
-        #     logger.add(sys.stderr, level="INFO")
-        # elif self.p['log_level'] == 'WARNING':
-        #     df.log.LogLevel(30)
-        #     logging.getLogger("FFC").setLevel(logging.WARNING)
-        #     logging.getLogger("UFL").setLevel(logging.WARNING)
-        #     logger.add(sys.stderr, level="WARNING")
-        # elif self.p['log_level'] == 'ERROR':
-        #     df.log.LogLevel(40)
-        #     logging.getLogger("FFC").setLevel(logging.ERROR)
-        #     logging.getLogger("UFL").setLevel(logging.ERROR)
-        #     logger.add(sys.stderr, level="ERROR")
-        # elif self.p['log_level'] == 'CRITICAL':
-        #     df.log.LogLevel(50)
-        #     logging.getLogger("FFC").setLevel(logging.CRITICAL)
-        #     logging.getLogger("UFL").setLevel(logging.CRITICAL)
-        #     logger.add(sys.stderr, level="CRITICAL")
-        # else:
-        #     level = self.p['log_level']
-        #     raise ValueError(f'unknown log level {level}')
 
         self.sensors = Sensors()  # list to hold attached sensors
 
