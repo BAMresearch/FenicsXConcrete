@@ -15,16 +15,12 @@ jobs:
     runs-on: ubuntu-latest
     permissions: {}
     steps:
-      - name: print branch name
+      - name: print branch name and coverage
         run: |
           BRANCH_NAME=$(echo ${GITHUB_REF#refs/heads/} | sed "s/\//_/g")
-          echo $BRANCH_NAME  
-          echo "$BRANCH_NAME" 
-          echo "$GITHUB_REF"
-          curl -X GET "https://gist.githubusercontent.com/eriktamsen/c10a5b6d0714b1fe2344eb60918e92f8/raw/fenicsxconcrete_main_coverage.json"
           curl -X GET "https://gist.githubusercontent.com/eriktamsen/c10a5b6d0714b1fe2344eb60918e92f8/raw/fenicsxconcrete_{$BRANCH_NAME}_coverage.json"
-
 
       - name: show content
         run: |
-          curl -X GET "https://gist.githubusercontent.com/eriktamsen/c10a5b6d0714b1fe2344eb60918e92f8/raw/9c770f9f225652400e55147cef82b3d1247c8545/fenicsxconcrete_main_coverage.json"
+          CODE = 'curl -X GET "https://gist.githubusercontent.com/eriktamsen/c10a5b6d0714b1fe2344eb60918e92f8/raw/fenicsxconcrete_main_coverage.json"'
+          echo $CODE
