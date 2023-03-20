@@ -22,11 +22,6 @@ jobs:
           echo "$BRANCH_NAME" 
           echo "$GITHUB_REF"
 
-      - uses: sergeysova/gist-read-action@v1
-        id: example-gist
-        with:
-          gist_id: c10a5b6d0714b1fe2344eb60918e92f8
-          file_name: fenicsxconcrete_main_coverage.json
 
       - name: show content
-        run: echo "Hello ${{ steps.example-gist.outputs.content }}"
+        run: echo "https://gist.githubusercontent.com/eriktamsen/c10a5b6d0714b1fe2344eb60918e92f8/raw/9c770f9f225652400e55147cef82b3d1247c8545/fenicsxconcrete_main_coverage.json"
