@@ -16,4 +16,6 @@ jobs:
     permissions: {}
     steps:
       - name: print stuff
-        run: echo "fenicsxconcrete_${{ env.BRANCH_NAME }}_coverage.json"
+        run: |
+          echo "fenicsxconcrete_${{ env.BRANCH_NAME }}_coverage.json"
+          echo "$GITHUB_REF"
