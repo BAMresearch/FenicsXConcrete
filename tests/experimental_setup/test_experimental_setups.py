@@ -15,7 +15,7 @@ from fenicsxconcrete.unit_registry import ureg
     "setup", [CantileverBeam, TensileBeam, SimpleBeam, CompressionCylinder]
 )
 def test_default_parameters(
-    setup: Union[Type[TensileBeam], Type[CompressionCylinder], Type[CantileverBeam]]
+    setup: type[TensileBeam] | type[CompressionCylinder] | type[CantileverBeam]
 ) -> None:
     """This function creates experimental setups with the respective default dictionaries
 
@@ -44,7 +44,7 @@ def test_default_parameters(
     "setup", [CantileverBeam, TensileBeam, SimpleBeam, CompressionCylinder]
 )
 def test_default_parameters(
-    setup: Union[Type[TensileBeam], Type[CompressionCylinder], Type[CantileverBeam]]
+    setup: type[TensileBeam] | type[CompressionCylinder] | type[CantileverBeam]
 ) -> None:
     setup_parameters = setup.default_parameters()
 

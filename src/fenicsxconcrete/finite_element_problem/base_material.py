@@ -20,10 +20,10 @@ from fenicsxconcrete.unit_registry import ureg
 class MaterialProblem(ABC):
     def __init__(
         self,
-        experiment: Union[CompressionCylinder, CantileverBeam, TensileBeam],
+        experiment: CompressionCylinder | CantileverBeam | TensileBeam,
         parameters: dict[str, pint.Quantity],
         pv_name: str = "pv_output_full",
-        pv_path: Optional[PosixPath] = None,
+        pv_path: PosixPath | None = None,
     ) -> None:
         """ "base material problem
 

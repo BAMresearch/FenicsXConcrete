@@ -17,7 +17,7 @@ from fenicsxconcrete.unit_registry import ureg
         [3, [-1.18487757e-06, 3.58357285e-10, -6.42126235e-06]],
     ],
 )
-def test_linear_cantilever_beam(dimension: int, results: List[float]) -> None:
+def test_linear_cantilever_beam(dimension: int, results: list[float]) -> None:
     # setup paths and directories
     data_dir = "data_files"
     data_path = Path(__file__).parent / data_dir

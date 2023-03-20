@@ -19,7 +19,7 @@ from fenicsxconcrete.unit_registry import ureg
         ["some_string_that is_not_implemented", True],
     ],
 )
-def test_log_levels(log_level: List[Union[str, bool]]) -> None:
+def test_log_levels(log_level: list[str | bool]) -> None:
     """This function tests all implemented log level in the base material init"""
 
     log_str = log_level[0]

@@ -12,7 +12,7 @@ from fenicsxconcrete.sensor_definition.base_sensor import Sensor
 class TemperatureSensor(Sensor):
     """A sensor that measure temperature at a specific point in celsius"""
 
-    def __init__(self, where: List[List[Union[int, float]]]) -> None:
+    def __init__(self, where: list[list[int | float]]) -> None:
         """
         Arguments:
             where : Point
@@ -57,7 +57,7 @@ class MaxTemperatureSensor(Sensor):
 class DOHSensor(Sensor):
     """A sensor that measure the degree of hydration at a point"""
 
-    def __init__(self, where: List[List[Union[int, float]]]) -> None:
+    def __init__(self, where: list[list[int | float]]) -> None:
         """
         Arguments:
             where : Point
@@ -173,7 +173,7 @@ class ReactionForceSensorBottom(Sensor):
 class StressSensor(Sensor):
     """A sensor that measure the stress tensor in at a point"""
 
-    def __init__(self, where: List[List[Union[int, float]]]) -> None:
+    def __init__(self, where: list[list[int | float]]) -> None:
         """
         Arguments:
             where : Point
@@ -203,7 +203,7 @@ class StressSensor(Sensor):
 class StrainSensor(Sensor):
     """A sensor that measure the strain tensor in at a point"""
 
-    def __init__(self, where: List[List[Union[int, float]]]) -> None:
+    def __init__(self, where: list[list[int | float]]) -> None:
         """
         Arguments:
             where : Point

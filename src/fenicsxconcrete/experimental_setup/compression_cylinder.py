@@ -1,5 +1,6 @@
 import os
-from typing import Callable, Optional
+from typing import Optional
+from collections.abc import Callable
 
 import dolfinx as df
 import gmsh
@@ -36,8 +37,8 @@ def generate_cylinder_mesh(
     # file names and location
     folder_name = "mesh"
     file_name = "cylinder"
-    msh_file = "{}/{}.msh".format(folder_name, file_name)
-    xdmf_file = "{}/{}.xdmf".format(folder_name, file_name)
+    msh_file = f"{folder_name}/{file_name}.msh"
+    xdmf_file = f"{folder_name}/{file_name}.xdmf"
 
     # start gmsh
     gmsh.initialize()

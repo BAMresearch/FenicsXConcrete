@@ -18,7 +18,7 @@ from fenicsxconcrete.unit_registry import ureg
         [3, [1.13946512e-03, 1.42368783e-05, -1.42250453e-02]],
     ],
 )
-def test_linear_simple_beam(dimension: int, results: List[float]) -> None:
+def test_linear_simple_beam(dimension: int, results: list[float]) -> None:
     # setup paths and directories
     data_dir = "data_files"
     data_path = Path(__file__).parent / data_dir

@@ -10,7 +10,7 @@ from fenicsxconcrete.unit_registry import ureg
 class DisplacementSensor(Sensor):
     """A sensor that measure displacement at a specific point"""
 
-    def __init__(self, where: List[List[Union[int, float]]]) -> None:
+    def __init__(self, where: list[list[int | float]]) -> None:
         """
         Arguments:
             where : Point

@@ -60,13 +60,13 @@ class Experiment(ABC):
         pass
 
     def create_force_boundary(
-        self, v: Optional[ufl.argument.Argument] = None
+        self, v: ufl.argument.Argument | None = None
     ) -> ufl.form.Form | None:
         # define empty force boundary
         pass
 
     def create_body_force(
-        self, v: Optional[ufl.argument.Argument] = None
+        self, v: ufl.argument.Argument | None = None
     ) -> ufl.form.Form | None:
         # define empty body force function
         pass

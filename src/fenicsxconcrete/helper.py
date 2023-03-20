@@ -15,14 +15,14 @@ class Parameters(UserDict):
         assert isinstance(value, pint.Quantity)
         self.data[key] = value.to_base_units()
 
-    def __add__(self, other: Optional[Parameters]) -> Parameters:
+    def __add__(self, other: Parameters | None) -> Parameters:
         if other is None:
             dic = self
         else:
             dic = Parameters({**self, **other})
         return dic
 
-    def to_magnitude(self) -> Dict[str, Union[int, str, float]]:
+    def to_magnitude(self) -> dict[str, int | str | float]:
         magnitude_dictionary = {}
         for key in self.keys():
             magnitude_dictionary[key] = self[key].magnitude

@@ -7,7 +7,7 @@ from fenicsxconcrete.finite_element_problem.linear_elasticity import LinearElast
 
 
 @pytest.mark.parametrize("material_model", [LinearElasticity])
-def test_default_dictionaries(material_model: Type[LinearElasticity]) -> None:
+def test_default_dictionaries(material_model: type[LinearElasticity]) -> None:
     """This function creates experimental setups with the respective default dictionaries
 
     This makes sure all relevant values are included"""

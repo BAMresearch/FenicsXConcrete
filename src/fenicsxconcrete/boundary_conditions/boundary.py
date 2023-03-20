@@ -42,7 +42,7 @@ dolfinx:
 """
 
 
-def plane_at(coordinate: float, dim: typing.Union[str, int]) -> typing.Callable:
+def plane_at(coordinate: float, dim: str | int) -> typing.Callable:
     """Defines a plane where `x[dim]` equals `coordinate`."""
 
     if dim in ["x", "X"]:
@@ -93,8 +93,8 @@ def line_at(coordinates: list[float], dims: list[str]) -> typing.Callable:
 
 
 def within_range(
-    start: typing.Union[typing.Iterable[int], typing.Iterable[float]],
-    end: typing.Union[typing.Iterable[int], typing.Iterable[float]],
+    start: typing.Iterable[int] | typing.Iterable[float],
+    end: typing.Iterable[int] | typing.Iterable[float],
     tol: float = 1e-6,
 ) -> typing.Callable:
     """Defines a range.
@@ -128,7 +128,7 @@ def within_range(
 
 
 def point_at(
-    coord: typing.Union[typing.Iterable[int], typing.Iterable[float]]
+    coord: typing.Iterable[int] | typing.Iterable[float]
 ) -> typing.Callable:
     """Defines a point."""
     p = to_floats(coord)
@@ -145,7 +145,7 @@ def point_at(
 def show_marked(
     domain: dolfinx.mesh.Mesh,
     marker: typing.Callable,
-    filename: typing.Optional[str] = None,
+    filename: str | None = None,
 ) -> None:
     """Shows dof coordinates marked by `marker`.
 
@@ -192,7 +192,7 @@ def show_marked(
 
 
 def to_floats(
-    x: typing.Union[typing.Iterable[int], typing.Iterable[float]]
+    x: typing.Iterable[int] | typing.Iterable[float]
 ) -> list[float]:
     """Converts `x` to a 3d coordinate."""
     floats = []

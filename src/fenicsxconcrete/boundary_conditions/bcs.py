@@ -38,7 +38,7 @@ class BoundaryConditions:
         self,
         domain: dolfinx.mesh.Mesh,
         space: dolfinx.fem.FunctionSpace,
-        facet_tags: typing.Optional[np.ndarray] = None,
+        facet_tags: np.ndarray | None = None,
     ) -> None:
         """Initializes the instance based on domain and FE space.
 
@@ -71,17 +71,17 @@ class BoundaryConditions:
 
     def add_dirichlet_bc(
         self,
-        value: typing.Union[
-            dolfinx.fem.Function,
-            dolfinx.fem.Constant,
-            dolfinx.fem.DirichletBCMetaClass,
-            np.ndarray,
-            typing.Callable,
-        ],
-        boundary: typing.Union[int, np.ndarray, typing.Callable, None] = None,
+        value: (
+            dolfinx.fem.Function |
+            dolfinx.fem.Constant |
+            dolfinx.fem.DirichletBCMetaClass |
+            np.ndarray |
+            typing.Callable
+        ),
+        boundary: int | np.ndarray | typing.Callable | None = None,
         sub: int = None,
         method: str = "topological",
-        entity_dim: typing.Optional[int] = None,
+        entity_dim: int | None = None,
     ) -> None:
         """Adds a Dirichlet bc.
 
