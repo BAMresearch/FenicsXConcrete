@@ -25,5 +25,4 @@ jobs:
 
       - name: show content
         run: |
-          echo "https://gist.githubusercontent.com/eriktamsen/c10a5b6d0714b1fe2344eb60918e92f8/raw/9c770f9f225652400e55147cef82b3d1247c8545/fenicsxconcrete_main_coverage.json"
-          echo $.getJSON("https://gist.githubusercontent.com/eriktamsen/c10a5b6d0714b1fe2344eb60918e92f8/raw/9c770f9f225652400e55147cef82b3d1247c8545/fenicsxconcrete_main_coverage.json")  # , function(data){console.log(data);}
+          curl -X GET "https://gist.githubusercontent.com/eriktamsen/c10a5b6d0714b1fe2344eb60918e92f8/raw/9c770f9f225652400e55147cef82b3d1247c8545/fenicsxconcrete_main_coverage.json"
