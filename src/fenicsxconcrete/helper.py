@@ -23,7 +23,6 @@ class Parameters(UserDict):
         return dic
 
     def to_magnitude(self) -> Dict[str, Union[int, str, float]]:
-
         magnitude_dictionary = {}
         for key in self.keys():
             magnitude_dictionary[key] = self[key].magnitude

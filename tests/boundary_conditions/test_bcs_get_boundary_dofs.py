@@ -3,6 +3,7 @@
 import dolfinx
 import numpy as np
 from mpi4py import MPI
+
 from fenicsxconcrete.boundary_conditions.bcs import (
     BoundaryConditions,
     get_boundary_dofs,
@@ -10,7 +11,7 @@ from fenicsxconcrete.boundary_conditions.bcs import (
 from fenicsxconcrete.boundary_conditions.boundary import plane_at
 
 
-def num_square_boundary_dofs(n: int, deg: int, dim: int, num_edges: int=4) -> int:
+def num_square_boundary_dofs(n: int, deg: int, dim: int, num_edges: int = 4) -> int:
     """returns number of dofs for a square
     assumes quadrilateral cells and structured grid
 

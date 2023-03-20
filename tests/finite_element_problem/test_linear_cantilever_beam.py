@@ -5,10 +5,8 @@ from typing import List, Union
 import pytest
 
 from fenicsxconcrete.experimental_setup.cantilever_beam import CantileverBeam
-from fenicsxconcrete.finite_element_problem.linear_elasticity import \
-    LinearElasticity
-from fenicsxconcrete.sensor_definition.displacement_sensor import \
-    DisplacementSensor
+from fenicsxconcrete.finite_element_problem.linear_elasticity import LinearElasticity
+from fenicsxconcrete.sensor_definition.displacement_sensor import DisplacementSensor
 from fenicsxconcrete.unit_registry import ureg
 
 
@@ -20,7 +18,6 @@ from fenicsxconcrete.unit_registry import ureg
     ],
 )
 def test_linear_cantilever_beam(dimension: int, results: List[float]) -> None:
-
     # setup paths and directories
     data_dir = "data_files"
     data_path = Path(__file__).parent / data_dir

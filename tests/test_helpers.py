@@ -1,6 +1,9 @@
-from fenicsxconcrete.helper import Parameters
 from pint import UnitRegistry
+
+from fenicsxconcrete.helper import Parameters
+
 ureg = UnitRegistry()
+
 
 def test_parameters() -> None:
     parameters = Parameters()

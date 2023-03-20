@@ -115,7 +115,6 @@ def test_fixed_force_response_3D(degree: int) -> None:
 
 
 def test_errors_dimensions() -> None:
-
     p = Parameters()  # using the current default values
     p["E"] = 1023 * ureg("MPa")
     p["nu"] = 0.0 * ureg("")
@@ -128,13 +127,11 @@ def test_errors_dimensions() -> None:
     sensor = ReactionForceSensorBottom()
 
     with pytest.raises(ValueError):
-
         p["dim"] = 4 * ureg("")
         measured = simple_setup(p, displacement, sensor, p["bc_setting"])
 
 
 def test_errors_bc_setting() -> None:
-
     p = Parameters()  # using the current default values
     p["E"] = 1023 * ureg("MPa")
     p["nu"] = 0.0 * ureg("")
@@ -147,7 +144,6 @@ def test_errors_bc_setting() -> None:
     sensor = ReactionForceSensorBottom()
 
     with pytest.raises(ValueError):
-
         p["bc_setting"] = "wrong" * ureg("")
         measured = simple_setup(p, displacement, sensor, p["bc_setting"])
 

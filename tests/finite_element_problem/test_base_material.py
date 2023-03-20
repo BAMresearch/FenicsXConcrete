@@ -1,19 +1,24 @@
-import pytest
-from fenicsxconcrete.experimental_setup.cantilever_beam import CantileverBeam
-from fenicsxconcrete.finite_element_problem.linear_elasticity import LinearElasticity
-from fenicsxconcrete.unit_registry import ureg
-from fenicsxconcrete.sensor_definition.displacement_sensor import DisplacementSensor
 from typing import List, Union
 
+import pytest
+
+from fenicsxconcrete.experimental_setup.cantilever_beam import CantileverBeam
+from fenicsxconcrete.finite_element_problem.linear_elasticity import LinearElasticity
+from fenicsxconcrete.sensor_definition.displacement_sensor import DisplacementSensor
+from fenicsxconcrete.unit_registry import ureg
 
 
-@pytest.mark.parametrize("log_level", [['DEBUG',False],
-                                       ['INFO',False],
-                                       ['ERROR',False],
-                                       ['WARNING',False],
-                                       ['CRITICAL',False],
-                                       ['some_string_that is_not_implemented',True]
-                                       ])
+@pytest.mark.parametrize(
+    "log_level",
+    [
+        ["DEBUG", False],
+        ["INFO", False],
+        ["ERROR", False],
+        ["WARNING", False],
+        ["CRITICAL", False],
+        ["some_string_that is_not_implemented", True],
+    ],
+)
 def test_log_levels(log_level: List[Union[str, bool]]) -> None:
     """This function tests all implemented log level in the base material init"""
 
@@ -21,7 +26,7 @@ def test_log_levels(log_level: List[Union[str, bool]]) -> None:
     error_flag = log_level[1]
 
     default_experiment, fem_parameters = LinearElasticity.default_parameters()
-    fem_parameters['log_level'] = log_str * ureg('')
+    fem_parameters["log_level"] = log_str * ureg("")
 
     if not error_flag:
         LinearElasticity(default_experiment, fem_parameters)
@@ -37,7 +42,7 @@ def test_sensor_error() -> None:
     problem = LinearElasticity(default_experiment, fem_parameters)
 
     with pytest.raises(ValueError):
-        problem.add_sensor('not a sensor')
+        problem.add_sensor("not a sensor")
 
 
 def test_sensor_options() -> None:
@@ -47,11 +52,13 @@ def test_sensor_options() -> None:
     setup_parameters = CantileverBeam.default_parameters()
     default_setup, fem_parameters = LinearElasticity.default_parameters()
 
-    sensor_location = [setup_parameters['length'].magnitude, 0.0, 0.0]
+    sensor_location = [setup_parameters["length"].magnitude, 0.0, 0.0]
     sensor = DisplacementSensor([sensor_location])
 
     # setting up the problem
-    experiment = CantileverBeam(setup_parameters)         # Specifies the domain, discretises it and apply Dirichlet BCs
+    experiment = CantileverBeam(
+        setup_parameters
+    )  # Specifies the domain, discretises it and apply Dirichlet BCs
     problem = LinearElasticity(experiment, fem_parameters)
 
     # check that no sensors yet exist

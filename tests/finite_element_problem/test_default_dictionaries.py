@@ -1,7 +1,10 @@
-import pytest
-from fenicsxconcrete.finite_element_problem.linear_elasticity import LinearElasticity
 import copy
 from typing import Type
+
+import pytest
+
+from fenicsxconcrete.finite_element_problem.linear_elasticity import LinearElasticity
+
 
 @pytest.mark.parametrize("material_model", [LinearElasticity])
 def test_default_dictionaries(material_model: Type[LinearElasticity]) -> None:
@@ -22,5 +25,3 @@ def test_default_dictionaries(material_model: Type[LinearElasticity]) -> None:
             less_parameters.pop(key)
             fem_problem = material_model(default_setup, less_parameters)
             fem_problem.solve()
-
-

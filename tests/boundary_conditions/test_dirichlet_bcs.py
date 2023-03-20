@@ -1,12 +1,13 @@
 """Based on Philipp Diercks implementation for multi"""
 
-import pytest
 import dolfinx
 import numpy as np
+import pytest
 from mpi4py import MPI
 from petsc4py.PETSc import ScalarType
+
 from fenicsxconcrete.boundary_conditions.bcs import BoundaryConditions
-from fenicsxconcrete.boundary_conditions.boundary import plane_at, create_facet_tags
+from fenicsxconcrete.boundary_conditions.boundary import create_facet_tags, plane_at
 
 """Note: topological vs. geometrical
 

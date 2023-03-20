@@ -234,7 +234,6 @@ class CompressionCylinder(Experiment):
                     "geometrical",
                 )
             elif self.p["dim"] == 3:
-
                 bc_generator.add_dirichlet_bc(
                     self.top_displacement, self.boundary_top(), 2, "geometrical", 2
                 )

@@ -4,8 +4,8 @@ import dolfinx
 import numpy as np
 from mpi4py import MPI
 from petsc4py.PETSc import ScalarType
-from fenicsxconcrete.boundary_conditions.boundary import plane_at
-from fenicsxconcrete.boundary_conditions.boundary import line_at
+
+from fenicsxconcrete.boundary_conditions.boundary import line_at, plane_at
 
 
 def test_cube() -> None:
@@ -15,9 +15,9 @@ def test_cube() -> None:
     )
     V = dolfinx.fem.FunctionSpace(domain, ("Lagrange", 1))
 
-    x_axis = line_at([0,0], ['z','y'])
-    y_axis = line_at([0,0], ['z','x'])
-    z_axis = line_at([0,0], ['x','y'])
+    x_axis = line_at([0, 0], ["z", "y"])
+    y_axis = line_at([0, 0], ["z", "x"])
+    z_axis = line_at([0, 0], ["x", "y"])
 
     axis_list = [x_axis, y_axis, z_axis]
 

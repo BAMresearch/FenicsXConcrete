@@ -1,15 +1,17 @@
+from typing import Callable
+
+import dolfinx as df
+import numpy as np
+import pint
+import ufl
+from mpi4py import MPI
+from petsc4py.PETSc import ScalarType
+
+from fenicsxconcrete.boundary_conditions.bcs import BoundaryConditions
+from fenicsxconcrete.boundary_conditions.boundary import line_at, plane_at, point_at
 from fenicsxconcrete.experimental_setup.base_experiment import Experiment
 from fenicsxconcrete.helper import Parameters
-import dolfinx as df
-from mpi4py import MPI
-import numpy as np
-import ufl
-from petsc4py.PETSc import ScalarType
 from fenicsxconcrete.unit_registry import ureg
-import pint
-from fenicsxconcrete.boundary_conditions.bcs import BoundaryConditions
-from fenicsxconcrete.boundary_conditions.boundary import plane_at, point_at, line_at
-from typing import Callable
 
 
 class SimpleBeam(Experiment):

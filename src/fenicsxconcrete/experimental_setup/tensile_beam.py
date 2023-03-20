@@ -98,7 +98,7 @@ class TensileBeam(Experiment):
 
         facet_indices, facet_markers = [], []
         fdim = self.mesh.topology.dim - 1
-        for (marker, locator) in boundaries:
+        for marker, locator in boundaries:
             facets = df.mesh.locate_entities(self.mesh, fdim, locator)
             facet_indices.append(facets)
             facet_markers.append(np.full_like(facets, marker))
