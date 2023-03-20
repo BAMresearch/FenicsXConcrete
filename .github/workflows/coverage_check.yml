@@ -26,5 +26,5 @@ jobs:
           echo '------------------------'
           echo $CODE
           echo '------------------------'
-          NEWCODE=$(echo $CODE | grep -o -P '.{0,3}%')
+          NEWCODE=$(echo $CODE | grep -o -P 'message.{3.6}')
           echo $NEWCODE
