@@ -1,7 +1,8 @@
 from __future__ import annotations
-import dolfinx as df
-import numpy as np
+import typing
 
+if typing.TYPE_CHECKING:
+    from fenicsxconcrete.finite_element_problem.base_material import MaterialProblem
 
 
 class Sensors(dict):
@@ -35,14 +36,14 @@ class Sensors(dict):
 class Sensor:
     """Template for a sensor object"""
 
-    def measure(self, problem, t):
+    def measure(self, problem: MaterialProblem, t: float):
         """Needs to be implemented in child, depending on the sensor"""
-        raise NotImplementedError()
+        raise NotImplementedError
 
     @property
     def name(self) -> str:
         return self.__class__.__name__
 
-    def data_max(self, value):
+    def data_max(self, value: float) -> None:
         if value > self.max:
             self.max = value

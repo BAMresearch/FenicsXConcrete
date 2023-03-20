@@ -1,7 +1,6 @@
 """Easy definition of boundaries."""
 
 import typing
-import numpy.typing
 
 import dolfinx
 import numpy as np
@@ -58,36 +57,6 @@ def plane_at(coordinate: float, dim: typing.Union[str, int]) -> typing.Callable:
 
     def boundary(x):
         return np.isclose(x[dim], coordinate)
-
-    return boundary
-
-
-def line_at(coordinates : list, dims : list):
-    """return callable that determines boundary geometrically
-
-    Parameters
-    ----------
-    coordinates
-    dims
-    """
-    assert len(coordinates) == 2
-    assert len(dims) == 2
-
-    # transform x,y,z str into integer
-    for i, dim in enumerate(dims):
-        if dim in ["x", "X"]:
-            dims[i] = 0
-        elif dim in ["y", "Y"]:
-            dims[i] = 1
-        elif dim in ["z", "Z"]:
-            dims[i] = 2
-        assert dims[i] in (0, 1, 2)
-
-    assert dims[0] != dims[1]
-
-    def boundary(x):
-        return np.logical_and(np.isclose(x[dims[0]], coordinates[0]),
-                              np.isclose(x[dims[1]], coordinates[1]))
 
     return boundary
 
@@ -208,8 +177,8 @@ def to_floats(
 
 
 def create_facet_tags(
-    mesh: dolfinx.mesh.Mesh, boundaries: dict
-) -> tuple[np.ndarray, dict]:
+    mesh: dolfinx.mesh.Mesh, boundaries: dict[str, tuple[int, typing.Callable]]
+) -> tuple[np.ndarray, dict[str, int]]:
     """Creates facet tags for the given mesh and boundaries.
 
     This code is part of the FEniCSx tutorial

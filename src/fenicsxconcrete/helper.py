@@ -1,8 +1,9 @@
 from __future__ import annotations
-import pint
-from fenicsxconcrete.unit_registry import ureg
+
 from collections import UserDict  # because: https://realpython.com/inherit-python-dict/
 from typing import Dict, Optional, Union
+
+import pint
 
 
 class Parameters(UserDict):
@@ -15,7 +16,7 @@ class Parameters(UserDict):
         self.data[key] = value.to_base_units()
 
     def __add__(self, other: Optional[Parameters]) -> Parameters:
-        if other == None:
+        if other is None:
             dic = self
         else:
             dic = Parameters({**self, **other})

@@ -1,16 +1,13 @@
 """Easy definition of Dirichlet and Neumann BCs."""
 
 import typing
-import numpy.typing as npt
 
 import dolfinx
-import ufl
 import numpy as np
+import ufl
 from dolfinx.fem.bcs import DirichletBCMetaClass
 from dolfinx.fem.function import Constant, Function, FunctionSpace
 from dolfinx.mesh import Mesh
-from numpy import ndarray
-from ufl.form import Form
 
 
 def get_boundary_dofs(
@@ -41,7 +38,7 @@ class BoundaryConditions:
         self,
         domain: dolfinx.mesh.Mesh,
         space: dolfinx.fem.FunctionSpace,
-        facet_tags: typing.Optional[npt.NDArray] = None,
+        facet_tags: typing.Optional[np.ndarray] = None,
     ) -> None:
         """Initializes the instance based on domain and FE space.
 
@@ -78,10 +75,10 @@ class BoundaryConditions:
             dolfinx.fem.Function,
             dolfinx.fem.Constant,
             dolfinx.fem.DirichletBCMetaClass,
-            npt.NDArray,
+            np.ndarray,
             typing.Callable,
         ],
-        boundary: typing.Union[int, npt.NDArray, typing.Callable] = None,
+        boundary: typing.Union[int, np.ndarray, typing.Callable, None] = None,
         sub: int = None,
         method: str = "topological",
         entity_dim: typing.Optional[int] = None,
@@ -187,8 +184,8 @@ class BoundaryConditions:
             self._neumann_bcs.clear()
 
     @property
-    def neumann_bcs(self) -> Form:
-        """The ufl form of (sum of) Neumann BCs"""
+    def neumann_bcs(self) -> ufl.form.Form:
+        """The ufl ufl.form.Form of (sum of) Neumann BCs"""
         r = 0
         for expression, marker in self._neumann_bcs:
             r += ufl.inner(expression, self._v) * self._ds(marker)

@@ -1,12 +1,12 @@
+from abc import ABC, abstractmethod
+from typing import Optional
 
 import dolfinx as df
-import numpy as np
-from fenicsxconcrete.helper import Parameters
-from abc import ABC, abstractmethod
 import pint
+import ufl
+
+from fenicsxconcrete.helper import Parameters
 from fenicsxconcrete.unit_registry import ureg
-from typing import Optional
-from ufl.argument import Argument
 
 
 class Experiment(ABC):
@@ -28,7 +28,7 @@ class Experiment(ABC):
         # initialize parameter attributes
         default_setup_parameters = Parameters()
         # setting up default setup parameters
-        default_setup_parameters['degree'] = 2 * ureg('')  # polynomial degree
+        default_setup_parameters["degree"] = 2 * ureg("")  # polynomial degree
 
         # update with input parameters
         default_setup_parameters.update(parameters)
@@ -49,21 +49,24 @@ class Experiment(ABC):
         """returns a dictionary with required parameters and a set of working values as example"""
 
     @abstractmethod
-    def create_displacement_boundary(self, V: df.fem.FunctionSpace) -> list:
+    def create_displacement_boundary(
+        self, V: df.fem.FunctionSpace
+    ) -> list[df.fem.bcs.DirichletBCMetaClass] | None:
         """returns a list with displacement boundary conditions
 
-           this function is abstract until there is a need for a material that does not need a displacement boundary
-           once that is required, just make this a normal function that returns an empty list
-           """
+        this function is abstract until there is a need for a material that does not need a displacement boundary
+        once that is required, just make this a normal function that returns an empty list
+        """
+        pass
 
-    def create_force_boundary(self, v: Optional[Argument] = None) -> None:
+    def create_force_boundary(
+        self, v: Optional[ufl.argument.Argument] = None
+    ) -> ufl.form.Form | None:
         # define empty force boundary
-        # TODO: is there a better solution???
+        pass
 
-        return None
-
-    def create_body_force(self, v: Optional[Argument] = None) -> None:
+    def create_body_force(
+        self, v: Optional[ufl.argument.Argument] = None
+    ) -> ufl.form.Form | None:
         # define empty body force function
-        # TODO: is there a better solution???
-
-        return None
+        pass
