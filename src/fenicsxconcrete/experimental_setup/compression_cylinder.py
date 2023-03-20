@@ -1,5 +1,6 @@
 from fenicsxconcrete.experimental_setup.base_experiment import Experiment
 from fenicsxconcrete.helper import Parameters
+from pathlib import Path
 import dolfinx as df
 import numpy as np
 import gmsh
@@ -30,10 +31,10 @@ def generate_cylinder_mesh(radius:float, height:float, mesh_density:float, eleme
     """
 
     # file names and location
-    folder_name = "mesh"
+    folder_name = Path("temp_mesh")
     file_name = "cylinder"
-    msh_file = "{}/{}.msh".format(folder_name, file_name)
-    xdmf_file = "{}/{}.xdmf".format(folder_name, file_name)
+    msh_file = folder_name / (file_name + '.msh')
+    xdmf_file = folder_name / (file_name + '.xdmf')
 
     # start gmsh
     gmsh.initialize()
@@ -62,20 +63,29 @@ def generate_cylinder_mesh(radius:float, height:float, mesh_density:float, eleme
     gmsh.model.mesh.generate(dim)
 
     # save it to disk as msh in folder
-    if not os.path.exists(folder_name):  # creat mesh folder if it does nto exists
+    if not folder_name.is_dir():
+    #if not os.path.exists(folder_name):  # create mesh folder if it does not exist
         os.mkdir(folder_name)
 
     # write file
-    gmsh.write(msh_file)
+    gmsh.write(str(msh_file))
     gmsh.finalize()
 
     # convert msh to xdmf
     meshio_mesh = meshio.read(msh_file)
     meshio.write(xdmf_file, meshio_mesh)
 
+
     # read xdmf as dolfin mesh
     with df.io.XDMFFile(MPI.COMM_WORLD,xdmf_file,"r") as mesh_file:
         mesh = mesh_file.read_mesh(name="Grid")
+
+    # delete temp files
+    if folder_name.is_dir():
+        os.remove(msh_file)
+        os.remove(xdmf_file)
+        os.remove(xdmf_file.with_suffix('.h5'))
+        os.rmdir(folder_name)
 
     return mesh
 
