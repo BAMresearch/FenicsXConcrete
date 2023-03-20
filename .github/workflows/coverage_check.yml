@@ -26,5 +26,5 @@ jobs:
           echo '------------------------'
           echo $CODE
           echo '------------------------'
-          NEWCODE=$(echo $CODE | grep -o -P 'message.{3,6}')
+          NEWCODE=$(echo $CODE | grep -o -P 'message.{3,6}' | sed -e 's/"//g' | sed -e 's/://g' | sed -e 's/message//g')
           echo $NEWCODE
