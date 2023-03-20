@@ -225,9 +225,6 @@ class CompressionCylinder(Experiment):
                 bc_generator.add_dirichlet_bc(np.float64(0.0), point_at(x_min_boundary_point), 1, "geometrical", 1)
                 bc_generator.add_dirichlet_bc(np.float64(0.0), point_at(x_max_boundary_point), 1, "geometrical", 1)
                 bc_generator.add_dirichlet_bc(np.float64(0.0), point_at(y_boundary_point), 0, "geometrical", 0)
-            
-            else:
-                raise ValueError(f"dim setting: {self.p['dim']}, not implemented for cylinder bc setup: free")
         else:
             raise ValueError(f"Wrong boundary setting: {self.p['bc_setting']}, for cylinder setup")
 
