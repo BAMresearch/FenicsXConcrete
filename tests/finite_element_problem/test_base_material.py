@@ -1,4 +1,3 @@
-
 import pytest
 
 from fenicsxconcrete.experimental_setup.cantilever_beam import CantileverBeam

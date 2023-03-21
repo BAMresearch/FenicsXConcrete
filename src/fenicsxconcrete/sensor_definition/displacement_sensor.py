@@ -1,4 +1,3 @@
-
 import dolfinx as df
 
 from fenicsxconcrete.finite_element_problem.base_material import MaterialProblem
