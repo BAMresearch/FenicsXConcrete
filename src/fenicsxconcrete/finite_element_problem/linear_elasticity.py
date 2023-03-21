@@ -91,7 +91,7 @@ class LinearElasticity(MaterialProblem):
     def epsilon(self, u: ufl.argument.Argument) -> ufl.tensoralgebra.Sym:
         return ufl.tensoralgebra.Sym(ufl.grad(u))
 
-    def sigma(self, u: ufl.argument.Argument) -> ufl.algebra.Sum:
+    def sigma(self, u: ufl.argument.Argument) -> ufl.core.expr.Expr:
         return self.lambda_ * ufl.nabla_div(u) * ufl.Identity(
             self.p["dim"]
         ) + 2 * self.mu * self.epsilon(u)
