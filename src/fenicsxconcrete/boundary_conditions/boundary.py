@@ -1,5 +1,6 @@
 """Easy definition of boundaries."""
 import typing
+from collections.abc import Callable
 
 import dolfinx
 import numpy as np
@@ -42,7 +43,7 @@ dolfinx:
 """
 
 
-def plane_at(coordinate: float, dim: str | int) -> typing.Callable:
+def plane_at(coordinate: float, dim: str | int) -> Callable:
     """Defines a plane where `x[dim]` equals `coordinate`."""
 
     if dim in ["x", "X"]:
@@ -60,7 +61,7 @@ def plane_at(coordinate: float, dim: str | int) -> typing.Callable:
     return boundary
 
 
-def line_at(coordinates: list[float], dims: list[str | int]) -> typing.Callable:
+def line_at(coordinates: list[float], dims: list[str | int]) -> Callable:
     """return callable that determines boundary geometrically
 
     Parameters
@@ -96,7 +97,7 @@ def within_range(
     start: typing.Iterable[int] | typing.Iterable[float],
     end: typing.Iterable[int] | typing.Iterable[float],
     tol: float = 1e-6,
-) -> typing.Callable:
+) -> Callable:
     """Defines a range.
 
     It is best used together with `dolfinx.mesh.locate_entities_boundary`
@@ -127,7 +128,7 @@ def within_range(
     return boundary
 
 
-def point_at(coord: typing.Iterable[int] | typing.Iterable[float]) -> typing.Callable:
+def point_at(coord: typing.Iterable[int] | typing.Iterable[float]) -> Callable:
     """Defines a point."""
     p = to_floats(coord)
 
@@ -142,7 +143,7 @@ def point_at(coord: typing.Iterable[int] | typing.Iterable[float]) -> typing.Cal
 
 def show_marked(
     domain: dolfinx.mesh.Mesh,
-    marker: typing.Callable,
+    marker: Callable,
     filename: str | None = None,
 ) -> None:
     """Shows dof coordinates marked by `marker`.
@@ -204,7 +205,7 @@ def to_floats(x: typing.Iterable[int] | typing.Iterable[float]) -> list[float]:
 
 
 def create_facet_tags(
-    mesh: dolfinx.mesh.Mesh, boundaries: dict[str, tuple[int, typing.Callable]]
+    mesh: dolfinx.mesh.Mesh, boundaries: dict[str, tuple[int, Callable]]
 ) -> tuple[np.ndarray, dict[str, int]]:
     """Creates facet tags for the given mesh and boundaries.
 

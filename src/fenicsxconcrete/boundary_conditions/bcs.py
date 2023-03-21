@@ -1,6 +1,6 @@
 """Easy definition of Dirichlet and Neumann BCs."""
 
-import typing
+from collections.abc import Callable
 
 import dolfinx
 import numpy as np
@@ -9,9 +9,7 @@ from dolfinx.fem.bcs import DirichletBCMetaClass
 from dolfinx.fem.function import Constant
 
 
-def get_boundary_dofs(
-    V: dolfinx.fem.FunctionSpace, marker: typing.Callable
-) -> np.ndarray:
+def get_boundary_dofs(V: dolfinx.fem.FunctionSpace, marker: Callable) -> np.ndarray:
     """Returns dofs on the boundary specified by geometrical `marker`."""
     domain = V.mesh
     tdim = domain.topology.dim
@@ -75,9 +73,9 @@ class BoundaryConditions:
             | dolfinx.fem.Constant
             | dolfinx.fem.DirichletBCMetaClass
             | np.ndarray
-            | typing.Callable
+            | Callable
         ),
-        boundary: int | np.ndarray | typing.Callable | None = None,
+        boundary: int | np.ndarray | Callable | None = None,
         sub: int = None,
         method: str = "topological",
         entity_dim: int | None = None,
