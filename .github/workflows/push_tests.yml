@@ -17,23 +17,6 @@ env:
   CACHE_NUMBER: 1 # increase to reset cache manually
 
 jobs:
-  # Style checking
-  style_check:
-    name: Style and file check
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
-      - name: Set up Python 3.10
-        uses: actions/setup-python@v2
-        with:
-          python-version: '3.10'
-      - name: Install dependencies
-        run: |
-          pip install pre-commit
-      - name: Style and file check
-        run: |
-          pre-commit run --all-files --verbose --show-diff-on-failure
-
   # unit test and coverage
   tests:
     runs-on: ubuntu-latest
@@ -99,5 +82,18 @@ jobs:
           valColorRange: ${{ env.COVERAGE_PCT }}
           maxColorRange: 95  # value where ligth green starts
           minColorRange: 50  # value where red starts
+
+  # Style checking
+  style_check:
+    name: Style and file check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Install dependencies
+        run: |
+          pip install pre-commit
+      - name: Style and file check
+        run: |
+          pre-commit run --all-files --verbose --show-diff-on-failure
 
 
