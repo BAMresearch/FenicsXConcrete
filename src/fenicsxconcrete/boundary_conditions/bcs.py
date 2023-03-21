@@ -6,8 +6,7 @@ import dolfinx
 import numpy as np
 import ufl
 from dolfinx.fem.bcs import DirichletBCMetaClass
-from dolfinx.fem.function import Constant, Function, FunctionSpace
-from dolfinx.mesh import Mesh
+from dolfinx.fem.function import Constant
 
 
 def get_boundary_dofs(
@@ -72,11 +71,11 @@ class BoundaryConditions:
     def add_dirichlet_bc(
         self,
         value: (
-            dolfinx.fem.Function |
-            dolfinx.fem.Constant |
-            dolfinx.fem.DirichletBCMetaClass |
-            np.ndarray |
-            typing.Callable
+            dolfinx.fem.Function
+            | dolfinx.fem.Constant
+            | dolfinx.fem.DirichletBCMetaClass
+            | np.ndarray
+            | typing.Callable
         ),
         boundary: int | np.ndarray | typing.Callable | None = None,
         sub: int = None,
