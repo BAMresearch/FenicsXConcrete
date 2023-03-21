@@ -6,7 +6,6 @@ import dolfinx
 import numpy as np
 import ufl
 from dolfinx.fem.bcs import DirichletBCMetaClass
-from dolfinx.fem.function import Constant
 
 
 def get_boundary_dofs(V: dolfinx.fem.FunctionSpace, marker: Callable) -> np.ndarray:
@@ -147,7 +146,7 @@ class BoundaryConditions:
 
             self._bcs.append(bc)
 
-    def add_neumann_bc(self, marker: int, value: Constant) -> None:
+    def add_neumann_bc(self, marker: int, value: dolfinx.fem.Constant) -> None:
         """Adds a Neumann BC.
 
         Args:

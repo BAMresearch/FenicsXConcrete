@@ -75,9 +75,8 @@ class SimpleBeam(Experiment):
         setup_parameters["dim"] = 3 * ureg("")
         setup_parameters["num_elements_length"] = 10 * ureg("")
         setup_parameters["num_elements_height"] = 3 * ureg("")
-        setup_parameters["num_elements_width"] = 3 * ureg(
-            ""
-        )  # only relevant for 3D case
+        # only relevant for 3D case
+        setup_parameters["num_elements_width"] = 3 * ureg("")
 
         return setup_parameters
 

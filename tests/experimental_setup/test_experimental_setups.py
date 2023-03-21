@@ -2,20 +2,21 @@ import copy
 
 import pytest
 
+from fenicsxconcrete.experimental_setup.base_experiment import Experiment
 from fenicsxconcrete.experimental_setup.cantilever_beam import CantileverBeam
-from fenicsxconcrete.experimental_setup.compression_cylinder import CompressionCylinder
+from fenicsxconcrete.experimental_setup.compression_cylinder import \
+    CompressionCylinder
 from fenicsxconcrete.experimental_setup.simple_beam import SimpleBeam
 from fenicsxconcrete.experimental_setup.tensile_beam import TensileBeam
-from fenicsxconcrete.finite_element_problem.linear_elasticity import LinearElasticity
+from fenicsxconcrete.finite_element_problem.linear_elasticity import \
+    LinearElasticity
 from fenicsxconcrete.unit_registry import ureg
 
 
 @pytest.mark.parametrize(
     "setup", [CantileverBeam, TensileBeam, SimpleBeam, CompressionCylinder]
 )
-def test_default_parameters(
-    setup: type[TensileBeam] | type[CompressionCylinder] | type[CantileverBeam]
-) -> None:
+def test_default_parameters(setup: Experiment) -> None:
     """This function creates experimental setups with the respective default dictionaries
 
     This makes sure all relevant values are included"""
@@ -42,9 +43,7 @@ def test_default_parameters(
 @pytest.mark.parametrize(
     "setup", [CantileverBeam, TensileBeam, SimpleBeam, CompressionCylinder]
 )
-def test_default_parameters(
-    setup: type[TensileBeam] | type[CompressionCylinder] | type[CantileverBeam]
-) -> None:
+def test_default_parameters(setup: Experiment) -> None:
     setup_parameters = setup.default_parameters()
 
     with pytest.raises(ValueError):
