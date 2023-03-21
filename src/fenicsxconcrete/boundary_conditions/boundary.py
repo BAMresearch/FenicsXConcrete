@@ -60,7 +60,7 @@ def plane_at(coordinate: float, dim: str | int) -> typing.Callable:
     return boundary
 
 
-def line_at(coordinates: list[float], dims: list[str]) -> typing.Callable:
+def line_at(coordinates: list[float], dims: list[str | int]) -> typing.Callable:
     """return callable that determines boundary geometrically
 
     Parameters
@@ -127,9 +127,7 @@ def within_range(
     return boundary
 
 
-def point_at(
-    coord: typing.Iterable[int] | typing.Iterable[float]
-) -> typing.Callable:
+def point_at(coord: typing.Iterable[int] | typing.Iterable[float]) -> typing.Callable:
     """Defines a point."""
     p = to_floats(coord)
 
@@ -191,9 +189,7 @@ def show_marked(
         plt.show()  # pragma: no cover
 
 
-def to_floats(
-    x: typing.Iterable[int] | typing.Iterable[float]
-) -> list[float]:
+def to_floats(x: typing.Iterable[int] | typing.Iterable[float]) -> list[float]:
     """Converts `x` to a 3d coordinate."""
     floats = []
     try:
