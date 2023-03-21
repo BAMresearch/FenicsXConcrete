@@ -24,7 +24,7 @@ class MaterialProblem(ABC):
         pv_name: str = "pv_output_full",
         pv_path: PosixPath | None = None,
     ) -> None:
-        """ "base material problem
+        """Base material problem.
 
         Parameters
         ----------
