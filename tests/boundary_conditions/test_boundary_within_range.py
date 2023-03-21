@@ -3,10 +3,11 @@
 import dolfinx
 from mpi4py import MPI
 from petsc4py.PETSc import ScalarType
+
 from fenicsxconcrete.boundary_conditions.boundary import within_range
 
 
-def test_1d():
+def test_1d() -> None:
     n = 10
     domain = dolfinx.mesh.create_unit_interval(MPI.COMM_WORLD, n)
     V = dolfinx.fem.FunctionSpace(domain, ("Lagrange", 1))
@@ -18,7 +19,7 @@ def test_1d():
     assert num_dofs == 4
 
 
-def test_2d():
+def test_2d() -> None:
     n = 200
     domain = dolfinx.mesh.create_unit_square(
         MPI.COMM_WORLD, n, n, dolfinx.mesh.CellType.quadrilateral

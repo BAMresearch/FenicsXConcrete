@@ -1,15 +1,18 @@
 import numpy as np
+import pint
+import pytest
 
-from fenicsxconcrete.sensor_definition.other_sensor import ReactionForceSensorBottom
 from fenicsxconcrete.experimental_setup.compression_cylinder import CompressionCylinder
 from fenicsxconcrete.finite_element_problem.linear_elasticity import LinearElasticity
 from fenicsxconcrete.helper import Parameters
+from fenicsxconcrete.sensor_definition.base_sensor import Sensor
+from fenicsxconcrete.sensor_definition.other_sensor import ReactionForceSensorBottom
 from fenicsxconcrete.unit_registry import ureg
 
-import pytest
 
-
-def simple_setup(p, displacement, sensor, bc_setting):
+def simple_setup(
+    p: Parameters, displacement: float, sensor: Sensor, bc_setting: pint.Quantity
+):
     parameters = Parameters()  # using the current default values
 
     parameters["log_level"] = "WARNING" * ureg("")
@@ -31,7 +34,7 @@ def simple_setup(p, displacement, sensor, bc_setting):
 
 
 # testing the linear elastic response
-def test_free_force_response_2D():
+def test_free_force_response_2D() -> None:
     p = Parameters()  # using the current default values
 
     p["E"] = 1023 * ureg("MPa")
@@ -43,14 +46,14 @@ def test_free_force_response_2D():
     p["bc_setting"] = "free" * ureg("")
     p["degree"] = 2 * ureg("")
 
-
     sensor = ReactionForceSensorBottom()
     measured = simple_setup(p, displacement, sensor, p["bc_setting"])
 
-    result = p['E'] * p['radius'] * 2 * displacement / p['height']
+    result = p["E"] * p["radius"] * 2 * displacement / p["height"]
     assert measured == pytest.approx(result.magnitude)
 
-def test_fixed_force_response_2D():
+
+def test_fixed_force_response_2D() -> None:
     p = Parameters()  # using the current default values
 
     p["E"] = 1023 * ureg("MPa")
@@ -62,16 +65,15 @@ def test_fixed_force_response_2D():
     p["bc_setting"] = "fixed" * ureg("")
     p["degree"] = 2 * ureg("")
 
-
     sensor = ReactionForceSensorBottom()
     measured = simple_setup(p, displacement, sensor, p["bc_setting"])
 
-    result = p['E'] * p['radius'] * 2 * displacement / p['height']
+    result = p["E"] * p["radius"] * 2 * displacement / p["height"]
     assert measured == pytest.approx(result.magnitude)
 
-@pytest.mark.parametrize("degree", [1, 2])
 
-def test_free_force_response_3D(degree):
+@pytest.mark.parametrize("degree", [1, 2])
+def test_free_force_response_3D(degree: int) -> None:
     p = Parameters()  # using the current default values
 
     p["E"] = 1023 * ureg("MPa")
@@ -87,12 +89,12 @@ def test_free_force_response_3D(degree):
     measured = simple_setup(p, displacement, sensor, p["bc_setting"])
 
     # due to meshing errors, only aproximate results to be expected. within 1% is good enough
-    result=p['E'] * np.pi * p['radius']**2 * displacement / p['height']
+    result = p["E"] * np.pi * p["radius"] ** 2 * displacement / p["height"]
     assert measured == pytest.approx(result.magnitude, 0.01)
 
-@pytest.mark.parametrize("degree", [1, 2])
 
-def test_fixed_force_response_3D(degree):
+@pytest.mark.parametrize("degree", [1, 2])
+def test_fixed_force_response_3D(degree: int) -> None:
     p = Parameters()  # using the current default values
 
     p["E"] = 1023 * ureg("MPa")
@@ -108,12 +110,11 @@ def test_fixed_force_response_3D(degree):
     measured = simple_setup(p, displacement, sensor, p["bc_setting"])
 
     # due to meshing errors, only aproximate results to be expected. within 1% is good enough
-    result=p['E'] * np.pi * p['radius']**2 * displacement / p['height']
+    result = p["E"] * np.pi * p["radius"] ** 2 * displacement / p["height"]
     assert measured == pytest.approx(result.magnitude, 0.01)
 
 
-def test_errors_dimensions():
-
+def test_errors_dimensions() -> None:
     p = Parameters()  # using the current default values
     p["E"] = 1023 * ureg("MPa")
     p["nu"] = 0.0 * ureg("")
@@ -126,12 +127,11 @@ def test_errors_dimensions():
     sensor = ReactionForceSensorBottom()
 
     with pytest.raises(ValueError):
-
         p["dim"] = 4 * ureg("")
         measured = simple_setup(p, displacement, sensor, p["bc_setting"])
-    
-def test_errors_bc_setting():
 
+
+def test_errors_bc_setting() -> None:
     p = Parameters()  # using the current default values
     p["E"] = 1023 * ureg("MPa")
     p["nu"] = 0.0 * ureg("")
@@ -141,14 +141,13 @@ def test_errors_bc_setting():
     p["dim"] = 3 * ureg("")
     p["degree"] = 2 * ureg("")
 
-
     sensor = ReactionForceSensorBottom()
 
     with pytest.raises(ValueError):
-
         p["bc_setting"] = "wrong" * ureg("")
         measured = simple_setup(p, displacement, sensor, p["bc_setting"])
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     test_fixed_force_response_2D()
     test_fixed_force_response_3D(2)

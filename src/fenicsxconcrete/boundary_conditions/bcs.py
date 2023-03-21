@@ -1,16 +1,14 @@
 """Easy definition of Dirichlet and Neumann BCs."""
 
-import typing
-import numpy.typing as npt
+from collections.abc import Callable
 
 import dolfinx
-import ufl
 import numpy as np
+import ufl
+from dolfinx.fem.bcs import DirichletBCMetaClass
 
 
-def get_boundary_dofs(
-    V: dolfinx.fem.FunctionSpace, marker: typing.Callable
-) -> np.ndarray:
+def get_boundary_dofs(V: dolfinx.fem.FunctionSpace, marker: Callable) -> np.ndarray:
     """Returns dofs on the boundary specified by geometrical `marker`."""
     domain = V.mesh
     tdim = domain.topology.dim
@@ -36,8 +34,8 @@ class BoundaryConditions:
         self,
         domain: dolfinx.mesh.Mesh,
         space: dolfinx.fem.FunctionSpace,
-        facet_tags: typing.Optional[npt.NDArray] = None,
-    ):
+        facet_tags: np.ndarray | None = None,
+    ) -> None:
         """Initializes the instance based on domain and FE space.
 
         It sets up lists to hold the Dirichlet and Neumann BCs
@@ -69,17 +67,17 @@ class BoundaryConditions:
 
     def add_dirichlet_bc(
         self,
-        value: typing.Union[
-            dolfinx.fem.Function,
-            dolfinx.fem.Constant,
-            dolfinx.fem.DirichletBCMetaClass,
-            npt.NDArray,
-            typing.Callable,
-        ],
-        boundary: typing.Union[int, npt.NDArray, typing.Callable] = None,
+        value: (
+            dolfinx.fem.Function
+            | dolfinx.fem.Constant
+            | dolfinx.fem.DirichletBCMetaClass
+            | np.ndarray
+            | Callable
+        ),
+        boundary: int | np.ndarray | Callable | None = None,
         sub: int = None,
         method: str = "topological",
-        entity_dim: typing.Optional[int] = None,
+        entity_dim: int | None = None,
     ) -> None:
         """Adds a Dirichlet bc.
 
@@ -148,7 +146,7 @@ class BoundaryConditions:
 
             self._bcs.append(bc)
 
-    def add_neumann_bc(self, marker: int, value) -> None:
+    def add_neumann_bc(self, marker: int, value: dolfinx.fem.Constant) -> None:
         """Adds a Neumann BC.
 
         Args:
@@ -182,8 +180,8 @@ class BoundaryConditions:
             self._neumann_bcs.clear()
 
     @property
-    def neumann_bcs(self):
-        """The ufl form of (sum of) Neumann BCs"""
+    def neumann_bcs(self) -> ufl.form.Form:
+        """The ufl ufl.form.Form of (sum of) Neumann BCs"""
         r = 0
         for expression, marker in self._neumann_bcs:
             r += ufl.inner(expression, self._v) * self._ds(marker)

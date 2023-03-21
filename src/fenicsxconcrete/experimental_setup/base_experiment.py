@@ -1,8 +1,10 @@
-import dolfinx as df
-import numpy as np
-from fenicsxconcrete.helper import Parameters
 from abc import ABC, abstractmethod
+
+import dolfinx as df
 import pint
+import ufl
+
+from fenicsxconcrete.helper import Parameters
 from fenicsxconcrete.unit_registry import ureg
 
 
@@ -15,7 +17,7 @@ class Experiment(ABC):
 
     """
 
-    def __init__(self, parameters: dict[str, pint.Quantity]):
+    def __init__(self, parameters: dict[str, pint.Quantity]) -> None:
         """Initialises the parent object
 
         This is needs to be called by children
@@ -25,7 +27,7 @@ class Experiment(ABC):
         # initialize parameter attributes
         default_setup_parameters = Parameters()
         # setting up default setup parameters
-        default_setup_parameters['degree'] = 2 * ureg('')  # polynomial degree
+        default_setup_parameters["degree"] = 2 * ureg("")  # polynomial degree
 
         # update with input parameters
         default_setup_parameters.update(parameters)
@@ -46,21 +48,23 @@ class Experiment(ABC):
         """returns a dictionary with required parameters and a set of working values as example"""
 
     @abstractmethod
-    def create_displacement_boundary(self, V) -> list:
+    def create_displacement_boundary(
+        self, V: df.fem.FunctionSpace
+    ) -> list[df.fem.bcs.DirichletBCMetaClass] | None:
         """returns a list with displacement boundary conditions
 
-           this function is abstract until there is a need for a material that does not need a displacement boundary
-           once that is required, just make this a normal function that returns an empty list
-           """
+        this function is abstract until there is a need for a material that does not need a displacement boundary
+        once that is required, just make this a normal function that returns an empty list
+        """
 
-    def create_force_boundary(self, v = None):
+    def create_force_boundary(
+        self, v: ufl.argument.Argument | None = None
+    ) -> ufl.form.Form | None:
         # define empty force boundary
-        # TODO: is there a better solution???
+        pass
 
-        return None
-
-    def create_body_force(self, v = None):
+    def create_body_force(
+        self, v: ufl.argument.Argument | None = None
+    ) -> ufl.form.Form | None:
         # define empty body force function
-        # TODO: is there a better solution???
-
-        return None
+        pass
