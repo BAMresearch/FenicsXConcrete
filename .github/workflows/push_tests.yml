@@ -109,7 +109,7 @@ jobs:
           echo "Increase in coverage: $delta_coverage"
           
           echo "Here is the current coverage report:"
-          echo "${{ steps.pytest.outputs.COVERAGE_NUM }}"
+          echo "${{ tests.steps.pytest.outputs.COVERAGE_NUM }}"
           
           if [[ $delta_coverage -lt 0 ]]
           then
