@@ -53,18 +53,18 @@ class TensileBeam(Experiment):
         """returns a dictionary with required parameters and a set of working values as example"""
 
         setup_parameters = {}
-        setup_parameters["length"] = 1 * ureg("m")
-        setup_parameters["height"] = 0.3 * ureg("m")
-        setup_parameters["width"] = 0.3 * ureg("m")  # only relevant for 3D case
-        setup_parameters["dim"] = 3 * ureg("")
-        setup_parameters["num_elements_length"] = 10 * ureg("")
-        setup_parameters["num_elements_height"] = 3 * ureg("")
-        setup_parameters["num_elements_width"] = 3 * ureg("")  # only relevant for 3D case
-        setup_parameters["load"] = 2000 * ureg("kN")
+        setup_parameters['length'] = 1 * ureg('m')
+        setup_parameters['height'] = 0.3 * ureg('m')
+        setup_parameters['width'] = 0.3 * ureg('m')  # only relevant for 3D case
+        setup_parameters['dim'] = 3 * ureg('')
+        setup_parameters['num_elements_length'] = 10 * ureg('')
+        setup_parameters['num_elements_height'] = 3 * ureg('')
+        setup_parameters['num_elements_width'] = 3 * ureg('')  # only relevant for 3D case
+        setup_parameters['load'] = 2000 * ureg('kN')
 
         return setup_parameters
 
-    def create_displacement_boundary(self, V: df.fem.FunctionSpace) -> list[df.fem.bcs.DirichletBCMetaClass]:
+    def create_displacement_boundary(self, V) -> list:
         # define displacement boundary
 
         # fenics will individually call this function for every node and will note the true or false value.

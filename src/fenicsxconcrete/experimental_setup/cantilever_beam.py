@@ -72,7 +72,7 @@ class CantileverBeam(Experiment):
 
         return setup_parameters
 
-    def create_displacement_boundary(self, V: df.fem.FunctionSpace) -> list[df.fem.bcs.DirichletBCMetaClass]:
+    def create_displacement_boundary(self, V) -> list:
         # define displacement boundary
 
         # fenics will individually call this function for every node and will note the true or false value.
