@@ -51,7 +51,7 @@ jobs:
           # grab the coverage output and also print it to the screen
           coverage run -m pytest -s -W error::UserWarning && coverage xml
           
-          COVERAGE_REPORT=$(coverage report -m | tee /dev/stderr) >> $GITHUB_ENV
+          echo "COVERAGE_REPORT=$(coverage report -m | tee /dev/stderr)" >> $GITHUB_ENV
           # extract the percentage of the total coverage, e.g. `75%`
           COVERAGE_PCT=$(echo $COVERAGE_REPORT | grep -oP "TOTAL\s+\d+\s+\d+\s+(\d+%)" | grep -oP "\d+%")
           # get only the coverage number without the percentage symbol
@@ -104,6 +104,10 @@ jobs:
           # compute difference
           delta_coverage=$(( int_branch_coverage - int_main_coverage  ))
           echo "Increase in coverage: $delta_coverage"
+          
+          echo "Here is the current coverage report:"
+          echo $env.COVERAGE_REPORT
+          
           if [[ $delta_coverage -lt 0 ]]
           then
             echo "The current branch has lower coverage than the main branch, please improve your code"
