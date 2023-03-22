@@ -7,4 +7,4 @@
 
 ## Contributing
 
-Please read our [guidelines](CONTRIBUTING.mg) on contributing to this repository before you open a pull request.
+Please read our [guidelines](CONTRIBUTING.md) on contributing to this repository before you open a pull request.
