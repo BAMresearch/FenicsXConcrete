@@ -20,6 +20,9 @@ jobs:
   tests:
     runs-on: ubuntu-latest
 
+    outputs:
+      branch_coverage: ${{ steps.pytest.outputs.coverage }}
+
     steps:
       - name: checkout repo content
         uses: actions/checkout@v2
@@ -62,7 +65,7 @@ jobs:
           BRANCH_NAME=$(echo ${GITHUB_REF#refs/heads/})
           # add them to the github env for later usage
           echo "COVERAGE_NUM=$(echo $COVERAGE_NUM)" >> $GITHUB_ENV
-          echo "COVERAGE_NUM=$(echo $COVERAGE_NUM)" >> $GITHUB_OUTPUT  # to be used in next job
+          echo "coverage=$(echo $COVERAGE_NUM)" >> $GITHUB_OUTPUT  # to be used in next job
           echo "COVERAGE_PCT=$(echo $COVERAGE_PCT)" >> $GITHUB_ENV
           # removing all possible slashes in file names, they seem to appear during Pull Requests
           echo "BRANCH_NAME=$(echo $BRANCH_NAME | sed "s/\//_/g")" >> $GITHUB_ENV
@@ -109,7 +112,7 @@ jobs:
           echo "Increase in coverage: $delta_coverage"
           
           echo "Here is the current coverage report:"
-          echo "${{ tests.steps.pytest.outputs.COVERAGE_NUM }}"
+          echo "${{ needs.pytest.outputs.branch_coverage }}"
           
           if [[ $delta_coverage -lt 0 ]]
           then
