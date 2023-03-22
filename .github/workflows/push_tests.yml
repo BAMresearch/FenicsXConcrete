@@ -69,6 +69,7 @@ jobs:
         run: |
           cd docs
           make html
+
       - name: Create Coverage Badge
         uses: schneegans/dynamic-badges-action@v1.6.0
         with:
