@@ -15,7 +15,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions: {}
     steps:
-      - name: check coverage
+      - name: compute coverage
         run: |
           BRANCH_NAME=$(echo ${GITHUB_REF#refs/heads/} | sed "s/\//_/g")
           BRANCH_DATA=$(curl -X GET "https://gist.githubusercontent.com/eriktamsen/c10a5b6d0714b1fe2344eb60918e92f8/raw/fenicsxconcrete_{$BRANCH_NAME}_coverage.json")
@@ -26,5 +26,12 @@ jobs:
           MAIN_COVERAGE=$(echo $MAIN_DATA | grep -o -P 'message.{3,6}' | sed -e 's/"//g' | sed -e 's/://g' | sed -e 's/message//g' | sed -e 's/%//g' | sed -e 's/,//g')
           echo $MAIN_COVERAGE
           declare -i int_main_coverage=$MAIN_COVERAGE
-          delta_coverage=$(( int_main_coverage - int_branch_coverage ))
+          delta_coverage=$(( int_branch_coverage - int_main_coverage  ))
           echo $delta_coverage
+          if [[ $delta_coverage -le 0 ]]
+          then
+            echo "FAIL FAIL FAIL"
+            exit 1
+          fi
+
+
