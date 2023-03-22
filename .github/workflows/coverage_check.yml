@@ -1,6 +1,6 @@
 name: coverage check
 
-# Only trigger, when the build workflow succeeded
+# Only trigger, when the test workflow succeeded
 on:
   workflow_run:
     workflows: ["push"]
