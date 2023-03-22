@@ -31,4 +31,8 @@ jobs:
         run: |
           echo "Here is the current coverage report:"
           echo "${{ needs.pytest.outputs.coverage }}"
+          echo "--------------------"
+          echo "${{ needs.tests.outputs.coverage }}"
+          echo "--------------------"
+          echo "${{ needs.tests.pytest.outputs.coverage }}"
   
