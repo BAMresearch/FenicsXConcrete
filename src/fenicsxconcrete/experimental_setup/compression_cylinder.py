@@ -126,7 +126,7 @@ class CompressionCylinder(Experiment):
             # until the bottom surface area matches that of a circle with the initially defined radius
             def create_cylinder_mesh(radius, p):
                 # generate cylinder mesh using gmsh
-                mesh = generate_cylinder_mesh(radius, p['height'], p['mesh_density'], p['degree'])
+                mesh = generate_cylinder_mesh(radius, p["height"], p["mesh_density"], p["degree"])
                 facets = df.mesh.locate_entities_boundary(mesh, 2, plane_at(0.0, 2))
                 tdim = mesh.topology.dim
                 f_v = mesh.topology.connectivity(tdim - 1, 0).array.reshape(-1, 3)
