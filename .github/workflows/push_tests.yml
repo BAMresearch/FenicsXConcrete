@@ -106,7 +106,7 @@ jobs:
           echo "Increase in coverage: $delta_coverage"
           
           echo "Here is the current coverage report:"
-          echo $env.COVERAGE_REPORT
+          #echo $env.COVERAGE_REPORT
           
           if [[ $delta_coverage -lt 0 ]]
           then
