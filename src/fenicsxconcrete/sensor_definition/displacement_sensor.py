@@ -1,4 +1,3 @@
-
 import dolfinx as df
 
 from fenicsxconcrete.finite_element_problem.base_material import MaterialProblem
@@ -27,18 +26,14 @@ class DisplacementSensor(Sensor):
                 time of measurement for time dependent problems
         """
         # get displacements
-        bb_tree = df.geometry.BoundingBoxTree(
-            problem.experiment.mesh, problem.experiment.mesh.topology.dim
-        )
+        bb_tree = df.geometry.BoundingBoxTree(problem.experiment.mesh, problem.experiment.mesh.topology.dim)
         cells = []
 
         # Find cells whose bounding-box collide with the points
         cell_candidates = df.geometry.compute_collisions(bb_tree, self.where)
 
         # Choose one of the cells that contains the point
-        colliding_cells = df.geometry.compute_colliding_cells(
-            problem.experiment.mesh, cell_candidates, self.where
-        )
+        colliding_cells = df.geometry.compute_colliding_cells(problem.experiment.mesh, cell_candidates, self.where)
 
         for i, point in enumerate(self.where):
             if len(colliding_cells.links(i)) > 0:

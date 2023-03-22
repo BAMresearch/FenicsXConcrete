@@ -52,9 +52,7 @@ class MaterialProblem(ABC):
         self.parameters = default_fem_parameters
         # remove units for use in fem model
         self.p = self.parameters.to_magnitude()
-        self.experiment.p = (
-            self.p
-        )  # update experimental parameter list for use in e.g. boundary definition
+        self.experiment.p = self.p  # update experimental parameter list for use in e.g. boundary definition
 
         # set log level...
         if self.p["log_level"] == "DEBUG":
