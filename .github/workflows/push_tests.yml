@@ -57,8 +57,7 @@ jobs:
           coverage run -m pytest -s -W error::UserWarning && coverage xml
           
           COVERAGE_REPORT=$(coverage report -m | tee /dev/stderr)
-          echo "report=$(coverage report -m)" >> $GITHUB_OUTPUT  # to be used in next job
-          # echo "report=$(echo $COVERAGE_REPORT)" >> $GITHUB_OUTPUT  # to be used in next job
+          echo "report=$(echo $COVERAGE_REPORT)" >> $GITHUB_OUTPUT  # to be used in next job
           
           
           # extract the percentage of the total coverage, e.g. `75%`
