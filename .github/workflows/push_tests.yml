@@ -98,9 +98,7 @@ jobs:
       - name: check coverage
         run: |
           # getting coverage number from gist for this branch
-          BRANCH_NAME=$(echo ${GITHUB_REF#refs/heads/} | sed "s/\//_/g")
-          BRANCH_DATA=$(curl -s -X GET "https://gist.githubusercontent.com/eriktamsen/c10a5b6d0714b1fe2344eb60918e92f8/raw/fenicsxconcrete_{$BRANCH_NAME}_coverage.json")
-          BRANCH_COVERAGE=$(echo $BRANCH_DATA | grep -o -P 'message.{3,6}' | sed -e 's/"//g' | sed -e 's/://g' | sed -e 's/message//g' | sed -e 's/%//g' | sed -e 's/,//g')
+          BRANCH_COVERAGE=${{ needs.tests.outputs.branch_coverage }}
           echo "Coverage of current branch: $BRANCH_COVERAGE"
           declare -i int_branch_coverage=$BRANCH_COVERAGE
           
@@ -115,7 +113,6 @@ jobs:
           echo "Increase in coverage: $delta_coverage"
           
           echo "Here is the current coverage report:"
-          echo "${{ needs.tests.outputs.branch_coverage }}"
           echo "${{ needs.tests.outputs.coverage_report }}"
           
           if [[ $delta_coverage -lt 0 ]]
