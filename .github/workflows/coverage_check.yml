@@ -1,10 +1,11 @@
 name: coverage check
-on:
-  push:
-    branches-ignore:
 
-  pull_request:
-    branches: [ main ]
+# Only trigger, when the build workflow succeeded
+on:
+  workflow_run:
+    workflows: ["push"]
+    types:
+      - completed
 
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
