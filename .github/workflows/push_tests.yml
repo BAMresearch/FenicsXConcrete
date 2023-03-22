@@ -22,6 +22,7 @@ jobs:
 
     outputs:
       branch_coverage: ${{ steps.pytest.outputs.coverage }}
+      coverage_report: ${{ steps.pytest.outputs.report }}
 
     steps:
       - name: checkout repo content
@@ -56,6 +57,8 @@ jobs:
           coverage run -m pytest -s -W error::UserWarning && coverage xml
           
           COVERAGE_REPORT=$(coverage report -m | tee /dev/stderr)
+          echo "report=$(echo $COVERAGE_REPORT)" >> $GITHUB_OUTPUT  # to be used in next job
+          
           
           # extract the percentage of the total coverage, e.g. `75%`
           COVERAGE_PCT=$(echo $COVERAGE_REPORT | grep -oP "TOTAL\s+\d+\s+\d+\s+(\d+%)" | grep -oP "\d+%")
@@ -113,6 +116,7 @@ jobs:
           
           echo "Here is the current coverage report:"
           echo "${{ needs.tests.outputs.branch_coverage }}"
+          echo "${{ needs.tests.outputs.coverage_report }}"
           
           if [[ $delta_coverage -lt 0 ]]
           then
