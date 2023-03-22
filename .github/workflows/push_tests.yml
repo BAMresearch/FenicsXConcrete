@@ -47,7 +47,7 @@ jobs:
         run: mamba env update -n fenicsxconcrete -f environment.yml
         if: steps.cache.outputs.cache-hit != 'true'
 
-      - name: Test with pytest
+      - name: pytest
         id : pytest
         shell: bash -l {0}
         run: |
@@ -55,7 +55,7 @@ jobs:
           # grab the coverage output and also print it to the screen
           coverage run -m pytest -s -W error::UserWarning && coverage xml
           
-          COVERAGE_REPORT=$(coverage report -m | tee /dev/stderr) >> $GITHUB_OUTPUT
+          COVERAGE_REPORT=$(coverage report -m | tee /dev/stderr)
           
           # extract the percentage of the total coverage, e.g. `75%`
           COVERAGE_PCT=$(echo $COVERAGE_REPORT | grep -oP "TOTAL\s+\d+\s+\d+\s+(\d+%)" | grep -oP "\d+%")
@@ -112,7 +112,7 @@ jobs:
           echo "Increase in coverage: $delta_coverage"
           
           echo "Here is the current coverage report:"
-          echo "${{ needs.pytest.outputs.branch_coverage }}"
+          echo "${{ needs.tests.outputs.branch_coverage }}"
           
           if [[ $delta_coverage -lt 0 ]]
           then
