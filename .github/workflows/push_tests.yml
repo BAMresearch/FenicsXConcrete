@@ -108,4 +108,6 @@ jobs:
             echo "The current branch has lower coverage than the main branch, please improve your code"
             exit 1
           fi
+
           echo "Passing!!!"
+  

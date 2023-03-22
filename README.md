@@ -4,3 +4,7 @@
 [![Docs](https://readthedocs.org/projects/fenicsxconcrete/badge/?version=latest)](https://fenicsxconcrete.readthedocs.io/en/latest/?badge=latest)
 [![code style: black](https://github.com/BAMresearch/FenicsXConcrete/actions/workflows/push_formatting.yaml/badge.svg)](https://github.com/BAMresearch/FenicsXConcrete/actions/workflows/push_formatting.yaml)
 # FenicsXConcrete
+
+## Contributing
+
+Please read our [guidelines](CONTRIBUTING.md) on contributing to this repository before you open a pull request.
