@@ -15,16 +15,15 @@ jobs:
     runs-on: ubuntu-latest
     permissions: {}
     steps:
-      - name: print branch name and coverage
+      - name: check coverage
         run: |
           BRANCH_NAME=$(echo ${GITHUB_REF#refs/heads/} | sed "s/\//_/g")
-          curl -X GET "https://gist.githubusercontent.com/eriktamsen/c10a5b6d0714b1fe2344eb60918e92f8/raw/fenicsxconcrete_{$BRANCH_NAME}_coverage.json"
+          BRANCH_DATA=$(curl -X GET "https://gist.githubusercontent.com/eriktamsen/c10a5b6d0714b1fe2344eb60918e92f8/raw/fenicsxconcrete_{$BRANCH_NAME}_coverage.json")
+          BRANCH_COVERAGE=$(echo $BRANCH_DATA | grep -o -P 'message.{3,6}' | sed -e 's/"//g' | sed -e 's/://g' | sed -e 's/message//g' | sed -e 's/%//g' | sed -e 's/,//g')
+          echo $BRANCH_COVERAGE
 
-      - name: show content
-        run: |
-          CODE=$(curl -X GET "https://gist.githubusercontent.com/eriktamsen/c10a5b6d0714b1fe2344eb60918e92f8/raw/fenicsxconcrete_main_coverage.json")
-          echo '------------------------'
-          echo $CODE
-          echo '------------------------'
-          NEWCODE=$(echo $CODE | grep -o -P 'message.{3,6}' | sed -e 's/"//g' | sed -e 's/://g' | sed -e 's/message//g' | sed -e 's/%//g')
-          echo $NEWCODE
+          MAIN_DATA=$(curl -X GET "https://gist.githubusercontent.com/eriktamsen/c10a5b6d0714b1fe2344eb60918e92f8/raw/fenicsxconcrete_main_coverage.json")
+          MAIN_COVERAGE=$(echo $MAIN_DATA | grep -o -P 'message.{3,6}' | sed -e 's/"//g' | sed -e 's/://g' | sed -e 's/message//g' | sed -e 's/%//g' | sed -e 's/,//g')
+          echo $MAIN_COVERAGE
+          
+          echo $BRANCH_COVERAGE - $MAIN_COVERAGE
