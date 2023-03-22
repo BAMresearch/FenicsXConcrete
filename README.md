@@ -4,3 +4,7 @@
 [![Docs](https://readthedocs.org/projects/fenicsxconcrete/badge/?version=latest)](https://fenicsxconcrete.readthedocs.io/en/latest/?badge=latest)
 
 # FenicsXConcrete
+
+## Contributing
+
+Please read our [guidelines](CONTRIBUTING.mg) on contributing to this repository before you open a pull request.
