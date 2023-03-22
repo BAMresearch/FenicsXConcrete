@@ -46,9 +46,7 @@ def test_whole_boundary() -> None:
     degree = 2
     dim = 2
 
-    domain = dolfinx.mesh.create_unit_square(
-        MPI.COMM_WORLD, n, n, dolfinx.mesh.CellType.quadrilateral
-    )
+    domain = dolfinx.mesh.create_unit_square(MPI.COMM_WORLD, n, n, dolfinx.mesh.CellType.quadrilateral)
     V = dolfinx.fem.VectorFunctionSpace(domain, ("Lagrange", degree), dim=dim)
 
     # option (a)
@@ -74,9 +72,7 @@ def test_xy_plane() -> None:
     degree = 2
     dim = 3
 
-    domain = dolfinx.mesh.create_unit_cube(
-        MPI.COMM_WORLD, n, n, n, dolfinx.mesh.CellType.hexahedron
-    )
+    domain = dolfinx.mesh.create_unit_cube(MPI.COMM_WORLD, n, n, n, dolfinx.mesh.CellType.hexahedron)
     V = dolfinx.fem.VectorFunctionSpace(domain, ("Lagrange", degree), dim=dim)
     xy_plane = plane_at(0.0, "z")
 

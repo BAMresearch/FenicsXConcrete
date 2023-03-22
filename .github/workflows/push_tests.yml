@@ -1,4 +1,4 @@
-name: push
+name: tests
 on:
   push:
     branches-ignore:
@@ -63,7 +63,7 @@ jobs:
           echo "COVERAGE_PCT=$(echo $COVERAGE_PCT)" >> $GITHUB_ENV
           # removing all possible slashes in file names, they seem to appear during Pull Requests
           echo "BRANCH_NAME=$(echo $BRANCH_NAME | sed "s/\//_/g")" >> $GITHUB_ENV
-      
+
       - name: test docs
         shell: bash -l {0}
         run: |
@@ -109,5 +109,6 @@ jobs:
             echo "The current branch has lower coverage than the main branch, please improve your code"
             exit 1
           fi
+
           echo "Passing!!!"
-    
+  

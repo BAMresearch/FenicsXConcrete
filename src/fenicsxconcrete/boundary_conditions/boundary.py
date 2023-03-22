@@ -166,9 +166,7 @@ def show_marked(
 
     tdim = domain.topology.dim
     if tdim in (1, 3):
-        raise NotImplementedError(
-            f"Not implemented for mesh of topological dimension {tdim=}."
-        )
+        raise NotImplementedError(f"Not implemented for mesh of topological dimension {tdim=}.")
 
     V = dolfinx.fem.FunctionSpace(domain, ("Lagrange", 1))
     dofs = dolfinx.fem.locate_dofs_geometrical(V, marker)
@@ -236,7 +234,5 @@ def create_facet_tags(
     facet_indices = np.hstack(facet_indices).astype(np.int32)
     facet_markers = np.hstack(facet_markers).astype(np.int32)
     sorted_facets = np.argsort(facet_indices)
-    facet_tags = dolfinx.mesh.meshtags(
-        mesh, fdim, facet_indices[sorted_facets], facet_markers[sorted_facets]
-    )
+    facet_tags = dolfinx.mesh.meshtags(mesh, fdim, facet_indices[sorted_facets], facet_markers[sorted_facets])
     return facet_tags, marked_boundary

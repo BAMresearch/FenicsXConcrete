@@ -46,9 +46,7 @@ class TensileBeam(Experiment):
                 cell_type=df.mesh.CellType.hexahedron,
             )
         else:
-            raise ValueError(
-                f'wrong dimension: {self.p["dim"]} is not implemented for problem setup'
-            )
+            raise ValueError(f'wrong dimension: {self.p["dim"]} is not implemented for problem setup')
 
     @staticmethod
     def default_parameters() -> dict[str, pint.Quantity]:
@@ -61,16 +59,12 @@ class TensileBeam(Experiment):
         setup_parameters["dim"] = 3 * ureg("")
         setup_parameters["num_elements_length"] = 10 * ureg("")
         setup_parameters["num_elements_height"] = 3 * ureg("")
-        setup_parameters["num_elements_width"] = 3 * ureg(
-            ""
-        )  # only relevant for 3D case
+        setup_parameters["num_elements_width"] = 3 * ureg("")  # only relevant for 3D case
         setup_parameters["load"] = 2000 * ureg("kN")
 
         return setup_parameters
 
-    def create_displacement_boundary(
-        self, V: df.fem.FunctionSpace
-    ) -> list[df.fem.bcs.DirichletBCMetaClass]:
+    def create_displacement_boundary(self, V) -> list:
         # define displacement boundary
 
         # fenics will individually call this function for every node and will note the true or false value.
@@ -105,9 +99,7 @@ class TensileBeam(Experiment):
         facet_indices = np.hstack(facet_indices).astype(np.int32)
         facet_markers = np.hstack(facet_markers).astype(np.int32)
         sorted_facets = np.argsort(facet_indices)
-        facet_tag = df.mesh.meshtags(
-            self.mesh, fdim, facet_indices[sorted_facets], facet_markers[sorted_facets]
-        )
+        facet_tag = df.mesh.meshtags(self.mesh, fdim, facet_indices[sorted_facets], facet_markers[sorted_facets])
 
         _ds = ufl.Measure("ds", domain=self.mesh, subdomain_data=facet_tag)
 

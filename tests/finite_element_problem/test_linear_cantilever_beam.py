@@ -49,13 +49,9 @@ def test_linear_cantilever_beam(dimension: int, results: list[float]) -> None:
     sensor = DisplacementSensor([sensor_location])
 
     # setting up the problem
-    experiment = CantileverBeam(
-        setup_parameters
-    )  # Specifies the domain, discretises it and apply Dirichlet BCs
+    experiment = CantileverBeam(setup_parameters)  # Specifies the domain, discretises it and apply Dirichlet BCs
 
-    problem = LinearElasticity(
-        experiment, fem_parameters, pv_name=file_name, pv_path=data_path
-    )
+    problem = LinearElasticity(experiment, fem_parameters, pv_name=file_name, pv_path=data_path)
     problem.add_sensor(sensor)
 
     # solving and plotting
@@ -79,6 +75,4 @@ def test_linear_cantilever_beam(dimension: int, results: list[float]) -> None:
     problem2.solve()
     displacement_data2 = problem2.sensors["DisplacementSensor"].data[-1]
 
-    assert displacement_data2.magnitude * increase == pytest.approx(
-        displacement_data.magnitude
-    )
+    assert displacement_data2.magnitude * increase == pytest.approx(displacement_data.magnitude)

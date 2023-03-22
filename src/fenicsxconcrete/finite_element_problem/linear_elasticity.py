@@ -41,9 +41,7 @@ class LinearElasticity(MaterialProblem):
         self.mu = df.fem.Constant(self.mesh, self.p["E"] / (2 * (1 + self.p["nu"])))
 
         # define function space ets.
-        self.V = df.fem.VectorFunctionSpace(
-            self.mesh, ("Lagrange", self.p["degree"])
-        )  # 2 for quadratic elements
+        self.V = df.fem.VectorFunctionSpace(self.mesh, ("Lagrange", self.p["degree"]))  # 2 for quadratic elements
         self.V_scalar = df.fem.FunctionSpace(self.mesh, ("Lagrange", self.p["degree"]))
 
         # Define variational problem
@@ -92,9 +90,7 @@ class LinearElasticity(MaterialProblem):
         return ufl.tensoralgebra.Sym(ufl.grad(u))
 
     def sigma(self, u: ufl.argument.Argument) -> ufl.core.expr.Expr:
-        return self.lambda_ * ufl.nabla_div(u) * ufl.Identity(
-            self.p["dim"]
-        ) + 2 * self.mu * self.epsilon(u)
+        return self.lambda_ * ufl.nabla_div(u) * ufl.Identity(self.p["dim"]) + 2 * self.mu * self.epsilon(u)
 
     def solve(self, t: float = 1.0) -> None:
         self.displacement = self.weak_form_problem.solve()

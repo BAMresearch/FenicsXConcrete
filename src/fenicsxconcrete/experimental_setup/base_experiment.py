@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 
 import dolfinx as df
+import numpy as np
 import pint
 import ufl
 
@@ -48,23 +49,17 @@ class Experiment(ABC):
         """returns a dictionary with required parameters and a set of working values as example"""
 
     @abstractmethod
-    def create_displacement_boundary(
-        self, V: df.fem.FunctionSpace
-    ) -> list[df.fem.bcs.DirichletBCMetaClass] | None:
+    def create_displacement_boundary(self, V: df.fem.FunctionSpace) -> list[df.fem.bcs.DirichletBCMetaClass] | None:
         """returns a list with displacement boundary conditions
 
         this function is abstract until there is a need for a material that does not need a displacement boundary
         once that is required, just make this a normal function that returns an empty list
         """
 
-    def create_force_boundary(
-        self, v: ufl.argument.Argument | None = None
-    ) -> ufl.form.Form | None:
+    def create_force_boundary(self, v: ufl.argument.Argument | None = None) -> ufl.form.Form | None:
         # define empty force boundary
         pass
 
-    def create_body_force(
-        self, v: ufl.argument.Argument | None = None
-    ) -> ufl.form.Form | None:
+    def create_body_force(self, v: ufl.argument.Argument | None = None) -> ufl.form.Form | None:
         # define empty body force function
         pass

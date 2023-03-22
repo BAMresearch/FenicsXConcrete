@@ -1,4 +1,3 @@
-
 import dolfinx as df
 import numpy as np
 import ufl
@@ -161,9 +160,7 @@ class ReactionForceSensorBottom(Sensor):
             )
 
         df.fem.set_bc(v_reac.vector, bc_generator.bcs)
-        computed_force = -df.fem.assemble_scalar(
-            df.fem.form(ufl.action(problem.residual, v_reac))
-        )
+        computed_force = -df.fem.assemble_scalar(df.fem.form(ufl.action(problem.residual, v_reac)))
 
         self.data.append(computed_force)
         self.time.append(t)

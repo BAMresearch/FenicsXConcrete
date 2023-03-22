@@ -1,4 +1,3 @@
-
 import pytest
 
 from fenicsxconcrete.experimental_setup.cantilever_beam import CantileverBeam
@@ -55,9 +54,7 @@ def test_sensor_options() -> None:
     sensor = DisplacementSensor([sensor_location])
 
     # setting up the problem
-    experiment = CantileverBeam(
-        setup_parameters
-    )  # Specifies the domain, discretises it and apply Dirichlet BCs
+    experiment = CantileverBeam(setup_parameters)  # Specifies the domain, discretises it and apply Dirichlet BCs
     problem = LinearElasticity(experiment, fem_parameters)
 
     # check that no sensors yet exist

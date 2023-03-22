@@ -54,9 +54,7 @@ class CantileverBeam(Experiment):
                 cell_type=df.mesh.CellType.hexahedron,
             )
         else:
-            raise ValueError(
-                f'wrong dimension: {self.p["dim"]} is not implemented for problem setup'
-            )
+            raise ValueError(f'wrong dimension: {self.p["dim"]} is not implemented for problem setup')
 
     @staticmethod
     def default_parameters() -> dict[str, pint.Quantity]:
@@ -70,15 +68,11 @@ class CantileverBeam(Experiment):
         setup_parameters["dim"] = 3 * ureg("")
         setup_parameters["num_elements_length"] = 10 * ureg("")
         setup_parameters["num_elements_height"] = 3 * ureg("")
-        setup_parameters["num_elements_width"] = 3 * ureg(
-            ""
-        )  # only relevant for 3D case
+        setup_parameters["num_elements_width"] = 3 * ureg("")  # only relevant for 3D case
 
         return setup_parameters
 
-    def create_displacement_boundary(
-        self, V: df.fem.FunctionSpace
-    ) -> list[df.fem.bcs.DirichletBCMetaClass]:
+    def create_displacement_boundary(self, V) -> list:
         # define displacement boundary
 
         # fenics will individually call this function for every node and will note the true or false value.

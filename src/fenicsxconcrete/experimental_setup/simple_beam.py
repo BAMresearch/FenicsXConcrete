@@ -58,9 +58,7 @@ class SimpleBeam(Experiment):
                 cell_type=df.mesh.CellType.hexahedron,
             )
         else:
-            raise ValueError(
-                f'wrong dimension: {self.p["dim"]} is not implemented for problem setup'
-            )
+            raise ValueError(f'wrong dimension: {self.p["dim"]} is not implemented for problem setup')
 
     @staticmethod
     def default_parameters() -> dict[str, pint.Quantity]:
@@ -93,9 +91,7 @@ class SimpleBeam(Experiment):
                 method="geometrical",
             )
             # line with dof in x direction on the right
-            bc_generator.add_dirichlet_bc(
-                np.float64(0.0), self.boundary_right(), 1, "geometrical", 0
-            )
+            bc_generator.add_dirichlet_bc(np.float64(0.0), self.boundary_right(), 1, "geometrical", 0)
 
         elif self.p["dim"] == 3:
             # fix line in the left
@@ -105,12 +101,8 @@ class SimpleBeam(Experiment):
                 method="geometrical",
             )
             # line with dof in x direction on the right
-            bc_generator.add_dirichlet_bc(
-                np.float64(0.0), self.boundary_right(), 1, "geometrical", 0
-            )
-            bc_generator.add_dirichlet_bc(
-                np.float64(0.0), self.boundary_right(), 2, "geometrical", 0
-            )
+            bc_generator.add_dirichlet_bc(np.float64(0.0), self.boundary_right(), 1, "geometrical", 0)
+            bc_generator.add_dirichlet_bc(np.float64(0.0), self.boundary_right(), 2, "geometrical", 0)
 
         return bc_generator.bcs
 
@@ -150,9 +142,7 @@ class SimpleBeam(Experiment):
         facet_indices = np.hstack(facet_indices).astype(np.int32)
         facet_markers = np.hstack(facet_markers).astype(np.int32)
         sorted_facets = np.argsort(facet_indices)
-        facet_tag = df.mesh.meshtags(
-            self.mesh, fdim, facet_indices[sorted_facets], facet_markers[sorted_facets]
-        )
+        facet_tag = df.mesh.meshtags(self.mesh, fdim, facet_indices[sorted_facets], facet_markers[sorted_facets])
 
         _ds = ufl.Measure("ds", domain=self.mesh, subdomain_data=facet_tag)
 
