@@ -43,9 +43,7 @@ fix_uy = dirichletbc(ScalarType(0), bottom_boundary_dofs_y, V.sub(1))
 
 
 def test_vector_geom() -> None:
-    domain = dolfinx.mesh.create_unit_square(
-        MPI.COMM_WORLD, 8, 8, dolfinx.mesh.CellType.quadrilateral
-    )
+    domain = dolfinx.mesh.create_unit_square(MPI.COMM_WORLD, 8, 8, dolfinx.mesh.CellType.quadrilateral)
     V = dolfinx.fem.VectorFunctionSpace(domain, ("Lagrange", 2))
 
     bc_handler = BoundaryConditions(domain, V)
@@ -60,9 +58,7 @@ def test_vector_geom() -> None:
     # entire boundary; should have 64 * 2 dofs
     # constrain entire boundary only for the x-component
     boundary_facets = dolfinx.mesh.exterior_facet_indices(domain.topology)
-    bc_handler.add_dirichlet_bc(
-        ScalarType(0), boundary_facets, sub=0, method="topological", entity_dim=fdim
-    )
+    bc_handler.add_dirichlet_bc(ScalarType(0), boundary_facets, sub=0, method="topological", entity_dim=fdim)
     # constrain left boundary as well
     zero = np.array([0.0, 0.0], dtype=ScalarType)
     bc_handler.add_dirichlet_bc(zero, left, method="geometrical")
@@ -84,9 +80,7 @@ def test_vector_geom() -> None:
 
 
 def test_vector_geom_component_wise() -> None:
-    domain = dolfinx.mesh.create_unit_square(
-        MPI.COMM_WORLD, 8, 8, dolfinx.mesh.CellType.quadrilateral
-    )
+    domain = dolfinx.mesh.create_unit_square(MPI.COMM_WORLD, 8, 8, dolfinx.mesh.CellType.quadrilateral)
     V = dolfinx.fem.VectorFunctionSpace(domain, ("Lagrange", 2))
 
     bc_handler = BoundaryConditions(domain, V)
@@ -99,9 +93,7 @@ def test_vector_geom_component_wise() -> None:
     domain.topology.create_connectivity(fdim, tdim)
 
     zero = ScalarType(0.0)
-    bc_handler.add_dirichlet_bc(
-        zero, left, method="geometrical", sub=0, entity_dim=fdim
-    )
+    bc_handler.add_dirichlet_bc(zero, left, method="geometrical", sub=0, entity_dim=fdim)
 
     bcs = bc_handler.bcs
     ndofs = 0

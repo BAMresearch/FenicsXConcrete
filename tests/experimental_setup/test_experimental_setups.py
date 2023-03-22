@@ -11,9 +11,7 @@ from fenicsxconcrete.finite_element_problem.linear_elasticity import LinearElast
 from fenicsxconcrete.unit_registry import ureg
 
 
-@pytest.mark.parametrize(
-    "setup", [CantileverBeam, TensileBeam, SimpleBeam, CompressionCylinder]
-)
+@pytest.mark.parametrize("setup", [CantileverBeam, TensileBeam, SimpleBeam, CompressionCylinder])
 def test_default_parameters(setup: Experiment) -> None:
     """This function creates experimental setups with the respective default dictionaries
 
@@ -31,16 +29,12 @@ def test_default_parameters(setup: Experiment) -> None:
             less_parameters = copy.deepcopy(setup_parameters)
             less_parameters.pop(key)
             experiment = setup(less_parameters)
-            fem_problem = default_material(
-                experiment, default_material.default_parameters()[1]
-            )
+            fem_problem = default_material(experiment, default_material.default_parameters()[1])
             fem_problem.solve()
 
 
 # to imporve coverage, I want to test the error messages
-@pytest.mark.parametrize(
-    "setup", [CantileverBeam, TensileBeam, SimpleBeam, CompressionCylinder]
-)
+@pytest.mark.parametrize("setup", [CantileverBeam, TensileBeam, SimpleBeam, CompressionCylinder])
 def test_default_parameters(setup: Experiment) -> None:
     setup_parameters = setup.default_parameters()
 

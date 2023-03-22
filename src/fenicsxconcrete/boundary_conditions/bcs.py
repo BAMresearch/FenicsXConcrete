@@ -68,11 +68,7 @@ class BoundaryConditions:
     def add_dirichlet_bc(
         self,
         value: (
-            dolfinx.fem.Function
-            | dolfinx.fem.Constant
-            | dolfinx.fem.DirichletBCMetaClass
-            | np.ndarray
-            | Callable
+            dolfinx.fem.Function | dolfinx.fem.Constant | dolfinx.fem.DirichletBCMetaClass | np.ndarray | Callable
         ),
         boundary: int | np.ndarray | Callable | None = None,
         sub: int = None,
@@ -117,15 +113,11 @@ class BoundaryConditions:
                     except AttributeError:
                         raise AttributeError("There are no facet tags defined!")
                     if facets.size < 1:
-                        raise ValueError(
-                            f"Not able to find facets tagged with value {boundary=}."
-                        )
+                        raise ValueError(f"Not able to find facets tagged with value {boundary=}.")
                 elif isinstance(boundary, np.ndarray):
                     facets = boundary
                 else:
-                    facets = dolfinx.mesh.locate_entities_boundary(
-                        self.domain, entity_dim, boundary
-                    )
+                    facets = dolfinx.mesh.locate_entities_boundary(self.domain, entity_dim, boundary)
 
                 dofs = dolfinx.fem.locate_dofs_topological(V, entity_dim, facets)
             else:

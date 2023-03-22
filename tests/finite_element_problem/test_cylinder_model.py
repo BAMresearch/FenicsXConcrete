@@ -10,9 +10,7 @@ from fenicsxconcrete.sensor_definition.other_sensor import ReactionForceSensorBo
 from fenicsxconcrete.unit_registry import ureg
 
 
-def simple_setup(
-    p: Parameters, displacement: float, sensor: Sensor, bc_setting: pint.Quantity
-):
+def simple_setup(p: Parameters, displacement: float, sensor: Sensor, bc_setting: pint.Quantity):
     parameters = Parameters()  # using the current default values
 
     parameters["log_level"] = "WARNING" * ureg("")

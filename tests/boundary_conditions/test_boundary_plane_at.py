@@ -9,9 +9,7 @@ from fenicsxconcrete.boundary_conditions.boundary import plane_at
 
 
 def test_square() -> None:
-    domain = dolfinx.mesh.create_unit_square(
-        MPI.COMM_WORLD, 8, 8, dolfinx.mesh.CellType.quadrilateral
-    )
+    domain = dolfinx.mesh.create_unit_square(MPI.COMM_WORLD, 8, 8, dolfinx.mesh.CellType.quadrilateral)
     V = dolfinx.fem.FunctionSpace(domain, ("Lagrange", 1))
 
     bottom = plane_at(0.0, "y")
@@ -47,9 +45,7 @@ def test_square() -> None:
         return np.logical_or(top(x), right(x))
 
     facet_dim = 1
-    boundary_facets = dolfinx.mesh.locate_entities_boundary(
-        domain, facet_dim, l_shaped_boundary
-    )
+    boundary_facets = dolfinx.mesh.locate_entities_boundary(domain, facet_dim, l_shaped_boundary)
     boundary_dofs = dolfinx.fem.locate_dofs_topological(V, facet_dim, boundary_facets)
     bc = dolfinx.fem.dirichletbc(ScalarType(666), boundary_dofs, V)
     ndofs = bc.dof_indices()[1]
@@ -59,9 +55,7 @@ def test_square() -> None:
 
 def test_cube() -> None:
     nx, ny, nz = 4, 4, 4
-    domain = dolfinx.mesh.create_unit_cube(
-        MPI.COMM_WORLD, nx, ny, nz, dolfinx.mesh.CellType.hexahedron
-    )
+    domain = dolfinx.mesh.create_unit_cube(MPI.COMM_WORLD, nx, ny, nz, dolfinx.mesh.CellType.hexahedron)
     V = dolfinx.fem.FunctionSpace(domain, ("Lagrange", 1))
 
     xy_plane = plane_at(0.0, "z")

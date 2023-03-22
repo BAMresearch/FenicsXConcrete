@@ -5,9 +5,7 @@ from fenicsxconcrete.boundary_conditions.boundary import create_facet_tags, plan
 
 
 def test_create_facet_tags() -> None:
-    domain = dolfinx.mesh.create_unit_square(
-        MPI.COMM_WORLD, 8, 8, dolfinx.mesh.CellType.triangle
-    )
+    domain = dolfinx.mesh.create_unit_square(MPI.COMM_WORLD, 8, 8, dolfinx.mesh.CellType.triangle)
     to_be_marked = {"bottom": (4, plane_at(0.0, "y")), "right": (5, plane_at(1.0, "x"))}
     ft, marked = create_facet_tags(domain, to_be_marked)
     ft_bottom = ft.find(4)

@@ -50,12 +50,8 @@ def test_linear_tensile_beam(dimension: int, results: list[float]) -> None:
     sensor = DisplacementSensor([sensor_location])
 
     # setting up the problem
-    experiment = TensileBeam(
-        setup_parameters
-    )  # Specifies the domain, discretises it and apply Dirichlet BCs
-    problem = LinearElasticity(
-        experiment, fem_parameters, pv_name=file_name, pv_path=data_path
-    )
+    experiment = TensileBeam(setup_parameters)  # Specifies the domain, discretises it and apply Dirichlet BCs
+    problem = LinearElasticity(experiment, fem_parameters, pv_name=file_name, pv_path=data_path)
     problem.add_sensor(sensor)
 
     # solving and plotting

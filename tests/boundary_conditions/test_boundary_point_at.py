@@ -24,9 +24,7 @@ def test_type_error() -> None:
 
 def test_function_space() -> None:
     n = 101
-    domain = dolfinx.mesh.create_unit_square(
-        MPI.COMM_WORLD, n, n, dolfinx.mesh.CellType.quadrilateral
-    )
+    domain = dolfinx.mesh.create_unit_square(MPI.COMM_WORLD, n, n, dolfinx.mesh.CellType.quadrilateral)
     V = dolfinx.fem.FunctionSpace(domain, ("Lagrange", 2))
 
     h = 1.0 / n
@@ -41,9 +39,7 @@ def test_function_space() -> None:
 
 def test_vector_function_space() -> None:
     n = 101
-    domain = dolfinx.mesh.create_unit_square(
-        MPI.COMM_WORLD, n, n, dolfinx.mesh.CellType.quadrilateral
-    )
+    domain = dolfinx.mesh.create_unit_square(MPI.COMM_WORLD, n, n, dolfinx.mesh.CellType.quadrilateral)
     V = dolfinx.fem.VectorFunctionSpace(domain, ("Lagrange", 2))
 
     # note the inconsistency in specifying the coordinates
