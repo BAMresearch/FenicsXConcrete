@@ -23,7 +23,7 @@ description = "Implementation of structural problems for concrete structures usi
 license = {file = "LICENSE"}
 name = "fenicsxconcrete"
 readme = "REAMDE.md"
-requires-python = ">=3.7"
+requires-python = ">=3.10"
 version = "0.0.1"
 
 [project.optional-dependencies]

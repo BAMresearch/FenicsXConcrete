@@ -1,15 +1,16 @@
 import numpy as np
+import pint
+import pytest
 
-from fenicsxconcrete.sensor_definition.other_sensor import ReactionForceSensorBottom
 from fenicsxconcrete.experimental_setup.compression_cylinder import CompressionCylinder
 from fenicsxconcrete.finite_element_problem.linear_elasticity import LinearElasticity
 from fenicsxconcrete.helper import Parameters
+from fenicsxconcrete.sensor_definition.base_sensor import Sensor
+from fenicsxconcrete.sensor_definition.other_sensor import ReactionForceSensorBottom
 from fenicsxconcrete.unit_registry import ureg
 
-import pytest
 
-
-def simple_setup(p, displacement, sensor, bc_setting):
+def simple_setup(p: Parameters, displacement: float, sensor: Sensor, bc_setting: pint.Quantity) -> None:
     parameters = Parameters()  # using the current default values
 
     parameters["log_level"] = "WARNING" * ureg("")
@@ -33,7 +34,7 @@ def simple_setup(p, displacement, sensor, bc_setting):
 @pytest.mark.parametrize("dim", [2, 3])
 @pytest.mark.parametrize("degree", [1, 2])
 @pytest.mark.parametrize('bc_setting', ["fixed", "free"])
-def test_force_response(bc_setting, degree, dim):
+def test_force_response(bc_setting : int, degree : int, dim : str) -> None:
     p = Parameters()  # using the current default values
 
     p["E"] = 1023 * ureg("MPa")
@@ -58,7 +59,7 @@ def test_force_response(bc_setting, degree, dim):
 
 
 @pytest.mark.parametrize('bc_setting', ["fixed", "free"])
-def test_errors_dimensions(bc_setting):
+def test_errors_dimensions(bc_setting : str) -> None:
     p = Parameters()  # using the current default values
     p["E"] = 1023 * ureg("MPa")
     p["nu"] = 0.0 * ureg("")
@@ -75,7 +76,7 @@ def test_errors_dimensions(bc_setting):
         measured = simple_setup(p, displacement, sensor, p["bc_setting"])
 
 
-def test_errors_bc_setting():
+def test_errors_bc_setting() -> None:
     p = Parameters()  # using the current default values
     p["E"] = 1023 * ureg("MPa")
     p["nu"] = 0.0 * ureg("")

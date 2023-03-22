@@ -4,10 +4,11 @@ import dolfinx
 import numpy as np
 from mpi4py import MPI
 from petsc4py.PETSc import ScalarType
+
 from fenicsxconcrete.boundary_conditions.boundary import plane_at
 
 
-def test_square():
+def test_square() -> None:
     domain = dolfinx.mesh.create_unit_square(
         MPI.COMM_WORLD, 8, 8, dolfinx.mesh.CellType.quadrilateral
     )
@@ -56,7 +57,7 @@ def test_square():
     assert bc.g.value == 666
 
 
-def test_cube():
+def test_cube() -> None:
     nx, ny, nz = 4, 4, 4
     domain = dolfinx.mesh.create_unit_cube(
         MPI.COMM_WORLD, nx, ny, nz, dolfinx.mesh.CellType.hexahedron
