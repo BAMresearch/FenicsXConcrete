@@ -1,14 +1,16 @@
-import os
+# import os
+import tempfile
 from collections.abc import Callable
 
 import dolfinx as df
+from dolfinx.io import gmshio
 import gmsh
-import meshio
+# import meshio
 import numpy as np
 import pint
 import ufl
 from mpi4py import MPI
-from pathlib import Path
+# from pathlib import Path
 
 from fenicsxconcrete.boundary_conditions.bcs import BoundaryConditions
 from fenicsxconcrete.boundary_conditions.boundary import plane_at, point_at
@@ -34,12 +36,6 @@ def generate_cylinder_mesh(
     mesh : cylinder mesh for dolfin
     """
 
-    # file names and location
-    folder_name = Path("temp_mesh")
-    file_name = "cylinder"
-    msh_file = folder_name / f"{file_name}.msh"
-    xdmf_file = folder_name / f"{file_name}.xdmf"
-
     # start gmsh
     gmsh.initialize()
     gmsh.option.setNumber("General.Verbosity", 3)  # only print warnings etc
@@ -51,10 +47,10 @@ def generate_cylinder_mesh(
         0, 0, 0, 0, 0, height, radius, angle=2 * np.pi
     )
     gmsh.model.occ.synchronize()
-    dim = 3
+    gdim = 3
     # only physical groups get exported
     # syntax: add_physical_group(dim , list of 3d objects, tag)
-    gmsh.model.addPhysicalGroup(dim, [membrane], 1)
+    gmsh.model.addPhysicalGroup(gdim, [membrane], 1)
 
     # meshing
     characteristic_length = height / mesh_density
@@ -64,30 +60,20 @@ def generate_cylinder_mesh(
     # setting the order of the elements
     gmsh.option.setNumber("Mesh.ElementOrder", element_degree)
     gmsh.model.mesh.setOrder(element_degree)
-    gmsh.model.mesh.generate(dim)
+    gmsh.model.mesh.generate(gdim)
 
-    # save it to disk as msh in folder
-    if not folder_name.is_dir():
-        os.mkdir(folder_name)
-
-    # write file
-    gmsh.write(str(msh_file))
+    # write to tmp file
+    msh_file = tempfile.NamedTemporaryFile(suffix=".msh")
+    gmsh.write(msh_file.name)
     gmsh.finalize()
 
-    # convert msh to xdmf
-    meshio_mesh = meshio.read(msh_file)
-    meshio.write(xdmf_file, meshio_mesh)
+    # reads in the mesh on a single process
+    # and then distributes the cells over available ranks
+    # returns mesh, cell_tags, facet_tags
+    mesh, _, _ = gmshio.read_from_msh(msh_file.name, MPI.COMM_WORLD, gdim=gdim)
 
-    # read xdmf as dolfin mesh
-    with df.io.XDMFFile(MPI.COMM_WORLD, xdmf_file, "r") as mesh_file:
-        mesh = mesh_file.read_mesh(name="Grid")
-
-    # delete temp files
-    if folder_name.is_dir():
-        os.remove(msh_file)
-        os.remove(xdmf_file)
-        os.remove(xdmf_file.with_suffix('.h5'))
-        os.rmdir(folder_name)
+    # tmp file is deleted when closed
+    msh_file.close()
 
     return mesh
 
