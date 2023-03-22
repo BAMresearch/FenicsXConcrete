@@ -17,8 +17,9 @@ def multiply_by_2(x : int) -> int:
     Args:
         x: Parameter description
     Returns:
-        Description of output
+        The product x * 2
     """
+    
     return x * 2
 
 class MyClass:
@@ -33,6 +34,7 @@ class MyClass:
         i: First parameter of the init
         x: Second parameter
     """
+    
     def __init__(self, i : int, x : float = 3.14) -> None:
         # Comments starting with "#" are not docstrings
         # It's also possible to have a docstring with "Args"
@@ -73,7 +75,7 @@ def optional(s : str | None = None) -> None:
 The following docstring currently produces a bug in sphinx:
 
 ```python
-class MyClass
+class MyClass:
     """
     Docstring
  
