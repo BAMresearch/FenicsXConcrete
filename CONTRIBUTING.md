@@ -12,7 +12,8 @@ We use the [Google docstring format](https://www.sphinx-doc.org/en/master/usage/
 ```python
 def multiply_by_2(x : int) -> int:
     """
-    Docstring for a function.
+    This function multiplies a number by 2.
+    
     Args:
         x: Parameter description
     Returns:
@@ -22,11 +23,11 @@ def multiply_by_2(x : int) -> int:
 
 class MyClass:
     """
-    Docstring for a class. 
+    This class just contains two numbers.
 
     Attributes:
-        attribute_1: Description of Attribute 1
-        attribute_2: Description of Attribute 2
+        attribute_1 (int): Description of Attribute 1
+        attribute_2 (float): Description of Attribute 2
 
     Args:
         i: First parameter of the init
@@ -43,7 +44,7 @@ class MyClass:
 # Special case: Union type format in PEP 604
 def add(a : int | float, b : int | float) ->  int | float:
     """
-    Docstring
+    This function adds two numbers
     
     Args:
         a: A number
@@ -57,7 +58,7 @@ def add(a : int | float, b : int | float) ->  int | float:
 # None as default value requires a Union type
 def optional(s : str | None = None) -> None:
     """
-    Docstring
+    This function prints a string
 
     Args:
         s: A string to be printed
@@ -69,8 +70,24 @@ def optional(s : str | None = None) -> None:
     
 ```
 
+The following docstring currently produces a bug in sphinx:
+
+```python
+class MyClass
+    """
+    Docstring
+ 
+    Attributes:
+        attribute_1: Description of Attribute 1
+        attribute_2: Description of Attribute 2
+    """
+    attribute_1: int
+    attribute_2: float
+```
+Therefore, please don't use type annotations for class attributes, instead write them into the docstring. We will try to fix this.
+
 ### Formatting
 
-We use black and isort as automated formatters. On pull requests, this is automatically checked. You can include both in a [pre-commit](https://pre-commit.com/) locally.
+We use `black` and `isort` as automated formatters. On pull requests, this is automatically checked and you can only merge if your code passes the check. You can include both in a [pre-commit](https://pre-commit.com/) locally.
 
 **Note:** We may decide on slight variations in the code formatting, like the allowed line length. This will be mentioned here in the future.
