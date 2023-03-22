@@ -1,9 +1,10 @@
 import dolfinx
 from mpi4py import MPI
+
 from fenicsxconcrete.boundary_conditions.boundary import create_facet_tags, plane_at
 
 
-def test_create_facet_tags():
+def test_create_facet_tags() -> None:
     domain = dolfinx.mesh.create_unit_square(
         MPI.COMM_WORLD, 8, 8, dolfinx.mesh.CellType.triangle
     )

@@ -12,6 +12,10 @@ dependencies:
   # tests
   - pytest
   - coverage
+  # docs
+  - sphinx
+  - myst-parser
+  - sphinx_rtd_theme
   - toml
   - pip
   - pip:

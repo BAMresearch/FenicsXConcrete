@@ -1,8 +1,11 @@
-from fenicsxconcrete.helper import Parameters
 from pint import UnitRegistry
+
+from fenicsxconcrete.helper import Parameters
+
 ureg = UnitRegistry()
 
-def test_parameters():
+
+def test_parameters() -> None:
     parameters = Parameters()
     parameters["length"] = 42.0 * ureg.cm
 
@@ -21,7 +24,7 @@ def test_parameters():
     )
 
 
-def test_parameter_dic_functions():
+def test_parameter_dic_functions() -> None:
     parameters = Parameters()
     # testing if adding None to dictionary works
     new = parameters + None
