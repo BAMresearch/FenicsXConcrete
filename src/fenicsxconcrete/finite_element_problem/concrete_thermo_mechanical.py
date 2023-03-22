@@ -1,36 +1,91 @@
-# import dolfin as df
-# import numpy as np
-# import scipy.optimize
+import dolfinx as df
+import numpy as np
+import pint
+import ufl
+from petsc4py.PETSc import ScalarType
+
+from fenicsxconcrete.experimental_setup.base_experiment import Experiment
+from fenicsxconcrete.experimental_setup.cantilever_beam import CantileverBeam
+from fenicsxconcrete.finite_element_problem.base_material import MaterialProblem
+from fenicsxconcrete.helper import Parameters
+from fenicsxconcrete.unit_registry import ureg
 
 
-# from fenics_concrete.material_problems.material_problem import MaterialProblem
+class ConcreteThermoMechanical(MaterialProblem):
+    """
+    A class for a weakly coupled thermo-mechanical model, where the youngs modulus of the
+    concrete depends on the thermal problem.
 
-# from fenics_concrete.helpers import Parameters
-# from fenics_concrete.helpers import set_q
-# from fenics_concrete.helpers import LocalProjector
-# from fenics_concrete import experimental_setups
-# import fenics_concrete
+    Args:
+        experiment: The experimental setup.
+        parameters: Dictionary with parameters.
+        pv_name: Name of the paraview file, if paraview output is generated.
+        pv_path: Name of the paraview path, if paraview output is generated.
+    """
 
-# import warnings
-# from ffc.quadrature.deprecation import QuadratureRepresentationDeprecationWarning
+    def __init__(
+        self,
+        experiment: Experiment,
+        parameters: dict[str, pint.Quantity],
+        pv_name: str = "pv_output_full",
+        pv_path: str | None = None,
+    ) -> None:
 
-# df.parameters["form_compiler"]["representation"] = "quadrature"
-# warnings.simplefilter("ignore", QuadratureRepresentationDeprecationWarning)
+        # adding default material parameter, will be overridden by outside input
+        default_p = Parameters()
+        # default_p['dummy'] = 'example' * ureg('')  # example default parameter for this class
 
+        # updating parameters, overriding defaults
+        default_p.update(parameters)
 
-# # full concrete model, including hydration-temperate and mechanics, including calls to solve etc.
-# class ConcreteThermoMechanical(MaterialProblem):
-#     def __init__(self, experiment=None, parameters=None, pv_name='pv_output_concrete-thermo-mechanical', vmapoutput = False):
-#         # generate "dummy" experiement when none is passed
-#         if experiment == None:
-#             #experiment = experimental_setups.get_experiment('MinimalCube', parameters)
-#             experiment = fenics_concrete.MinimalCubeExperiment(parameters)
+        super().__init__(experiment, default_p, pv_name, pv_path)
 
-#         super().__init__(experiment, parameters, pv_name, vmapoutput)
+    @staticmethod
+    def default_parameters() -> tuple[Experiment, dict[str, pint.Quantity]]:
+        """
+        Static method that returns a set of default parameters.
 
-#     #     # TODO: define global fields here
-#     #     #       - alpha, V
-#     #     #       - etc...
+        Returns:
+            The default parameters as a dictionary.
+        """
+        # Material parameter for concrete model with temperature and hydration
+        default_p["rho"] = 2350.0 * ureg("kg/m^3")
+        default_p["themal_cond"] = 2.0 * ureg("W/(m*K)")
+        default_p["vol_heat_cap"] = 2.4e6 * ureg("J/(m^3 * K)")
+        # TODO: Q_pot needs to be removed and heat of hydration function turned into a static function will all the others...
+        default_p["Q_pot"] = 500e3 * ureg("J/kg")  # potential heat per weight of binder in J/kg
+        # default_p['Q_inf'] = default_p['Q_pot'] * default_p['density_binder'] * default_p['b_ratio']  # potential heat per concrete volume in J/m3
+        default_p["Q_inf"] = 144000000  # potential heat per concrete volume in J/m3
+        default_p["B1"] = 2.916e-4  # in 1/s
+        default_p["B2"] = 0.0024229  # -
+        default_p["eta"] = 5.554  # something about diffusion
+        default_p["alpha_max"] = 0.875  # also possible to approximate based on equation with w/c
+        default_p["E_act"] = 5653 * self.p.igc  # activation energy in Jmol^-1
+        default_p["T_ref"] = 25  # reference temperature in degree celsius
+        # setting for temperature adjustment
+        # option: 'exponential' and 'off'
+        default_p["temp_adjust_law"] = "exponential"
+        # polinomial degree
+        default_p["degree"] = 2  #
+
+        ### paramters for mechanics problem
+        default_p["E_28"] = 15000000  # Youngs Modulus N/m2 or something... TODO: check units!
+        default_p["nu"] = 0.2  # Poissons Ratio
+
+        # required paramters for alpha to E mapping
+        default_p["alpha_t"] = 0.2
+        default_p["alpha_0"] = 0.05
+        default_p["a_E"] = 0.6
+
+        # required paramters for alpha to tensile and compressive stiffness mapping
+        default_p["fc_inf"] = 6210000
+        default_p["a_fc"] = 1.2
+        default_p["ft_inf"] = 467000
+        default_p["a_ft"] = 1.0
+        default_p["evolution_ft"] = True
+
+        self.p = default_p + self.p
+
 
 #     def setup(self):
 #         # setup initial temperatre material paramters
