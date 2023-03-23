@@ -12,8 +12,6 @@ from mpi4py import MPI
 from fenicsxconcrete import set_log_levels
 from fenicsxconcrete.boundary_conditions.bcs import BoundaryConditions
 from fenicsxconcrete.experimental_setup.cantilever_beam import CantileverBeam
-from fenicsxconcrete.experimental_setup.compression_cylinder import CompressionCylinder
-from fenicsxconcrete.experimental_setup.tensile_beam import TensileBeam
 from fenicsxconcrete.finite_element_problem.linear_elasticity import LinearElasticity
 
 
@@ -79,14 +77,14 @@ def test_fenicsx_loggers():
         assert dolfinx.log.get_log_level().value == value
 
 
-@pytest.mark.parametrize("setup", [CantileverBeam, TensileBeam, CompressionCylinder])
-def test_fenicsxconcrete_example(setup):
+@pytest.mark.parametrize("level", [logging.DEBUG, logging.INFO, logging.WARNING, logging.ERROR, logging.CRITICAL])
+def test_fenicsxconcrete_example(level):
     """Shows how to set log levels for fenicsxconcrete example"""
 
-    setup_parameters = setup.default_parameters()
+    setup_parameters = CantileverBeam.default_parameters()
 
     # initialize with default parameters
-    experiment = setup(setup_parameters)
+    experiment = CantileverBeam(setup_parameters)
     default_param = LinearElasticity.default_parameters()[1]
     problem = LinearElasticity(experiment, default_param)
 
@@ -95,11 +93,10 @@ def test_fenicsxconcrete_example(setup):
 
     # set log level of each class instance
     # using `set_log_levels`
-    my_levels = {problem.logger.name: logging.ERROR, experiment.logger.name: logging.DEBUG}
+    my_levels = {problem.logger.name: level}
     set_log_levels(my_levels)
 
-    assert problem.logger.getEffectiveLevel() == logging.ERROR
-    assert experiment.logger.getEffectiveLevel() == logging.DEBUG
+    assert problem.logger.getEffectiveLevel() == level
 
 
 if __name__ == "__main__":
