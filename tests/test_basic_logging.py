@@ -7,28 +7,6 @@ import dolfinx
 import ffcx
 import pytest
 import ufl
-from mpi4py import MPI
-
-from fenicsxconcrete import set_log_levels
-from fenicsxconcrete.boundary_conditions.bcs import BoundaryConditions
-from fenicsxconcrete.experimental_setup.cantilever_beam import CantileverBeam
-from fenicsxconcrete.finite_element_problem.linear_elasticity import LinearElasticity
-
-
-def test_set_log_levels():
-    domain = dolfinx.mesh.create_unit_interval(MPI.COMM_SELF, 10)
-    V = dolfinx.fem.FunctionSpace(domain, ("P", 1))
-    bch = BoundaryConditions(domain, V)
-
-    # src/fenicsxconcrete/__init__.py sets log level INFO by default
-    bch.logger.info("Hello, World!")
-    bch.logger.debug("Hello, World!")  # will not be printed
-    assert bch.logger.getEffectiveLevel() == logging.INFO
-
-    # application specific settings for fenicsxconcrete
-    set_log_levels({bch.logger.name: logging.DEBUG})
-    bch.logger.debug("Hello, Debugger!")
-    assert bch.logger.getEffectiveLevel() == logging.DEBUG
 
 
 def test_fenicsx_loggers():
@@ -39,13 +17,8 @@ def test_fenicsx_loggers():
     # it seems per default the levels are
     # ufl: DEBUG (10)
     # ffcx: WARNIG (30)
-    assert ffcx.logger.getEffectiveLevel() == logging.WARNING
     assert ufl_logger.getEffectiveLevel() == logging.DEBUG
-
-    set_log_levels({ffcx.logger.name: logging.ERROR, ufl_logger.name: logging.CRITICAL})
-
-    assert ffcx.logger.getEffectiveLevel() == logging.ERROR
-    assert ufl_logger.getEffectiveLevel() == logging.CRITICAL
+    assert ffcx.logger.getEffectiveLevel() == logging.WARNING
 
     # ### dolfinx
     initial_level = dolfinx.log.get_log_level()
@@ -80,25 +53,37 @@ def test_fenicsx_loggers():
 @pytest.mark.parametrize("level", [logging.DEBUG, logging.INFO, logging.WARNING, logging.ERROR, logging.CRITICAL])
 def test_fenicsxconcrete_example(level):
     """Shows how to set log levels for fenicsxconcrete example"""
+    from fenicsxconcrete import set_log_levels
 
-    setup_parameters = CantileverBeam.default_parameters()
+    # returns dict[str, logging.Logger]
+    all_loggers = logging.root.manager.loggerDict
+    names = [name for name in all_loggers.keys() if name.startswith("fenicsxconcrete")]
 
-    # initialize with default parameters
-    experiment = CantileverBeam(setup_parameters)
-    default_param = LinearElasticity.default_parameters()[1]
-    problem = LinearElasticity(experiment, default_param)
+    def check_all(loglvl):
+        for name in names:
+            assert logging.getLogger(name).getEffectiveLevel() == loglvl
 
-    for thing in [problem, experiment]:
-        assert thing.logger.getEffectiveLevel() == logging.INFO
+    # all loggers related to fenicsxconcrete should have level WARNING per default
+    set_log_levels(dict.fromkeys(names, logging.WARNING))  # set default
+    check_all(logging.WARNING)
 
-    # set log level of each class instance
-    # using `set_log_levels`
-    my_levels = {problem.logger.name: level}
-    set_log_levels(my_levels)
+    # if we want also loggers for each subpackage later we can add __init__.py
+    # with contents logging.getLogger(__name__) for each subpackage
+    # we can set the log level for a subpackage individually ...
+    subpackage = "fenicsxconcrete.experimental_setup"
+    my_level = {subpackage: logging.DEBUG}
+    set_log_levels(my_level)
+    # note that the logger with name "fenicsxconcrete.experimental_setup"
+    # did not exist until the call to set_log_levels
+    # experimental_setup/__init__.py is empty
+    assert logging.getLogger(subpackage).getEffectiveLevel() == logging.DEBUG
+    assert logging.getLogger("fenicsxconcrete").getEffectiveLevel() == logging.WARNING
 
-    assert problem.logger.getEffectiveLevel() == level
+    # ... or set the level for all at once
+    # by using logging.root.manager.loggerDict to get possible loggers
+    set_log_levels(dict.fromkeys(names, level))
+    check_all(level)
 
 
 if __name__ == "__main__":
-    test_set_log_levels()
     test_fenicsx_loggers()

@@ -1,7 +1,5 @@
 import logging
 
-logging.getLogger("fenicsxconcrete")
-
 
 def set_log_levels(levels: dict = None) -> None:
     """Sets log levels for loggers.
@@ -9,7 +7,7 @@ def set_log_levels(levels: dict = None) -> None:
     Args:
       levels: The names of the loggers and log level to be set.
     """
-    levels = levels or {"fenicsxconcrete": logging.INFO}
+    levels = levels or {__name__: logging.WARNING}
     for k, v in levels.items():
         logging.getLogger(k).setLevel(v)
 
