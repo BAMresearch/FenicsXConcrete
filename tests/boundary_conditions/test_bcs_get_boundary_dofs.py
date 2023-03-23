@@ -3,14 +3,12 @@
 import dolfinx
 import numpy as np
 from mpi4py import MPI
-from fenicsxconcrete.boundary_conditions.bcs import (
-    BoundaryConditions,
-    get_boundary_dofs,
-)
+
+from fenicsxconcrete.boundary_conditions.bcs import BoundaryConditions, get_boundary_dofs
 from fenicsxconcrete.boundary_conditions.boundary import plane_at
 
 
-def num_square_boundary_dofs(n, deg, dim, num_edges=4):
+def num_square_boundary_dofs(n: int, deg: int, dim: int, num_edges: int = 4) -> int:
     """returns number of dofs for a square
     assumes quadrilateral cells and structured grid
 
@@ -22,7 +20,7 @@ def num_square_boundary_dofs(n, deg, dim, num_edges=4):
     return num_edges * n * deg * dim
 
 
-def num_square_dofs(ncells, deg, dim):
+def num_square_dofs(ncells: int, deg: int, dim: int) -> int:
     if deg == 1:
         n = ncells + 1
     elif deg == 2:
@@ -30,7 +28,7 @@ def num_square_dofs(ncells, deg, dim):
     return n**2 * dim
 
 
-def test_whole_boundary():
+def test_whole_boundary() -> None:
     """test for bcs on ∂Ω
 
     compare options
@@ -45,9 +43,7 @@ def test_whole_boundary():
     degree = 2
     dim = 2
 
-    domain = dolfinx.mesh.create_unit_square(
-        MPI.COMM_WORLD, n, n, dolfinx.mesh.CellType.quadrilateral
-    )
+    domain = dolfinx.mesh.create_unit_square(MPI.COMM_WORLD, n, n, dolfinx.mesh.CellType.quadrilateral)
     V = dolfinx.fem.VectorFunctionSpace(domain, ("Lagrange", degree), dim=dim)
 
     # option (a)
@@ -68,14 +64,12 @@ def test_whole_boundary():
     assert dofs.size == num_square_boundary_dofs(n, degree, dim)
 
 
-def test_xy_plane():
+def test_xy_plane() -> None:
     n = 4
     degree = 2
     dim = 3
 
-    domain = dolfinx.mesh.create_unit_cube(
-        MPI.COMM_WORLD, n, n, n, dolfinx.mesh.CellType.hexahedron
-    )
+    domain = dolfinx.mesh.create_unit_cube(MPI.COMM_WORLD, n, n, n, dolfinx.mesh.CellType.hexahedron)
     V = dolfinx.fem.VectorFunctionSpace(domain, ("Lagrange", degree), dim=dim)
     xy_plane = plane_at(0.0, "z")
 

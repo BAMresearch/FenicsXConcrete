@@ -16,6 +16,9 @@ dependencies:
   - sphinx
   - myst-parser
   - sphinx_rtd_theme
+  # formatting
+  - black
+  - isort
   - pip
   - pip:
       - -e .

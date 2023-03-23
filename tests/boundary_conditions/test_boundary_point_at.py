@@ -4,10 +4,11 @@ import dolfinx
 import numpy as np
 from mpi4py import MPI
 from petsc4py.PETSc import ScalarType
+
 from fenicsxconcrete.boundary_conditions.boundary import point_at
 
 
-def test_type_error():
+def test_type_error() -> None:
     """test TypeError in conversion to float"""
     n = 10
     domain = dolfinx.mesh.create_interval(MPI.COMM_WORLD, n, [0.0, 10.0])
@@ -21,11 +22,9 @@ def test_type_error():
     assert bc.g.value == nodal_value
 
 
-def test_function_space():
+def test_function_space() -> None:
     n = 101
-    domain = dolfinx.mesh.create_unit_square(
-        MPI.COMM_WORLD, n, n, dolfinx.mesh.CellType.quadrilateral
-    )
+    domain = dolfinx.mesh.create_unit_square(MPI.COMM_WORLD, n, n, dolfinx.mesh.CellType.quadrilateral)
     V = dolfinx.fem.FunctionSpace(domain, ("Lagrange", 2))
 
     h = 1.0 / n
@@ -38,11 +37,9 @@ def test_function_space():
     assert bc.g.value == 42
 
 
-def test_vector_function_space():
+def test_vector_function_space() -> None:
     n = 101
-    domain = dolfinx.mesh.create_unit_square(
-        MPI.COMM_WORLD, n, n, dolfinx.mesh.CellType.quadrilateral
-    )
+    domain = dolfinx.mesh.create_unit_square(MPI.COMM_WORLD, n, n, dolfinx.mesh.CellType.quadrilateral)
     V = dolfinx.fem.VectorFunctionSpace(domain, ("Lagrange", 2))
 
     # note the inconsistency in specifying the coordinates
