@@ -86,6 +86,7 @@ jobs:
           make html
 
       - name: Create Coverage Badge
+        if: contains(env.BRANCH_NAME, 'main')
         uses: schneegans/dynamic-badges-action@v1.6.0
         with:
           auth: ${{ secrets.GIST_TOKEN }}
@@ -96,14 +97,6 @@ jobs:
           valColorRange: ${{ env.COVERAGE_PCT }}
           maxColorRange: 95  # value where ligth green starts
           minColorRange: 50  # value where red starts
-
-      - name: test name
-        run: |
-          echo "Name: ${{ env.BRANCH_NAME }}"
-
-      - name: test step
-        if: contains(env.BRANCH_NAME, '66-improve-error-message-when-coverage-is-reduced')
-        run: echo "Moin"
 
   check_coverage:
     needs: tests
