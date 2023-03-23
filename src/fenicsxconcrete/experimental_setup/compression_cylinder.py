@@ -1,12 +1,12 @@
-import os
+import tempfile
 from collections.abc import Callable
 
 import dolfinx as df
 import gmsh
-import meshio
 import numpy as np
 import pint
 import ufl
+from dolfinx.io import gmshio
 from mpi4py import MPI
 
 from fenicsxconcrete.boundary_conditions.bcs import BoundaryConditions
@@ -31,12 +31,6 @@ def generate_cylinder_mesh(radius: float, height: float, mesh_density: float, el
     mesh : cylinder mesh for dolfin
     """
 
-    # file names and location
-    folder_name = "mesh"
-    file_name = "cylinder"
-    msh_file = f"{folder_name}/{file_name}.msh"
-    xdmf_file = f"{folder_name}/{file_name}.xdmf"
-
     # start gmsh
     gmsh.initialize()
     gmsh.option.setNumber("General.Verbosity", 3)  # only print warnings etc
@@ -46,10 +40,10 @@ def generate_cylinder_mesh(radius: float, height: float, mesh_density: float, el
     # syntax: add_cylinder(x,y,z,dx,dy,dz,radius,angle in radian)
     membrane = gmsh.model.occ.addCylinder(0, 0, 0, 0, 0, height, radius, angle=2 * np.pi)
     gmsh.model.occ.synchronize()
-    dim = 3
+    gdim = 3
     # only physical groups get exported
     # syntax: add_physical_group(dim , list of 3d objects, tag)
-    gmsh.model.addPhysicalGroup(dim, [membrane], 1)
+    gmsh.model.addPhysicalGroup(gdim, [membrane], 1)
 
     # meshing
     characteristic_length = height / mesh_density
@@ -59,23 +53,20 @@ def generate_cylinder_mesh(radius: float, height: float, mesh_density: float, el
     # setting the order of the elements
     gmsh.option.setNumber("Mesh.ElementOrder", element_degree)
     gmsh.model.mesh.setOrder(element_degree)
-    gmsh.model.mesh.generate(dim)
+    gmsh.model.mesh.generate(gdim)
 
-    # save it to disk as msh in folder
-    if not os.path.exists(folder_name):  # creat mesh folder if it does nto exists
-        os.mkdir(folder_name)
-
-    # write file
-    gmsh.write(msh_file)
+    # write to tmp file
+    msh_file = tempfile.NamedTemporaryFile(suffix=".msh")
+    gmsh.write(msh_file.name)
     gmsh.finalize()
 
-    # convert msh to xdmf
-    meshio_mesh = meshio.read(msh_file)
-    meshio.write(xdmf_file, meshio_mesh)
+    # reads in the mesh on a single process
+    # and then distributes the cells over available ranks
+    # returns mesh, cell_tags, facet_tags
+    mesh, _, _ = gmshio.read_from_msh(msh_file.name, MPI.COMM_WORLD, gdim=gdim)
 
-    # read xdmf as dolfin mesh
-    with df.io.XDMFFile(MPI.COMM_WORLD, xdmf_file, "r") as mesh_file:
-        mesh = mesh_file.read_mesh(name="Grid")
+    # tmp file is deleted when closed
+    msh_file.close()
 
     return mesh
 
@@ -240,9 +231,6 @@ class CompressionCylinder(Experiment):
                 bc_generator.add_dirichlet_bc(np.float64(0.0), point_at(x_min_boundary_point), 1, "geometrical", 1)
                 bc_generator.add_dirichlet_bc(np.float64(0.0), point_at(x_max_boundary_point), 1, "geometrical", 1)
                 bc_generator.add_dirichlet_bc(np.float64(0.0), point_at(y_boundary_point), 0, "geometrical", 0)
-
-            else:
-                raise ValueError(f"dim setting: {self.p['dim']}, not implemented for cylinder bc setup: free")
         else:
             raise ValueError(f"Wrong boundary setting: {self.p['bc_setting']}, for cylinder setup")
 
