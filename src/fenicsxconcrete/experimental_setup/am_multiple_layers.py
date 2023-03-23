@@ -2,7 +2,11 @@ import logging
 from collections.abc import Callable
 
 import dolfinx as df
+import numpy as np
 import pint
+import ufl
+from mpi4py import MPI
+from petsc4py.PETSc import ScalarType
 
 from fenicsxconcrete.boundary_conditions.bcs import BoundaryConditions
 from fenicsxconcrete.boundary_conditions.boundary import plane_at
@@ -28,13 +32,16 @@ class AmMultipleLayers(Experiment):
 
         # updating parameters, overriding defaults
         default_p.update(parameters)
-
-        super().__init__(default_p)
         self.logger = logging.getLogger(__name__)
+        super().__init__(default_p)
 
     @staticmethod
     def default_parameters() -> dict[str, pint.Quantity]:
-        """returns a dictionary with required parameters and a set of working values as example"""
+        '''set up a set of working values as example"""
+
+        Returns: dictionary with required parameter
+
+        '''
         # this must de defined in each setup class
 
         setup_parameters = {}
@@ -59,6 +66,8 @@ class AmMultipleLayers(Experiment):
 
     def setup(self) -> None:
         """define the mesh for 2D and 3D"""
+        self.logger.debug("setup mesh for %s", self.p["dim"])
+        print(self.p["dim"])
 
         if self.p["dim"] == 2:
             self.mesh = df.mesh.create_rectangle(
@@ -67,7 +76,7 @@ class AmMultipleLayers(Experiment):
                 n=(self.p["num_elements_layer_length"], self.p["num_layer"] * self.p["num_elements_layer_height"]),
                 cell_type=df.mesh.CellType.quadrilateral,
             )
-        if self.p["dim"] == 3:
+        elif self.p["dim"] == 3:
             self.mesh = df.mesh.create_box(
                 comm=MPI.COMM_WORLD,
                 points=[
@@ -84,15 +93,16 @@ class AmMultipleLayers(Experiment):
         else:
             raise ValueError(f'wrong dimension: {self.p["dim"]} is not implemented for problem setup')
 
-    def create_displacement_boundary(self, V) -> list:
-        # define displacement boundary: fixed at bottom
-        displ_bcs = []
+    def create_displacement_boundary(self, V: df.fem.FunctionSpace) -> list[df.fem.bcs.DirichletBCMetaClass]:
+        """define displacement boundary as fixed at bottom
 
-        if self.p.dim == 2:
-            displ_bcs.append(df.DirichletBC(V, df.Constant((0, 0)), self.boundary_bottom()))
-        else:
-            raise ValueError("Dimension has to be 2!! for that experiment")
+        Args:
+            V: function space
 
+        Returns: list of dirichlet boundary conditions
+
+        """
+        #
         bc_generator = BoundaryConditions(self.mesh, V)
 
         if self.p["dim"] == 2:
@@ -113,7 +123,29 @@ class AmMultipleLayers(Experiment):
 
         return bc_generator.bcs
 
+    def create_body_force(self, v: ufl.argument.Argument) -> ufl.form.Form:
+        """apply body force
+
+        Args:
+            v: test function
+
+        Returns: form for body load
+
+        """
+        force_vector = np.zeros(self.p["dim"])
+        force_vector[-1] = -self.p["rho"] * self.p["g"]
+
+        f = df.fem.Constant(self.mesh, ScalarType(force_vector))
+        L = ufl.dot(f, v) * ufl.dx
+
+        return L
+
     def boundary_bottom(self) -> Callable:
+        """specify boundary: plane at bottom
+
+        Returns: fct defining if dof is at boundary
+
+        """
         if self.p["dim"] == 2:
             return plane_at(0.0, "y")
         elif self.p["dim"] == 3:
