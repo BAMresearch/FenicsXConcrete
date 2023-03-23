@@ -58,7 +58,13 @@ jobs:
           
           COVERAGE_REPORT=$(coverage report -m | tee /dev/stderr)
           echo "-------------------------"
-          echo "report=$COVERAGE_REPORT" >> $GITHUB_OUTPUT
+          echo "report<<EOF" >> $GITHUB_OUTPUT
+          echo "$COVERAGE_REPORT" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+          
+          
+          #echo "report=$COVERAGE_REPORT" >> $GITHUB_OUTPUT
           echo "-------------------------"
           #echo report=$(echo "$COVERAGE_REPORT")" >> $GITHUB_OUTPUT  # to be used in next job
           
