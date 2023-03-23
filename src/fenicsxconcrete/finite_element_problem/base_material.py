@@ -16,7 +16,6 @@ from fenicsxconcrete.sensor_definition.base_sensor import Sensor, Sensors
 from fenicsxconcrete.unit_registry import ureg
 
 
-
 class MaterialProblem(ABC):
     def __init__(
         self,
@@ -57,7 +56,7 @@ class MaterialProblem(ABC):
         self.experiment.p = self.p  # update experimental parameter list for use in e.g. boundary definition
 
         # set log level...
-        self.logger.setLevel(self.p['log_level'])
+        self.logger.setLevel(self.p["log_level"])
 
         self.sensors = Sensors()  # list to hold attached sensors
 

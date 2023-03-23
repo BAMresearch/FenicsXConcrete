@@ -1,8 +1,7 @@
 """Easy definition of Dirichlet and Neumann BCs."""
 
-from collections.abc import Callable
-
 import logging
+from collections.abc import Callable
 
 import dolfinx
 import numpy as np
@@ -49,7 +48,7 @@ class BoundaryConditions:
           space: The finite element space.
           facet_tags: The mesh tags defining boundaries.
         """
-        
+
         self.logger = logging.getLogger("fenicsxconcrete.boundary_conditions.bcs.BoundaryConditions")
         self.domain = domain
         self.V = space

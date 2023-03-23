@@ -1,19 +1,19 @@
 """Test `set_log_levels` and document how logging might be controlled for
 application codes"""
 
-import pytest
 import logging
 
 import dolfinx
 import ffcx
+import pytest
 import ufl
 from mpi4py import MPI
 
 from fenicsxconcrete import set_log_levels
 from fenicsxconcrete.boundary_conditions.bcs import BoundaryConditions
 from fenicsxconcrete.experimental_setup.cantilever_beam import CantileverBeam
-from fenicsxconcrete.experimental_setup.tensile_beam import TensileBeam
 from fenicsxconcrete.experimental_setup.compression_cylinder import CompressionCylinder
+from fenicsxconcrete.experimental_setup.tensile_beam import TensileBeam
 from fenicsxconcrete.finite_element_problem.linear_elasticity import LinearElasticity
 
 
@@ -44,9 +44,7 @@ def test_fenicsx_loggers():
     assert ffcx.logger.getEffectiveLevel() == logging.WARNING
     assert ufl_logger.getEffectiveLevel() == logging.DEBUG
 
-    set_log_levels(
-        {ffcx.logger.name: logging.ERROR, ufl_logger.name: logging.CRITICAL}
-            )
+    set_log_levels({ffcx.logger.name: logging.ERROR, ufl_logger.name: logging.CRITICAL})
 
     assert ffcx.logger.getEffectiveLevel() == logging.ERROR
     assert ufl_logger.getEffectiveLevel() == logging.CRITICAL
@@ -81,9 +79,7 @@ def test_fenicsx_loggers():
         assert dolfinx.log.get_log_level().value == value
 
 
-@pytest.mark.parametrize("setup", [CantileverBeam,
-                                   TensileBeam,
-                                   CompressionCylinder])
+@pytest.mark.parametrize("setup", [CantileverBeam, TensileBeam, CompressionCylinder])
 def test_fenicsxconcrete_example(setup):
     """Shows how to set log levels for fenicsxconcrete example"""
 
@@ -99,8 +95,7 @@ def test_fenicsxconcrete_example(setup):
 
     # set log level of each class instance
     # using `set_log_levels`
-    my_levels = {problem.logger.name: logging.ERROR,
-                 experiment.logger.name: logging.DEBUG}
+    my_levels = {problem.logger.name: logging.ERROR, experiment.logger.name: logging.DEBUG}
     set_log_levels(my_levels)
 
     assert problem.logger.getEffectiveLevel() == logging.ERROR

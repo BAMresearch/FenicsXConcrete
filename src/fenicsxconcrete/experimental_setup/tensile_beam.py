@@ -7,10 +7,10 @@ import ufl
 from mpi4py import MPI
 from petsc4py.PETSc import ScalarType
 
-from fenicsxconcrete.unit_registry import ureg
 from fenicsxconcrete.experimental_setup.base_experiment import Experiment
-from fenicsxconcrete.helper import Parameters
 from fenicsxconcrete.finite_element_problem.base_material import MaterialProblem
+from fenicsxconcrete.helper import Parameters
+from fenicsxconcrete.unit_registry import ureg
 
 
 class TensileBeam(Experiment):
