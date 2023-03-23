@@ -75,11 +75,3 @@ def test_am_single_layer(dimension: int) -> None:
 
     # dead load of full structure
     assert sum(force_bottom) == pytest.approx(-dead_load.magnitude)
-
-
-# if __name__ == "__main__":
-#     import logging
-#
-#     logging.basicConfig(level=logging.DEBUG)
-#
-#     test_am_single_layer(3)
