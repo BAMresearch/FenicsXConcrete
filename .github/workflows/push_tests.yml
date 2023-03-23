@@ -55,30 +55,27 @@ jobs:
           cd $GITHUB_WORKSPACE
           # grab the coverage output and also print it to the screen
           coverage run -m pytest -s -W error::UserWarning && coverage xml
-          
           COVERAGE_REPORT=$(coverage report -m | tee /dev/stderr)
-          echo "-------------------------"
+          
+          # passing a multiline string to output to use it in next job
           echo "report<<EOF" >> $GITHUB_OUTPUT
           echo "$COVERAGE_REPORT" >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT
-
-          
-          
-          #echo "report=$COVERAGE_REPORT" >> $GITHUB_OUTPUT
-          echo "-------------------------"
-          #echo report=$(echo "$COVERAGE_REPORT")" >> $GITHUB_OUTPUT  # to be used in next job
-          
           
           # extract the percentage of the total coverage, e.g. `75%`
           COVERAGE_PCT=$(echo $COVERAGE_REPORT | grep -oP "TOTAL\s+\d+\s+\d+\s+(\d+%)" | grep -oP "\d+%")
+          
           # get only the coverage number without the percentage symbol
           COVERAGE_NUM=$(echo $COVERAGE_PCT | grep -oP "\d+")
+          
           # active branch name
           BRANCH_NAME=$(echo ${GITHUB_REF#refs/heads/})
+          
           # add them to the github env for later usage
           echo "COVERAGE_NUM=$(echo $COVERAGE_NUM)" >> $GITHUB_ENV
           echo "coverage=$(echo $COVERAGE_NUM)" >> $GITHUB_OUTPUT  # to be used in next job
           echo "COVERAGE_PCT=$(echo $COVERAGE_PCT)" >> $GITHUB_ENV
+          
           # removing all possible slashes in file names, they seem to appear during Pull Requests
           echo "BRANCH_NAME=$(echo $BRANCH_NAME | sed "s/\//_/g")" >> $GITHUB_ENV
 
@@ -106,7 +103,7 @@ jobs:
     steps:
       - name: check coverage
         run: |
-          # getting coverage number from gist for this branch
+          # getting coverage number from output of first job for this branch
           BRANCH_COVERAGE=${{ needs.tests.outputs.branch_coverage }}
           echo "Coverage of current branch: $BRANCH_COVERAGE"
           declare -i int_branch_coverage=$BRANCH_COVERAGE
@@ -121,8 +118,10 @@ jobs:
           delta_coverage=$(( int_branch_coverage - int_main_coverage  ))
           echo "Increase in coverage: $delta_coverage"
           
-          echo "Here is the current coverage report:"
+          echo "Coverage report:"
+          echo "-----------------------------------------------------------------------------------------------"
           echo "${{ needs.tests.outputs.coverage_report }}"
+          echo "-----------------------------------------------------------------------------------------------"
           
           if [[ $delta_coverage -lt 0 ]]
           then
