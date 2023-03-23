@@ -85,9 +85,7 @@ class AmMultipleLayers(Experiment):
             raise ValueError(f'wrong dimension: {self.p["dim"]} is not implemented for problem setup')
 
     def create_displacement_boundary(self, V) -> list:
-        # define displacement boundary
-
-        # define displacement boundary, fixed at bottom
+        # define displacement boundary: fixed at bottom
         displ_bcs = []
 
         if self.p.dim == 2:
