@@ -102,7 +102,7 @@ jobs:
           echo "Name: ${{ env.BRANCH_NAME }}"
 
       - name: test step
-        if: contains('${{ env.BRANCH_NAME }}', '66-improve-error-message-when-coverage-is-reduced')
+        if: contains(env.BRANCH_NAME, '66-improve-error-message-when-coverage-is-reduced')
         run: echo "Moin"
 
   check_coverage:
