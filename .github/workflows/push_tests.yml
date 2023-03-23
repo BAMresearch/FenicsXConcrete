@@ -57,6 +57,11 @@ jobs:
           coverage run -m pytest -s -W error::UserWarning && coverage xml
           
           COVERAGE_REPORT=$(coverage report -m | tee /dev/stderr)
+          echo "-------------------------"
+          echo $COVERAGE_REPORT
+          echo "-------------------------"
+          echo "$COVERAGE_REPORT"
+          echo "-------------------------"
           echo "report=$(echo "$COVERAGE_REPORT")" >> $GITHUB_OUTPUT  # to be used in next job
           
           
