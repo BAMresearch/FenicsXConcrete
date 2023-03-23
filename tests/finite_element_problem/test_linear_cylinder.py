@@ -33,8 +33,8 @@ def simple_setup(p: Parameters, displacement: float, sensor: Sensor, bc_setting:
 
 @pytest.mark.parametrize("dim", [2, 3])
 @pytest.mark.parametrize("degree", [1, 2])
-@pytest.mark.parametrize('bc_setting', ["fixed", "free"])
-def test_force_response(bc_setting : int, degree : int, dim : str) -> None:
+@pytest.mark.parametrize("bc_setting", ["fixed", "free"])
+def test_force_response(bc_setting: int, degree: int, dim: str) -> None:
     p = Parameters()  # using the current default values
 
     p["E"] = 1023 * ureg("MPa")
@@ -51,15 +51,15 @@ def test_force_response(bc_setting : int, degree : int, dim : str) -> None:
 
     result = None
     if dim == 2:
-        result = p['E'] * p['radius'] * 2 * displacement / p['height']
+        result = p["E"] * p["radius"] * 2 * displacement / p["height"]
     elif dim == 3:
-        result = p['E'] * np.pi * p['radius'] ** 2 * displacement / p['height']
+        result = p["E"] * np.pi * p["radius"] ** 2 * displacement / p["height"]
 
     assert measured == pytest.approx(result.magnitude, 0.01)
 
 
-@pytest.mark.parametrize('bc_setting', ["fixed", "free"])
-def test_errors_dimensions(bc_setting : str) -> None:
+@pytest.mark.parametrize("bc_setting", ["fixed", "free"])
+def test_errors_dimensions(bc_setting: str) -> None:
     p = Parameters()  # using the current default values
     p["E"] = 1023 * ureg("MPa")
     p["nu"] = 0.0 * ureg("")

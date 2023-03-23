@@ -2,11 +2,11 @@ import tempfile
 from collections.abc import Callable
 
 import dolfinx as df
-from dolfinx.io import gmshio
 import gmsh
 import numpy as np
 import pint
 import ufl
+from dolfinx.io import gmshio
 from mpi4py import MPI
 
 from fenicsxconcrete.boundary_conditions.bcs import BoundaryConditions

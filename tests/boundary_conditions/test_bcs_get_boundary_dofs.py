@@ -4,10 +4,7 @@ import dolfinx
 import numpy as np
 from mpi4py import MPI
 
-from fenicsxconcrete.boundary_conditions.bcs import (
-    BoundaryConditions,
-    get_boundary_dofs,
-)
+from fenicsxconcrete.boundary_conditions.bcs import BoundaryConditions, get_boundary_dofs
 from fenicsxconcrete.boundary_conditions.boundary import plane_at
 
 
