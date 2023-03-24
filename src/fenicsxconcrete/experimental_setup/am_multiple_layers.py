@@ -60,7 +60,7 @@ class AmMultipleLayers(Experiment):
         setup_parameters["num_elements_layer_width"] = 2 * ureg("")
 
         # only relevant for 2D case
-        # p["stress_case"] = "plane_strain"
+        # setup_parameters["stress_case"] = "plane_strain" # not yet implemented
 
         return setup_parameters
 
