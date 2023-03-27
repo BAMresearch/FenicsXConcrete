@@ -19,7 +19,7 @@ def set_test_parameters(dim: int) -> Parameters:
     Returns: filled instance of Parameters
 
     """
-    setup_parameters = Parameters()
+    setup_parameters = {}
 
     setup_parameters["dim"] = dim * ureg("")
     # setup_parameters["stress_state"] = "plane_strain"

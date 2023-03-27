@@ -30,7 +30,7 @@ def test_linear_tensile_beam(dimension: int, results: list[float]) -> None:
         if file.is_file():
             os.remove(file)
 
-    setup_parameters = Parameters()
+    setup_parameters = {}
     setup_parameters["length"] = 1 * ureg("m")
     setup_parameters["height"] = 0.3 * ureg("m")
     setup_parameters["width"] = 0.3 * ureg("m")  # only relevant for 3D case
@@ -40,7 +40,7 @@ def test_linear_tensile_beam(dimension: int, results: list[float]) -> None:
     setup_parameters["num_elements_width"] = 3 * ureg("")  # only relevant for 3D case
     setup_parameters["load"] = 2000 * ureg("kN")
 
-    fem_parameters = Parameters()
+    fem_parameters = {}
     fem_parameters["rho"] = 7750 * ureg("kg/m^3")
     fem_parameters["E"] = 210e9 * ureg("N/m^2")
     fem_parameters["nu"] = 0.28 * ureg("")

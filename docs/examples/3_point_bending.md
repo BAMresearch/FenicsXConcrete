@@ -1,32 +1,35 @@
-# Three point bending experiment with linear elastic constitutive model
+# Three point bending experiment with a linear elastic constitutive model
 
-This example shows how to setup a three point bending beam and access the displacement data of a specific point.
+This example demonstrates how to set up a three-point bending beam and access the displacement data of a specific point using a linear elastic constitutive model.
 
-The following functions are required
+To run this example, the following functions need to be imported:
+
 ```python
 from fenicsxconcrete.experimental_setup.simple_beam import SimpleBeam
 from fenicsxconcrete.finite_element_problem.linear_elasticity import LinearElasticity
 from fenicsxconcrete.sensor_definition.displacement_sensor import DisplacementSensor
 from fenicsxconcrete.unit_registry import ureg
 ```
-First, the setup is initialized, in this case a simply supported beam with a distributed load.
-All parameters are `pint` objects.
-The geometry, the mesh and the load need to be defined here.
+## Setting up the Beam
+
+First, initialize the setup for the simply supported beam with a distributed load. 
+Define the geometry, the mesh, and the load.
+Note, all parameters must be pint objects:
 ```python
 parameters = {}
 parameters["length"] = 10 * ureg("m")
 parameters["height"] = 0.5 * ureg("m")
-parameters["width"] = 0.3 * ureg("m")  # only relevant for 3D case
+parameters["width"] = 0.3 * ureg("m") 
 parameters["dim"] = 3 * ureg("")
 parameters["num_elements_length"] = 10 * ureg("")
 parameters["num_elements_height"] = 3 * ureg("")
-parameters["num_elements_width"] = 3 * ureg("")  # only relevant for 3D case
+parameters["num_elements_width"] = 3 * ureg("")
 parameters["load"] = 200 * ureg("kN/m^2")
 
 beam_setup = SimpleBeam(parameters)
 ```
-Second, the linear elastic problem is initialized using the setup and further material paramters.
-The same dictionary can be used for the material parameters.
+## Initializing the Linear Elasticity Problem
+Second, initialize the linear elastic problem using the setup object and further material parameters:
 ```python
 parameters["rho"] = 7750 * ureg("kg/m^3")
 parameters["E"] = 210e9 * ureg("N/m^2")
@@ -34,14 +37,16 @@ parameters["nu"] = 0.28 * ureg("")
 
 problem = LinearElasticity(beam_setup, parameters)
 ```
-Third, a sensor is setup and added to access results of the FEM simulation.
+## Setting Up the Sensor
+Third, set up a sensor and add it to the problem to access results of the FEM simulation:
 ```python
 sensor_location = [parameters["length"].magnitude / 2, 0.0, 0.0]
 sensor = DisplacementSensor([sensor_location])
 
 problem.add_sensor(sensor)
 ```
-Finally, the problem is solved and the sensor data accessed.
+## Solving the Problem and Accessing the Results
+Finally, solve the problem and access the sensor data:
 ```python
 problem.solve()
 

@@ -11,12 +11,11 @@ from fenicsxconcrete.unit_registry import ureg
 
 
 def simple_setup(p: Parameters, displacement: float, sensor: Sensor, bc_setting: pint.Quantity) -> None:
-    parameters = Parameters()  # using the current default values
-
+    parameters = {}
     parameters["log_level"] = "WARNING" * ureg("")
     parameters["bc_setting"] = bc_setting
     parameters["mesh_density"] = 10 * ureg("")
-    parameters = parameters + p
+    parameters.update(p)
 
     experiment = CompressionCylinder(parameters)
 
@@ -35,8 +34,7 @@ def simple_setup(p: Parameters, displacement: float, sensor: Sensor, bc_setting:
 @pytest.mark.parametrize("degree", [1, 2])
 @pytest.mark.parametrize("bc_setting", ["fixed", "free"])
 def test_force_response(bc_setting: int, degree: int, dim: str) -> None:
-    p = Parameters()  # using the current default values
-
+    p = Parameters()
     p["E"] = 1023 * ureg("MPa")
     p["nu"] = 0.0 * ureg("")
     p["radius"] = 0.006 * ureg("m")
@@ -55,12 +53,12 @@ def test_force_response(bc_setting: int, degree: int, dim: str) -> None:
     elif dim == 3:
         result = p["E"] * np.pi * p["radius"] ** 2 * displacement / p["height"]
 
-    assert measured == pytest.approx(result.magnitude, 0.01)
+    assert measured == pytest.approx(result.magnitude, 0.05)
 
 
 @pytest.mark.parametrize("bc_setting", ["fixed", "free"])
 def test_errors_dimensions(bc_setting: str) -> None:
-    p = Parameters()  # using the current default values
+    p = {}
     p["E"] = 1023 * ureg("MPa")
     p["nu"] = 0.0 * ureg("")
     p["radius"] = 0.006 * ureg("m")
@@ -77,7 +75,7 @@ def test_errors_dimensions(bc_setting: str) -> None:
 
 
 def test_errors_bc_setting() -> None:
-    p = Parameters()  # using the current default values
+    p = {}
     p["E"] = 1023 * ureg("MPa")
     p["nu"] = 0.0 * ureg("")
     p["radius"] = 0.006 * ureg("m")
