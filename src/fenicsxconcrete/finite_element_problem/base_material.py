@@ -7,7 +7,7 @@ from fenicsxconcrete.experimental_setup.base_experiment import Experiment
 from fenicsxconcrete.experimental_setup.cantilever_beam import CantileverBeam
 from fenicsxconcrete.experimental_setup.compression_cylinder import CompressionCylinder
 from fenicsxconcrete.experimental_setup.tensile_beam import TensileBeam
-from fenicsxconcrete.helper import Parameters, LogMixin
+from fenicsxconcrete.helper import LogMixin, Parameters
 from fenicsxconcrete.sensor_definition.base_sensor import Sensor, Sensors
 from fenicsxconcrete.unit_registry import ureg
 

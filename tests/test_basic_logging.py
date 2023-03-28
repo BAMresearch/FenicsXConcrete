@@ -70,8 +70,7 @@ def test_set_log_levels():
         assert obj.logger.getEffectiveLevel() == logging.INFO
 
     # or set log level individually
-    set_log_levels({"fenicsxconcrete": logging.DEBUG,
-                    problem.logger.name: logging.ERROR})
+    set_log_levels({"fenicsxconcrete": logging.DEBUG, problem.logger.name: logging.ERROR})
     assert experiment.logger.getEffectiveLevel() == logging.DEBUG
     assert problem.logger.getEffectiveLevel() == logging.ERROR
 

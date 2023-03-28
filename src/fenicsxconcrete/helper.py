@@ -1,6 +1,6 @@
 from __future__ import annotations
-import logging
 
+import logging
 from collections import UserDict  # because: https://realpython.com/inherit-python-dict/
 
 import pint

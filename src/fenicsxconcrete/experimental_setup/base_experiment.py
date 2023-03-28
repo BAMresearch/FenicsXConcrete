@@ -4,7 +4,7 @@ import dolfinx as df
 import pint
 import ufl
 
-from fenicsxconcrete.helper import Parameters, LogMixin
+from fenicsxconcrete.helper import LogMixin, Parameters
 from fenicsxconcrete.unit_registry import ureg
 
 

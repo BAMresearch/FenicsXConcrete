@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import typing
+
 from fenicsxconcrete.helper import LogMixin
 
 if typing.TYPE_CHECKING:
