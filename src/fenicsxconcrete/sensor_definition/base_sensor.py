@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import typing
+from fenicsxconcrete.helper import LogMixin
 
 if typing.TYPE_CHECKING:
     from fenicsxconcrete.finite_element_problem.base_material import MaterialProblem
@@ -34,7 +35,7 @@ class Sensors(dict):
 
 
 # sensor template
-class Sensor:
+class Sensor(LogMixin):
     """Template for a sensor object"""
 
     def measure(self, problem: MaterialProblem, t: float):

@@ -6,6 +6,8 @@ import dolfinx
 import numpy as np
 import ufl
 
+from fenicsxconcrete.helper import LogMixin
+
 
 def get_boundary_dofs(V: dolfinx.fem.FunctionSpace, marker: Callable) -> np.ndarray:
     """Returns dofs on the boundary specified by geometrical `marker`."""
@@ -21,7 +23,7 @@ def get_boundary_dofs(V: dolfinx.fem.FunctionSpace, marker: Callable) -> np.ndar
 
 
 # adapted version of MechanicsBCs by Thomas Titscher
-class BoundaryConditions:
+class BoundaryConditions(LogMixin):
     """Handles Dirichlet and Neumann boundary conditions.
 
     Attributes:

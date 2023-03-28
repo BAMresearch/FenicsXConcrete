@@ -8,6 +8,10 @@ import ffcx
 import pytest
 import ufl
 
+from fenicsxconcrete import set_log_levels
+from fenicsxconcrete.experimental_setup.tensile_beam import TensileBeam
+from fenicsxconcrete.finite_element_problem.linear_elasticity import LinearElasticity
+
 
 def test_fenicsx_loggers():
     """application specific settings for FEniCSx"""
@@ -50,40 +54,28 @@ def test_fenicsx_loggers():
         assert dolfinx.log.get_log_level().value == value
 
 
-@pytest.mark.parametrize("level", [logging.DEBUG, logging.INFO, logging.WARNING, logging.ERROR, logging.CRITICAL])
-def test_fenicsxconcrete_example(level):
-    """Shows how to set log levels for fenicsxconcrete example"""
-    from fenicsxconcrete import set_log_levels
+def test_set_log_levels():
+    default_p = TensileBeam.default_parameters()
+    experiment = TensileBeam(default_p)
+    param = LinearElasticity.default_parameters()[1]
+    problem = LinearElasticity(experiment, param)
 
-    # returns dict[str, logging.Logger]
-    all_loggers = logging.root.manager.loggerDict
-    names = [name for name in all_loggers.keys() if name.startswith("fenicsxconcrete")]
+    # default level is logging.WARNING
+    for obj in [experiment, problem]:
+        assert obj.logger.getEffectiveLevel() == logging.WARNING
 
-    def check_all(loglvl):
-        for name in names:
-            assert logging.getLogger(name).getEffectiveLevel() == loglvl
+    # set level for each logger of package "fenicsxconcrete"
+    set_log_levels({"fenicsxconcrete": logging.INFO})
+    for obj in [experiment, problem]:
+        assert obj.logger.getEffectiveLevel() == logging.INFO
 
-    # all loggers related to fenicsxconcrete should have level WARNING per default
-    set_log_levels(dict.fromkeys(names, logging.WARNING))  # set default
-    check_all(logging.WARNING)
-
-    # if we want also loggers for each subpackage later we can add __init__.py
-    # with contents logging.getLogger(__name__) for each subpackage
-    # we can set the log level for a subpackage individually ...
-    subpackage = "fenicsxconcrete.experimental_setup"
-    my_level = {subpackage: logging.DEBUG}
-    set_log_levels(my_level)
-    # note that the logger with name "fenicsxconcrete.experimental_setup"
-    # did not exist until the call to set_log_levels
-    # experimental_setup/__init__.py is empty
-    assert logging.getLogger(subpackage).getEffectiveLevel() == logging.DEBUG
-    assert logging.getLogger("fenicsxconcrete").getEffectiveLevel() == logging.WARNING
-
-    # ... or set the level for all at once
-    # by using logging.root.manager.loggerDict to get possible loggers
-    set_log_levels(dict.fromkeys(names, level))
-    check_all(level)
+    # or set log level individually
+    set_log_levels({"fenicsxconcrete": logging.DEBUG,
+                    problem.logger.name: logging.ERROR})
+    assert experiment.logger.getEffectiveLevel() == logging.DEBUG
+    assert problem.logger.getEffectiveLevel() == logging.ERROR
 
 
 if __name__ == "__main__":
     test_fenicsx_loggers()
+    test_set_log_levels()

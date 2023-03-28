@@ -7,12 +7,12 @@ from fenicsxconcrete.experimental_setup.base_experiment import Experiment
 from fenicsxconcrete.experimental_setup.cantilever_beam import CantileverBeam
 from fenicsxconcrete.experimental_setup.compression_cylinder import CompressionCylinder
 from fenicsxconcrete.experimental_setup.tensile_beam import TensileBeam
-from fenicsxconcrete.helper import Parameters
+from fenicsxconcrete.helper import Parameters, LogMixin
 from fenicsxconcrete.sensor_definition.base_sensor import Sensor, Sensors
 from fenicsxconcrete.unit_registry import ureg
 
 
-class MaterialProblem(ABC):
+class MaterialProblem(ABC, LogMixin):
     def __init__(
         self,
         experiment: CompressionCylinder | CantileverBeam | TensileBeam,
@@ -38,7 +38,6 @@ class MaterialProblem(ABC):
 
         # setting up default material parameters
         default_fem_parameters = Parameters()
-        default_fem_parameters["log_level"] = "INFO" * ureg("")
         default_fem_parameters["g"] = 9.81 * ureg("m/s^2")
 
         # adding experimental parameters to dictionary to combine to one
