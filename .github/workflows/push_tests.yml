@@ -81,8 +81,8 @@ jobs:
 
       - name: execute example scripts
         run: |
-          cd $GITHUB_WORKSPACE
-          for file in docs/examples/*.py
+          for file in docs/examples/*.py            
+            cd $GITHUB_WORKSPACE
             do
               python $file
             done
