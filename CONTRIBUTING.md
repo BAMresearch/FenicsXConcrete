@@ -96,6 +96,8 @@ Therefore, please don't use type annotations for class attributes, instead write
 
 ### Formatting
 
-We use `black` and `isort` as automated formatters. On pull requests, this is automatically checked and you can only merge if your code passes the check. You can include both in a [pre-commit](https://pre-commit.com/) locally.
+We use `black` (with line-length 119) and `isort` (black profile) as automated formatters. On pull requests, this is automatically checked and you can only merge if your code passes the check. You can include both in a 
+[pre-commit](https://pre-commit.com/) locally by executing `mamba install pre-commit` and `pre-commit install`, which creates a hook in your local git repository that is called when a commit is executed. 
+This will work assuming you have `black` and `isort` installed in your environment. `pre-commit` takes information from the `.pre-commit-config.yaml` to know which actions to perform. The formatting rules for both tools are defined in `pyproject.toml`.
 
-**Note:** We may decide on slight variations in the code formatting, like the allowed line length. This will be mentioned here in the future.
+**Note:** We may decide on slight variations in the code formatting. This will be mentioned here in the future.
