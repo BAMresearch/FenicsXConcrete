@@ -5,6 +5,7 @@ import ufl
 from fenicsxconcrete.boundary_conditions.bcs import BoundaryConditions
 from fenicsxconcrete.finite_element_problem.base_material import MaterialProblem
 from fenicsxconcrete.sensor_definition.base_sensor import Sensor
+from fenicsxconcrete.unit_registry import ureg
 
 
 class TemperatureSensor(Sensor):
@@ -125,6 +126,8 @@ class MaxYieldSensor(Sensor):
 class ReactionForceSensorBottom(Sensor):
     """A sensor that measure the reaction force at the bottom perpendicular to the surface"""
 
+    # TODO: this sensor is adapted to fenicsx but should be moved to its own file, there is n issue ready
+
     def __init__(self) -> None:
         self.data = []
         self.time = []
@@ -162,7 +165,7 @@ class ReactionForceSensorBottom(Sensor):
         df.fem.set_bc(v_reac.vector, bc_generator.bcs)
         computed_force = -df.fem.assemble_scalar(df.fem.form(ufl.action(problem.residual, v_reac)))
 
-        self.data.append(computed_force)
+        self.data.append(computed_force * ureg("N"))
         self.time.append(t)
 
 
