@@ -1,5 +1,3 @@
-import logging
-
 import dolfinx as df
 import numpy as np
 import pint
@@ -22,7 +20,6 @@ class TensileBeam(Experiment):
         default_p.update(parameters)
 
         super().__init__(default_p)
-        self.logger = logging.getLogger("fenicsxconcrete.experimental_setup.tensile_beam.TensileBeam")
 
     def setup(self) -> None:
         """defines the mesh for 2D or 3D"""

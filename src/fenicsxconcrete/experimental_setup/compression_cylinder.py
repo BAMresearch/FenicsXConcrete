@@ -1,4 +1,3 @@
-import logging
 import tempfile
 from collections.abc import Callable
 
@@ -91,7 +90,6 @@ class CompressionCylinder(Experiment):
         p.update(parameters)
 
         super().__init__(p)
-        self.logger = logging.getLogger("fenicsxconcrete.experimental_setup.compression_cylinder.CompressionCylinder")
 
         # initialize variable top_displacement
         self.top_displacement = df.fem.Constant(domain=self.mesh, c=0.0)  # applied via fkt: apply_displ_load(...)

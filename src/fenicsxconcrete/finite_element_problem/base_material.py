@@ -1,11 +1,7 @@
-import logging
-import sys
 from abc import ABC, abstractmethod
 from pathlib import Path, PosixPath
 
-import dolfinx as df
 import pint
-from loguru import logger
 
 from fenicsxconcrete.experimental_setup.base_experiment import Experiment
 from fenicsxconcrete.experimental_setup.cantilever_beam import CantileverBeam
@@ -37,7 +33,6 @@ class MaterialProblem(ABC):
                 Name of the paraview path, if paraview output is generated
         """
 
-        self.logger = logging.getLogger("fenicsxconcrete.finite_element_problem.base_material.MaterialProblem")
         self.experiment = experiment
         self.mesh = self.experiment.mesh
 
@@ -54,9 +49,6 @@ class MaterialProblem(ABC):
         # remove units for use in fem model
         self.p = self.parameters.to_magnitude()
         self.experiment.p = self.p  # update experimental parameter list for use in e.g. boundary definition
-
-        # set log level...
-        self.logger.setLevel(self.p["log_level"])
 
         self.sensors = Sensors()  # list to hold attached sensors
 
