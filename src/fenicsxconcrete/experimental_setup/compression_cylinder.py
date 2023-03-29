@@ -9,6 +9,7 @@ import ufl
 from dolfinx.io import gmshio
 from mpi4py import MPI
 
+from fenicsxconcrete import _GMSH_VERBOSITY
 from fenicsxconcrete.boundary_conditions.bcs import BoundaryConditions
 from fenicsxconcrete.boundary_conditions.boundary import plane_at, point_at
 from fenicsxconcrete.experimental_setup.base_experiment import Experiment
@@ -33,7 +34,7 @@ def generate_cylinder_mesh(radius: float, height: float, mesh_density: float, el
 
     # start gmsh
     gmsh.initialize()
-    gmsh.option.setNumber("General.Verbosity", 3)  # only print warnings etc
+    gmsh.option.setNumber("General.Verbosity", _GMSH_VERBOSITY)  # only print warnings etc
     gmsh.model.add("cylinder_mesh")  # give the model a name
 
     # generate cylinder geometry with origin in (0,0,0)
