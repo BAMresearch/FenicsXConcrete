@@ -21,7 +21,8 @@ def test_fenicsx_loggers():
     # it seems per default the levels are
     # ufl: DEBUG (10)
     # ffcx: WARNIG (30)
-    assert ufl_logger.getEffectiveLevel() == logging.DEBUG
+    # but these are set to logging.WARNING per default by fenicsxconcrete
+    assert ufl_logger.getEffectiveLevel() == logging.WARNING
     assert ffcx.logger.getEffectiveLevel() == logging.WARNING
 
     # ### dolfinx
