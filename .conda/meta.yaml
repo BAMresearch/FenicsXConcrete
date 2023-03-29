@@ -1,5 +1,6 @@
 {% set name = "FenicsXConcrete" %}
 {% set pyproject = load_file_data('../pyproject.toml', from_recipe_dir=true) %}
+{% set version = pyproject.get('version') %}
 # For setting the version, set the desired value in pyproject.toml
 # This should also work for pre-releases like 0.0.1-alpha
 # Next, create/draft a new release with a tag equal to version (prefixed with v)
@@ -9,10 +10,10 @@
 
 package:
   name: {{ name|lower }}
-  version: {{ pyproject.get('version') }}
+  version: {{ version }}
 
 source:
-  url: https://github.com/BAMresearch/FenicsXConcrete/archive/refs/tags/v{{ pyproject.get('version') }}.tar.gz
+  url: https://github.com/BAMresearch/FenicsXConcrete/archive/refs/tags/v{{ version }}.tar.gz
 
 build:
   skip: True  # [win or osx]
