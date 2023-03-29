@@ -1,23 +1,18 @@
 import logging
+
 import dolfinx
 
 # define mappings for log levels
 _dolfinx_loglvl = {
-        logging.DEBUG: dolfinx.log.LogLevel.INFO,
-        logging.INFO: dolfinx.log.LogLevel.INFO,
-        logging.WARNING: dolfinx.log.LogLevel.WARNING,
-        logging.ERROR: dolfinx.log.LogLevel.ERROR,
-        logging.CRITICAL: dolfinx.log.LogLevel.OFF
-        }
+    logging.DEBUG: dolfinx.log.LogLevel.INFO,
+    logging.INFO: dolfinx.log.LogLevel.INFO,
+    logging.WARNING: dolfinx.log.LogLevel.WARNING,
+    logging.ERROR: dolfinx.log.LogLevel.ERROR,
+    logging.CRITICAL: dolfinx.log.LogLevel.OFF,
+}
 
 # see http://gmsh.info/doc/texinfo/gmsh.html (General.Verbosity)
-_gmsh_verbosity = {
-        logging.DEBUG: 99,
-        logging.INFO: 4,
-        logging.WARNING: 2,
-        logging.ERROR: 1,
-        logging.CRITICAL: 0
-        }
+_gmsh_verbosity = {logging.DEBUG: 99, logging.INFO: 4, logging.WARNING: 2, logging.ERROR: 1, logging.CRITICAL: 0}
 
 _supported_loggers = ["fenicsxconcrete", "ffcx", "UFL", "dolfinx", "gmsh"]
 
