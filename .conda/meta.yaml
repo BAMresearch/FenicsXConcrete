@@ -1,12 +1,13 @@
 {% set name = "FenicsXConcrete" %}
-{% set pyproject = load_file_data('../pyproject.toml', from_recipe_dir=true) %}
-{% set version = pyproject.get('version') %}
+{% set pyproject = load_file_data("../pyproject.toml", from_recipe_dir=true) %}
+{% set version = pyproject.get('project').get('version') %}
 # For setting the version, set the desired value in pyproject.toml
-# This should also work for pre-releases like 0.0.1-alpha
+# This should also work for pre-releases like 0.0.1a1
 # Next, create/draft a new release with a tag equal to version (prefixed with v)
 # and choose the correct branch as target.
-# Example: version = "0.0.5-alpha" in pyproject.toml
-# tag --> v0.0.5-alpha
+# Example: version = "0.0.5a1" in pyproject.toml
+# tag --> v0.0.5a1
+# See https://peps.python.org/pep-0440/#version-scheme
 
 package:
   name: {{ name|lower }}
