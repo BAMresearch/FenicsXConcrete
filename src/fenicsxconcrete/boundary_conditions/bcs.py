@@ -5,7 +5,8 @@ from collections.abc import Callable
 import dolfinx
 import numpy as np
 import ufl
-from dolfinx.fem.bcs import DirichletBCMetaClass
+
+from fenicsxconcrete.helper import LogMixin
 
 
 def get_boundary_dofs(V: dolfinx.fem.FunctionSpace, marker: Callable) -> np.ndarray:
@@ -22,7 +23,7 @@ def get_boundary_dofs(V: dolfinx.fem.FunctionSpace, marker: Callable) -> np.ndar
 
 
 # adapted version of MechanicsBCs by Thomas Titscher
-class BoundaryConditions:
+class BoundaryConditions(LogMixin):
     """Handles Dirichlet and Neumann boundary conditions.
 
     Attributes:

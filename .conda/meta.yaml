@@ -28,7 +28,6 @@ requirements:
 
   run:
     - fenics-dolfinx
-    - loguru
     - matplotlib
     - meshio
     - pint

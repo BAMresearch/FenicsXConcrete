@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from collections import UserDict  # because: https://realpython.com/inherit-python-dict/
 
 import pint
@@ -27,3 +28,10 @@ class Parameters(UserDict):
             magnitude_dictionary[key] = self[key].magnitude
 
         return magnitude_dictionary
+
+
+class LogMixin(object):
+    @property
+    def logger(self):
+        name = self.__class__.__module__
+        return logging.getLogger(name)

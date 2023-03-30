@@ -13,7 +13,6 @@ from fenicsxconcrete.unit_registry import ureg
 def simple_setup(p: Parameters, displacement: float, sensor: Sensor, bc_setting: pint.Quantity) -> None:
     parameters = Parameters()  # using the current default values
 
-    parameters["log_level"] = "WARNING" * ureg("")
     parameters["bc_setting"] = bc_setting
     parameters["mesh_density"] = 10 * ureg("")
     parameters = parameters + p
