@@ -7,7 +7,7 @@ from petsc4py.PETSc import ScalarType
 from fenicsxconcrete.experimental_setup.base_experiment import Experiment
 from fenicsxconcrete.experimental_setup.cantilever_beam import CantileverBeam
 from fenicsxconcrete.finite_element_problem.base_material import MaterialProblem
-from fenicsxconcrete.helper import Parameters
+from fenicsxconcrete.helper import Parameters, QuadratureRule, QuadratureEvaluator
 from fenicsxconcrete.unit_registry import ureg
 
 
@@ -41,6 +41,37 @@ class ConcreteThermoMechanical(MaterialProblem):
         super().__init__(experiment, default_p, pv_name, pv_path)
 
     @staticmethod
+    def parameter_description() -> dict[str, str]:
+        description = {
+            "igc": "Ideal gas constant",
+            "rho": "Density of concrete",
+            "themal_cond": "Thermal conductivity",
+            "vol_heat_cap": "TODO",
+            "Q_pot": "potential heat per weight of binder",
+            "Q_inf": "potential heat per concrete volume",
+            "B1": "TODO",
+            "B2": "TODO",
+            "eta": "TODO: something about diffusion",
+            "alpha_max": "TODO: also possible to approximate based on equation with w/c",
+            "E_act": "activation energy per mol",
+            "T_ref": "reference temperature",
+            "temp_adjust_law": "TODO",
+            "degree": "Polynomial degree for the FEM model",
+            "E_28": "Youngs Modulus of concrete",
+            "nu": "Poissons Ratio",
+            "alpha_t": "TODO",
+            "alpha_0": "TODO",
+            "a_E": "TODO",
+            "fc_inf": "TODO",
+            "a_fc": "TODO",
+            "ft_inf": "TODO",
+            "a_ft": "TODO",
+            "evolution_ft": "TODO",
+        }
+
+        return description
+
+    @staticmethod
     def default_parameters() -> tuple[Experiment, dict[str, pint.Quantity]]:
         """
         Static method that returns a set of default parameters.
@@ -48,111 +79,65 @@ class ConcreteThermoMechanical(MaterialProblem):
         Returns:
             The default parameters as a dictionary.
         """
+        experiment = CantileverBeam(CantileverBeam.default_parameters())
         # Material parameter for concrete model with temperature and hydration
-        default_p["rho"] = 2350.0 * ureg("kg/m^3")
-        default_p["themal_cond"] = 2.0 * ureg("W/(m*K)")
-        default_p["vol_heat_cap"] = 2.4e6 * ureg("J/(m^3 * K)")
-        # TODO: Q_pot needs to be removed and heat of hydration function turned into a static function will all the others...
-        default_p["Q_pot"] = 500e3 * ureg("J/kg")  # potential heat per weight of binder in J/kg
-        # default_p['Q_inf'] = default_p['Q_pot'] * default_p['density_binder'] * default_p['b_ratio']  # potential heat per concrete volume in J/m3
-        default_p["Q_inf"] = 144000000  # potential heat per concrete volume in J/m3
-        default_p["B1"] = 2.916e-4  # in 1/s
-        default_p["B2"] = 0.0024229  # -
-        default_p["eta"] = 5.554  # something about diffusion
-        default_p["alpha_max"] = 0.875  # also possible to approximate based on equation with w/c
-        default_p["E_act"] = 5653 * self.p.igc  # activation energy in Jmol^-1
-        default_p["T_ref"] = 25  # reference temperature in degree celsius
-        # setting for temperature adjustment
-        # option: 'exponential' and 'off'
-        default_p["temp_adjust_law"] = "exponential"
-        # polinomial degree
-        default_p["degree"] = 2  #
+        default_parameters = {
+            "igc": 8.3145 * ureg("J/K/mol"),
+            "rho": 2350.0 * ureg("kg/m^3"),
+            "themal_cond": 2.0 * ureg("W/(m*K)"),
+            "vol_heat_cap": 2.4e6 * ureg("J/(m^3 * K)"),
+            "Q_pot": 500e3 * ureg("J/kg"),
+            "Q_inf": 144000000 * ureg("J/m^3"),
+            "B1": 2.916e-4 * ureg("1/s"),
+            "B2": 0.0024229 * ureg(""),
+            "eta": 5.554 * ureg(""),
+            "alpha_max": 0.875 * ureg(""),
+            "T_ref": 25.0 * ureg.degC,
+            "temp_adjust_law": "exponential" * ureg(""),
+            "degree": 2 * ureg(""),
+            "E_28": 15 * ureg("MPa"),
+            "nu": 0.2 * ureg(""),
+            "alpha_t": 0.2 * ureg(""),
+            "alpha_0": 0.05 * ureg(""),
+            "a_E": 0.6 * ureg(""),
+            "fc_inf": 6210000 * ureg(""),
+            "a_fc": 1.2 * ureg(""),
+            "ft_inf": 467000 * ureg(""),
+            "a_ft": 1.0 * ureg(""),
+            "evolution_ft": True * ureg(""),
+        }
+        default_parameters["E_act"] = 5653.0 * default_parameters["igc"] * ureg("J/mol")
+        return experiment, default_parameters
 
-        ### paramters for mechanics problem
-        default_p["E_28"] = 15000000  # Youngs Modulus N/m2 or something... TODO: check units!
-        default_p["nu"] = 0.2  # Poissons Ratio
+    def setup(self):
 
-        # required paramters for alpha to E mapping
-        default_p["alpha_t"] = 0.2
-        default_p["alpha_0"] = 0.05
-        default_p["a_E"] = 0.6
+        # setting up the two nonlinear problems
+        self.temperature_problem = ConcreteTemperatureHydrationModel(
+            self.experiment.mesh, self.p, pv_name=self.pv_name
+        )
 
-        # required paramters for alpha to tensile and compressive stiffness mapping
-        default_p["fc_inf"] = 6210000
-        default_p["a_fc"] = 1.2
-        default_p["ft_inf"] = 467000
-        default_p["a_ft"] = 1.0
-        default_p["evolution_ft"] = True
+        # here I "pass on the parameters from temperature to mechanics problem.."
+        self.mechanics_problem = ConcreteMechanicsModel(self.experiment.mesh, self.p, pv_name=self.pv_name)
+        # coupling of the output files
+        self.mechanics_problem.pv_file = self.temperature_problem.pv_file
 
-        self.p = default_p + self.p
+        # initialize concrete temperature as given in experimental setup
+        self.set_inital_T(self.p.T_0)
 
+        # setting bcs
+        self.mechanics_problem.set_bcs(self.experiment.create_displ_bcs(self.mechanics_problem.V))
+        self.temperature_problem.set_bcs(self.experiment.create_temp_bcs(self.temperature_problem.V))
 
-#     def setup(self):
-#         # setup initial temperatre material paramters
-#         default_p = Parameters()
-#         # Material parameter for concrete model with temperature and hydration
-#         default_p['density'] = 2350  # in kg/m^3 density of concrete
-#         default_p['themal_cond'] = 2.0  # effective thermal conductivity, approx in Wm^-3K^-1, concrete!
-#         # self.specific_heat_capacity = 9000  # effective specific heat capacity in J kg⁻1 K⁻1
-#         default_p['vol_heat_cap'] = 2.4e6  # volumetric heat cap J/(m3 K)
-#         # TODO: Q_pot needs to be removed and heat of hydration function turned into a static function will all the others...
-#         default_p['Q_pot'] = 500e3  # potential heat per weight of binder in J/kg
-#         #default_p['Q_inf'] = default_p['Q_pot'] * default_p['density_binder'] * default_p['b_ratio']  # potential heat per concrete volume in J/m3
-#         default_p['Q_inf'] = 144000000  # potential heat per concrete volume in J/m3
-#         default_p['B1'] = 2.916E-4  # in 1/s
-#         default_p['B2'] = 0.0024229  # -
-#         default_p['eta'] = 5.554  # something about diffusion
-#         default_p['alpha_max'] = 0.875  # also possible to approximate based on equation with w/c
-#         default_p['E_act'] = 5653 * self.p.igc  # activation energy in Jmol^-1
-#         default_p['T_ref'] = 25  # reference temperature in degree celsius
-#         # setting for temperature adjustment
-#         # option: 'exponential' and 'off'
-#         default_p['temp_adjust_law'] = 'exponential'
-#         # polinomial degree
-#         default_p['degree'] = 2  #
+        # setting up the solvers
+        self.temperature_solver = df.nls.petsc.NewtonSolver(self.temperature_problem)
+        self.temperature_solver.atol = 1e-9
+        self.temperature_solver.rtol = 1e-8
 
-#         ### paramters for mechanics problem
-#         default_p['E_28'] = 15000000  # Youngs Modulus N/m2 or something... TODO: check units!
-#         default_p['nu'] = 0.2  # Poissons Ratio
-
-#         # required paramters for alpha to E mapping
-#         default_p['alpha_t'] = 0.2
-#         default_p['alpha_0'] = 0.05
-#         default_p['a_E'] = 0.6
-
-#         # required paramters for alpha to tensile and compressive stiffness mapping
-#         default_p['fc_inf'] = 6210000
-#         default_p['a_fc'] = 1.2
-#         default_p['ft_inf'] = 467000
-#         default_p['a_ft'] = 1.0
-#         default_p['evolution_ft'] = True
-
-#         self.p = default_p + self.p
-
-#         # setting up the two nonlinear problems
-#         self.temperature_problem = ConcreteTempHydrationModel(self.experiment.mesh, self.p, pv_name=self.pv_name)
-
-#         # here I "pass on the parameters from temperature to mechanics problem.."
-#         self.mechanics_problem = ConcreteMechanicsModel(self.experiment.mesh, self.p, pv_name=self.pv_name)
-#         # coupling of the output files
-#         self.mechanics_problem.pv_file = self.temperature_problem.pv_file
-
-#         # initialize concrete temperature as given in experimental setup
-#         self.set_inital_T(self.p.T_0)
-
-#         # setting bcs
-#         self.mechanics_problem.set_bcs(self.experiment.create_displ_bcs(self.mechanics_problem.V))
-#         self.temperature_problem.set_bcs(self.experiment.create_temp_bcs(self.temperature_problem.V))
-
-#         # setting up the solvers
-#         self.temperature_solver = df.NewtonSolver()
-#         self.temperature_solver.parameters['absolute_tolerance'] = 1e-9
-#         self.temperature_solver.parameters['relative_tolerance'] = 1e-8
-
-#         self.mechanics_solver = df.NewtonSolver()
-#         self.mechanics_solver.parameters['absolute_tolerance'] = 1e-9
-#         self.mechanics_solver.parameters['relative_tolerance'] = 1e-8
-#         if self.wrapper: self.wrapper.set_geometry(self.mechanics_problem.V, [])
+        self.mechanics_solver = df.nls.petsc.NewtonSolver(self.mechanics_problem)
+        self.mechanics_solver.atol = 1e-9
+        self.mechanics_solver.rtol = 1e-8
+        # if self.wrapper:
+        #     self.wrapper.set_geometry(self.mechanics_problem.V, [])
 
 
 #     def solve(self, t=1.0):
@@ -533,384 +518,329 @@ class ConcreteThermoMechanical(MaterialProblem):
 #         return affinity_prime
 
 
-# class ConcreteMechanicsModel(df.NonlinearProblem):
-#     def __init__(self, mesh, p, pv_name='mechanics_output', **kwargs):
-#         df.NonlinearProblem.__init__(self)  # apparently required to initialize things
-#         self.p = p
-
-#         if self.p.dim == 1:
-#             self.stress_vector_dim = 1
-#         elif self.p.dim == 2:
-#             self.stress_vector_dim = 3
-#         elif self.p.dim == 3:
-#             self.stress_vector_dim = 6
-
-#         # todo: I do not like the "meshless" setup right now
-#         if mesh != None:
-#             # initialize possible paraview output
-#             self.pv_file = df.XDMFFile(pv_name + '.xdmf')
-#             self.pv_file.parameters["flush_output"] = True
-#             self.pv_file.parameters["functions_share_mesh"] = True
-#             # function space for single value per element, required for plot of quadrature space values
-
-#             #
-#             if self.p.degree == 1:
-#                 self.visu_space = df.FunctionSpace(mesh, "DG", 0)
-#                 self.visu_space_T = df.TensorFunctionSpace(mesh, "DG", 0)
-#             else:
-#                 self.visu_space = df.FunctionSpace(mesh, "P", 1)
-#                 self.visu_space_T = df.TensorFunctionSpace(mesh, "P", 1)
-
-#             metadata = {"quadrature_degree": self.p.degree, "quadrature_scheme": "default"}
-#             dxm = df.dx(metadata=metadata)
-
-#             # solution field
-#             self.V = df.VectorFunctionSpace(mesh, 'P', self.p.degree)
-
-#             # generic quadrature function space
-#             cell = mesh.ufl_cell()
-#             q = "Quadrature"
-
-#             quadrature_element = df.FiniteElement(q, cell, degree=self.p.degree, quad_scheme="default")
-#             quadrature_vector_element = df.VectorElement(q, cell, degree=self.p.degree, dim=self.stress_vector_dim,
-#                                                          quad_scheme="default")
-#             q_V = df.FunctionSpace(mesh, quadrature_element)
-#             q_VT = df.FunctionSpace(mesh, quadrature_vector_element)
-
-#             # quadrature functions
-#             self.q_E = df.Function(q_V, name="youngs modulus")
-#             self.q_fc = df.Function(q_V, name="compressive strength")
-#             self.q_ft = df.Function(q_V, name="tensile strength")
-#             self.q_yield = df.Function(q_V, name="yield criterion")
-#             self.q_alpha = df.Function(q_V, name="degree of hydration")
-
-#             self.q_sigma = df.Function(q_VT, name="stress")
-#             # initialize degree of hydration to 1, in case machanics module is run without hydration coupling
-#             self.q_alpha.vector()[:] = 1
-
-#             # Define variational problem
-#             self.u = df.Function(self.V)  # displacement
-#             v = df.TestFunction(self.V)
-
-#             # Elasticity parameters without multiplication with E
-#             x_mu = 1.0 / (2.0 * (1.0 + self.p.nu))
-#             x_lambda = 1.0 * self.p.nu / ((1.0 + self.p.nu) * (1.0 - 2.0 * self.p.nu))
-
-#             # Stress computation for linear elastic problem without multiplication with E
-#             def x_sigma(v):
-#                 return 2.0 * x_mu * df.sym(df.grad(v)) + x_lambda * df.tr(df.sym(df.grad(v))) * df.Identity(len(v))
-
-#             # Volume force
-#             if self.p.dim == 1:
-#                 f = df.Constant(-self.p.g * self.p.density)
-#             elif self.p.dim == 2:
-#                 f = df.Constant((0, -self.p.g * self.p.density))
-#             elif self.p.dim == 3:
-#                 f = df.Constant((0, 0, -self.p.g * self.p.density))
-
-#             self.sigma_ufl = self.q_E * x_sigma(self.u)
-
-#             R_ufl = self.q_E * df.inner(x_sigma(self.u), df.sym(df.grad(v))) * dxm
-#             R_ufl += - df.inner(f, v) * dxm  # add volumetric force, aka gravity (in this case)
-#             # quadrature point part
-#             self.R = R_ufl
-
-#             # derivative
-#             # normal form
-#             dR_ufl = df.derivative(R_ufl, self.u)
-#             # quadrature part
-#             self.dR = dR_ufl
-
-#             self.project_sigma = LocalProjector(self.sigma_voigt(self.sigma_ufl), q_VT, dxm)
-
-#             self.assembler = None  # set as default, to check if bc have been added???
-
-#     def sigma_voigt(self, s):
-#         # 1D option
-#         if s.ufl_shape == (1, 1):
-#             stress_vector = df.as_vector((s[0, 0]))
-#         # 2D option
-#         elif s.ufl_shape == (2, 2):
-#             stress_vector = df.as_vector((s[0, 0], s[1, 1], s[0, 1]))
-#         # 3D option
-#         elif s.ufl_shape == (3, 3):
-#             stress_vector = df.as_vector((s[0, 0], s[1, 1], s[2, 2], s[0, 1], s[1, 2], s[0, 2]))
-#         else:
-#             raise ('Problem with stress tensor shape for voigt notation')
-
-#         return stress_vector
-
-#     def E_fkt(self, alpha, parameters):
-
-#         if alpha < parameters['alpha_t']:
-#             E = parameters['E_inf'] * alpha / parameters['alpha_t'] * (
-#                         (parameters['alpha_t'] - parameters['alpha_0']) / (1 - parameters['alpha_0'])) ** parameters[
-#                     'a_E']
-#         else:
-#             E = parameters['E_inf'] * ((alpha - parameters['alpha_0']) / (1 - parameters['alpha_0'])) ** parameters[
-#                 'a_E']
-#         return E
-
-#     def general_hydration_fkt(self, alpha, parameters):
-
-#         return parameters['X_inf'] * alpha ** (parameters['a_X'])
-
-#     def principal_stress(self, stresses):
-#         # checking type of problem
-#         n = stresses.shape[1]  # number of stress components in stress vector
-#         # finding eigenvalues of symmetric stress tensor
-#         # 1D problem
-#         if n == 1:
-#             principal_stresses = stresses
-#         # 2D problem
-#         elif n == 3:
-#             # the following uses
-#             # lambda**2 - tr(sigma)lambda + det(sigma) = 0, solve for lambda using pq formula
-#             p = - (stresses[:, 0] + stresses[:, 1])
-#             q = stresses[:, 0] * stresses[:, 1] - stresses[:, 2] ** 2
-
-#             D = p ** 2 / 4 - q  # help varibale
-#             assert np.all(D >= -1.0e-15)  # otherwise problem with imaginary numbers
-#             sqrtD = np.sqrt(D)
-
-#             eigenvalues_1 = -p / 2.0 + sqrtD
-#             eigenvalues_2 = -p / 2.0 - sqrtD
-
-#             # strack lists as array
-#             principal_stresses = np.column_stack((eigenvalues_1, eigenvalues_2))
-
-#             # principal_stress = np.array([ev1p,ev2p])
-#         elif n == 6:
-#             # for a symetric stress vector a b c e f d we need to solve:
-#             # x**3 - x**2(a+b+c) - x(e**2+f**2+d**2-ab-bc-ac) + (abc-ae**2-bf**2-cd**2+2def) = 0, solve for x
-#             principal_stresses = np.empty([len(stresses), 3])
-#             # currently slow solution with loop over all stresses and subsequent numpy function call:
-#             for i, stress in enumerate(stresses):
-#                 # convert voigt to tensor, (00,11,22,12,02,01)
-#                 stress_tensor = np.zeros((3, 3))
-#                 stress_tensor[0][0] = stress[0]
-#                 stress_tensor[1][1] = stress[1]
-#                 stress_tensor[2][2] = stress[2]
-#                 stress_tensor[0][1] = stress[5]
-#                 stress_tensor[1][2] = stress[3]
-#                 stress_tensor[0][2] = stress[4]
-#                 stress_tensor[1][0] = stress[5]
-#                 stress_tensor[2][1] = stress[3]
-#                 stress_tensor[2][0] = stress[4]
-#                 # use numpy for eigenvalues
-#                 principal_stress = np.linalg.eigvalsh(stress_tensor)
-#                 # sort principal stress from lagest to smallest!!!
-#                 principal_stresses[i] = -np.sort(-principal_stress)
-
-#         return principal_stresses
-
-#     def yield_surface(self, stresses, ft, fc):
-#         # function for approximated yield surface
-#         # first approximation, could be changed if we have numbers/information
-#         fc2 = fc
-#         # pass voigt notation and compute the principal stress
-#         p_stresses = self.principal_stress(stresses)
-
-#         # get the principle tensile stresses
-#         t_stresses = np.where(p_stresses < 0, 0, p_stresses)
-
-#         # get dimension of problem, ie. length of list with principal stresses
-#         n = p_stresses.shape[1]
-#         # check case
-#         if n == 1:
-#             # rankine for the tensile region
-#             rk_yield_vals = t_stresses[:, 0] - ft[:]
-
-#             # invariants for drucker prager yield surface
-#             I1 = stresses[:, 0]
-#             I2 = np.zeros_like(I1)
-#         # 2D problem
-#         elif n == 2:
-
-#             # rankine for the tensile region
-#             rk_yield_vals = (t_stresses[:, 0] ** 2 + t_stresses[:, 1] ** 2) ** 0.5 - ft[:]
-
-#             # invariants for drucker prager yield surface
-#             I1 = stresses[:, 0] + stresses[:, 1]
-#             I2 = ((stresses[:, 0] + stresses[:, 1]) ** 2 - ((stresses[:, 0]) ** 2 + (stresses[:, 1]) ** 2)) / 2
-
-#         # 3D problem
-#         elif n == 3:
-#             # rankine for the tensile region
-#             rk_yield_vals = (t_stresses[:, 0] ** 2 + t_stresses[:, 1] ** 2 + t_stresses[:, 2] ** 2) ** 0.5 - ft[:]
-
-#             # invariants for drucker prager yield surface
-#             I1 = stresses[:, 0] + stresses[:, 1] + stresses[:, 2]
-#             I2 = ((stresses[:, 0] + stresses[:, 1] + stresses[:, 2]) ** 2 - (
-#                         (stresses[:, 0]) ** 2 + (stresses[:, 1]) ** 2 + (stresses[:, 2]) ** 2)) / 2
-#         else:
-#             raise ('Problem with input to yield surface, the array with stress values has the wrong size ')
-
-#         J2 = 1 / 3 * I1 ** 2 - I2
-#         beta = (3.0 ** 0.5) * (fc2 - fc) / (2 * fc2 - fc)
-#         Hp = fc2 * fc / ((3.0 ** 0.5) * (2 * fc2 - fc))
-
-#         dp_yield_vals = beta / 3 * I1 + J2 ** 0.5 - Hp
-
-#         # TODO: is this "correct", does this make sense? for a compression state, what if rk yield > dp yield???
-#         yield_vals = np.maximum(rk_yield_vals, dp_yield_vals)
-
-#         return np.asarray(yield_vals)
-
-
-#     def yield_surface(self, stresses, ft, fc):
-#         # function for approximated yield surface
-#         # first approximation, could be changed if we have numbers/information
-#         fc2 = fc
-#         # pass voigt notation and compute the principal stress
-#         p_stresses = self.principal_stress(stresses)
-
-#         # get the principle tensile stresses
-#         t_stresses = np.where(p_stresses < 0, 0, p_stresses)
-
-#         # get dimension of problem, ie. length of list with principal stresses
-#         n = p_stresses.shape[1]
-#         # check case
-#         if n == 1:
-#             # rankine for the tensile region
-#             rk_yield_vals = t_stresses[:, 0] - ft[:]
-
-#             # invariants for drucker prager yield surface
-#             I1 = stresses[:, 0]
-#             I2 = np.zeros_like(I1)
-#         # 2D problem
-#         elif n == 2:
-
-#             # rankine for the tensile region
-#             rk_yield_vals = (t_stresses[:, 0] ** 2 + t_stresses[:, 1] ** 2) ** 0.5 - ft[:]
-
-#             # invariants for drucker prager yield surface
-#             I1 = stresses[:, 0] + stresses[:, 1]
-#             I2 = ((stresses[:, 0] + stresses[:, 1]) ** 2 - ((stresses[:, 0]) ** 2 + (stresses[:, 1]) ** 2)) / 2
-
-#         # 3D problem
-#         elif n == 3:
-#             # rankine for the tensile region
-#             rk_yield_vals = (t_stresses[:, 0] ** 2 + t_stresses[:, 1] ** 2 + t_stresses[:, 2] ** 2) ** 0.5 - ft[:]
-
-#             # invariants for drucker prager yield surface
-#             I1 = stresses[:, 0] + stresses[:, 1] + stresses[:, 2]
-#             I2 = ((stresses[:, 0] + stresses[:, 1] + stresses[:, 2]) ** 2 - (
-#                         (stresses[:, 0]) ** 2 + (stresses[:, 1]) ** 2 + (stresses[:, 2]) ** 2)) / 2
-#         else:
-#             raise ('Problem with input to yield surface, the array with stress values has the wrong size ')
-
-#         J2 = 1 / 3 * I1 ** 2 - I2
-#         beta = (3.0 ** 0.5) * (fc2 - fc) / (2 * fc2 - fc)
-#         Hp = fc2 * fc / ((3.0 ** 0.5) * (2 * fc2 - fc))
-
-#         dp_yield_vals = beta / 3 * I1 + J2 ** 0.5 - Hp
-
-#         # TODO: is this "correct", does this make sense? for a compression state, what if rk yield > dp yield???
-#         yield_vals = np.maximum(rk_yield_vals, dp_yield_vals)
-
-#         return np.asarray(yield_vals)
-
-
-#     def evaluate_material(self):
-#         # convert quadrature spaces to numpy vector
-#         alpha_list = self.q_alpha.vector().get_local()
-
-#         parameters = {}
-#         parameters['alpha_t'] = self.p.alpha_t
-#         parameters['E_inf'] = self.p.E_28
-#         parameters['alpha_0'] = self.p.alpha_0
-#         parameters['a_E'] = self.p.a_E
-#         # vectorize the function for speed up
-#         E_fkt_vectorized = np.vectorize(self.E_fkt)
-#         E_list = E_fkt_vectorized(alpha_list, parameters)
-
-#         parameters = {}
-#         parameters['X_inf'] = self.p.fc_inf
-#         parameters['a_X'] = self.p.a_fc
-
-#         fc_list = self.general_hydration_fkt(alpha_list, parameters)
-
-#         parameters = {}
-#         parameters['X_inf'] = self.p.ft_inf
-#         parameters['a_X'] = self.p.a_ft
-
-#         if self.p.evolution_ft == True:
-#             ft_list = self.general_hydration_fkt(alpha_list, parameters)
-#         else:
-#             # no evolution....
-#             ft_list = np.full_like(alpha_list, self.p.ft_inf)
-
-#         # now do the yield function thing!!!
-#         # I need stresses!!!
-#         # get stress values
-#         self.project_sigma(self.q_sigma)
-
-#         sigma_list = self.q_sigma.vector().get_local().reshape((-1, self.stress_vector_dim))
-
-#         # compute the yield values (values > 0 : failure)
-#         yield_list = self.yield_surface(sigma_list, ft_list, fc_list)
-
-#         # # project lists onto quadrature spaces
-#         set_q(self.q_E, E_list)
-#         set_q(self.q_fc, fc_list)
-#         set_q(self.q_ft, ft_list)
-#         set_q(self.q_yield, yield_list)
-
-#     def update_history(self):
-#         # no history field currently
-#         pass
-
-#     def set_timestep(self, dt):
-#         self.dt = dt
-#         self.dt_form.assign(df.Constant(self.dt))
-
-#     def set_bcs(self, bcs):
-#         # Only now (with the bcs) can we initialize the assembler
-#         self.assembler = df.SystemAssembler(self.dR, self.R, bcs)
-
-#     def F(self, b, x):
-#         # if self.dt <= 0:
-#         #    raise RuntimeError("You need to `.set_timestep(dt)` larger than zero before the solve!")
-#         if not self.assembler:
-#             raise RuntimeError("You need to `.set_bcs(bcs)` before the solve!")
-#         self.evaluate_material()
-#         self.assembler.assemble(b, x)
-
-#     def J(self, A, x):
-#         self.assembler.assemble(A)
-
-#     def pv_plot(self, t=0):
-#         # paraview export
-
-#         # displacement plot
-#         u_plot = df.project(self.u, self.V)
-#         u_plot.rename("Displacement", "test string, what does this do??")  # TODO: what does the second string do?
-#         self.pv_file.write(u_plot, t, encoding=df.XDMFFile.Encoding.ASCII)
-
-#         # Elasticity parameters without multiplication with E
-#         x_mu = 1.0 / (2.0 * (1.0 + self.p.nu))
-#         x_lambda = 1.0 * self.p.nu / ((1.0 + self.p.nu) * (1.0 - 2.0 * self.p.nu))
-
-#         def x_sigma(v):
-#             return 2.0 * x_mu * df.sym(df.grad(v)) + x_lambda * df.tr(df.sym(df.grad(v))) * df.Identity(len(v))
-
-#         sigma_plot = df.project(self.sigma_ufl, self.visu_space_T,
-#                                 form_compiler_parameters={'quadrature_degree': self.p.degree})
-#         E_plot = df.project(self.q_E, self.visu_space, form_compiler_parameters={'quadrature_degree': self.p.degree})
-#         fc_plot = df.project(self.q_fc, self.visu_space, form_compiler_parameters={'quadrature_degree': self.p.degree})
-#         ft_plot = df.project(self.q_ft, self.visu_space, form_compiler_parameters={'quadrature_degree': self.p.degree})
-#         yield_plot = df.project(self.q_yield, self.visu_space,
-#                                 form_compiler_parameters={'quadrature_degree': self.p.degree})
-#         E_plot.rename("Young's Modulus", "test string, what does this do??")  # TODO: what does the second string do?
-#         fc_plot.rename("Compressive strength",
-#                        "test string, what does this do??")  # TODO: what does the second string do?
-#         ft_plot.rename("Tensile strength", "test string, what does this do??")  # TODO: what does the second string do?
-#         yield_plot.rename("Yield surface", "test string, what does this do??")  # TODO: what does the second string do?
-#         sigma_plot.rename("Stress", "test string, what does this do??")  # TODO: what does the second string do?
-
-#         self.pv_file.write(E_plot, t, encoding=df.XDMFFile.Encoding.ASCII)
-#         self.pv_file.write(fc_plot, t, encoding=df.XDMFFile.Encoding.ASCII)
-#         self.pv_file.write(ft_plot, t, encoding=df.XDMFFile.Encoding.ASCII)
-#         self.pv_file.write(yield_plot, t, encoding=df.XDMFFile.Encoding.ASCII)
-#         self.pv_file.write(sigma_plot, t, encoding=df.XDMFFile.Encoding.ASCII)
+class ConcreteMechanicsModel(df.fem.petsc.NonlinearProblem):
+    """
+    Description of a concrete mechanics model
+
+    Args:
+        mesh : The mesh.
+        parameters : Dictionary of material parameters.
+        rule: The quadrature rule.
+        pv_name: Name of the output file.
+
+    """
+
+    def __init__(
+        self,
+        mesh: df.mesh.Mesh,
+        parameters: dict[str, int | float | str | bool],
+        rule: QuadratureRule,
+        pv_name: str = "mechanics_output",
+    ):
+        self.p_magnitude = parameters
+        dim_to_stress_dim = {1: 1, 2: 3, 3: 6}
+        self.stress_strain_dim = dim_to_stress_dim[self.p_magnitude["dim"]]
+        self.rule = rule
+        if self.p_magnitude["degree"] == 1:
+            self.visu_space = df.fem.FunctionSpace(mesh, ("DG", 0))
+            self.visu_space_T = df.fem.TensorFunctionSpace(mesh, ("DG", 0))
+        else:
+            self.visu_space = df.fem.FunctionSpace(mesh, ("CG", 1))
+            self.visu_space_T = df.fem.TensorFunctionSpace(mesh, ("CG", 1))
+
+        self.V = df.fem.VectorFunctionSpace(mesh, ("CG", self.p_magnitude["degree"]))
+
+        # generic quadrature function space
+        q_V = self.rule.create_quadrature_space(mesh)
+        q_VT = self.rule.create_quadrature_vector_space(mesh, dim=self.stress_strain_dim)
+
+        # quadrature functions
+        self.q_E = df.fem.Function(q_V, name="youngs_modulus")
+        self.q_fc = df.fem.Function(q_V, name="compressive_strength")
+        self.q_ft = df.fem.Function(q_V, name="tensile_strength")
+        self.q_yield = df.fem.Function(q_V, name="yield_criterion")
+        self.q_alpha = df.fem.Function(q_V, name="degree_of_hydration")
+
+        self.q_sigma = df.fem.Function(q_VT, name="stress_tensor")
+        # initialize degree of hydration to 1, in case machanics module is run without hydration coupling
+        self.q_alpha.vector.array = 1.0
+
+        # Define variational problem
+        self.u = df.Function(self.V, name="Displacements")
+        v = df.TestFunction(self.V)
+
+        # Elasticity parameters without multiplication with E
+        x_mu = 1.0 / (2.0 * (1.0 + self.p_magnitude["nu"]))
+        x_lambda = (
+            1.0 * self.p_magnitude["nu"] / ((1.0 + self.p_magnitude["nu"]) * (1.0 - 2.0 * self.p_magnitude["nu"]))
+        )
+
+        # Stress computation for linear elastic problem without multiplication with E
+        def x_sigma(v):
+            return 2.0 * x_mu * ufl.sym(ufl.grad(v)) + x_lambda * ufl.tr(ufl.sym(ufl.grad(v))) * ufl.Identity(len(v))
+
+        ufl.Constant()
+        # Volume force
+        volume_force = [0.0] * self.p_magnitude["dim"]
+        volume_force[-1] = -self.p_magnitude["g"] * self.p_magnitute["rho"]
+        f_ufl = ufl.Constant(mesh, tuple(volume_force))
+
+        self.sigma_ufl = self.q_E * x_sigma(self.u)
+
+        R_ufl = self.q_E * df.inner(x_sigma(self.u), df.sym(df.grad(v))) * self.rule.dx
+        R_ufl += -df.inner(f_ufl, v) * rule.dx  # add volumetric force, aka gravity (in this case)
+        # quadrature point part
+        self.R = R_ufl
+
+        # derivative
+        # normal form
+        dR_ufl = df.derivative(R_ufl, self.u)
+        # quadrature part
+        self.dR = dR_ufl
+
+        self.sigma_evaluator = QuadratureEvaluator(self.sigma_voigt(self.sigma_ufl), mesh, self.rule)
+
+        # self.assembler = None  # set as default, to check if bc have been added???
+
+    def sigma_voigt(self, s):
+        # 1D option
+        if s.ufl_shape == (1, 1):
+            stress_vector = ufl.as_vector((s[0, 0]))
+        # 2D option
+        elif s.ufl_shape == (2, 2):
+            stress_vector = ufl.as_vector((s[0, 0], s[1, 1], s[0, 1]))
+        # 3D option
+        elif s.ufl_shape == (3, 3):
+            stress_vector = ufl.as_vector((s[0, 0], s[1, 1], s[2, 2], s[0, 1], s[1, 2], s[0, 2]))
+        else:
+            raise ("Problem with stress tensor shape for voigt notation")
+
+        return stress_vector
+
+    def E_fkt(self, alpha: float, parameters: dict)->float:
+
+        if alpha < parameters["alpha_t"]:
+            E = (
+                parameters["E_inf"]
+                * alpha
+                / parameters["alpha_t"]
+                * ((parameters["alpha_t"] - parameters["alpha_0"]) / (1 - parameters["alpha_0"])) ** parameters["a_E"]
+            )
+        else:
+            E = (
+                parameters["E_inf"]
+                * ((alpha - parameters["alpha_0"]) / (1 - parameters["alpha_0"])) ** parameters["a_E"]
+            )
+        return E
+
+    def general_hydration_fkt(self, alpha: float, parameters: dict):
+
+        return parameters["X_inf"] * alpha ** (parameters["a_X"])
+
+    def principal_stress(self, stresses: np.ndarray)->np.ndarray:
+        # checking type of problem
+        n = stresses.shape[1]  # number of stress components in stress vector
+        # finding eigenvalues of symmetric stress tensor
+        # 1D problem
+        if n == 1:
+            principal_stresses = stresses
+        # 2D problem
+        elif n == 3:
+            # the following uses
+            # lambda**2 - tr(sigma)lambda + det(sigma) = 0, solve for lambda using pq formula
+            p = -(stresses[:, 0] + stresses[:, 1])
+            q = stresses[:, 0] * stresses[:, 1] - stresses[:, 2] ** 2
+
+            D = p**2 / 4 - q  # help varibale
+            assert np.all(D >= -1.0e-15)  # otherwise problem with imaginary numbers
+            sqrtD = np.sqrt(D)
+
+            eigenvalues_1 = -p / 2.0 + sqrtD
+            eigenvalues_2 = -p / 2.0 - sqrtD
+
+            # strack lists as array
+            principal_stresses = np.column_stack((eigenvalues_1, eigenvalues_2))
+
+            # principal_stress = np.array([ev1p,ev2p])
+        elif n == 6:
+            # for a symetric stress vector a b c e f d we need to solve:
+            # x**3 - x**2(a+b+c) - x(e**2+f**2+d**2-ab-bc-ac) + (abc-ae**2-bf**2-cd**2+2def) = 0, solve for x
+            principal_stresses = np.empty([len(stresses), 3])
+            # currently slow solution with loop over all stresses and subsequent numpy function call:
+            for i, stress in enumerate(stresses):
+                # convert voigt to tensor, (00,11,22,12,02,01)
+                stress_tensor = np.array(
+                    [
+                        [stress[0], stress[5], stress[4]],
+                        [stress[5], stress[1], stress[3]],
+                        [stress[4], stress[3], stress[2]],
+                    ]
+                )
+                # use numpy for eigenvalues
+                principal_stress = np.linalg.eigvalsh(stress_tensor)
+                # sort principal stress from lagest to smallest!!!
+                principal_stresses[i] = np.flip(principal_stress)
+
+        return principal_stresses
+
+
+    def yield_surface(self, stresses:np.ndarray, ft:np.ndarray, fc:float)->np.ndarray:
+        # function for approximated yield surface
+        # first approximation, could be changed if we have numbers/information
+        fc2 = fc
+        # pass voigt notation and compute the principal stress
+        p_stresses = self.principal_stress(stresses)
+
+        # get the principle tensile stresses
+        t_stresses = np.where(p_stresses < 0, 0, p_stresses)
+
+        # get dimension of problem, ie. length of list with principal stresses
+        n = p_stresses.shape[1]
+        # check case
+        if n == 1:
+            # rankine for the tensile region
+            rk_yield_vals = t_stresses[:, 0] - ft[:]
+
+            # invariants for drucker prager yield surface
+            I1 = stresses[:, 0]
+            I2 = np.zeros_like(I1)
+        # 2D problem
+        elif n == 2:
+
+            # rankine for the tensile region
+            rk_yield_vals = (t_stresses[:, 0] ** 2 + t_stresses[:, 1] ** 2) ** 0.5 - ft[:]
+
+            # invariants for drucker prager yield surface
+            I1 = stresses[:, 0] + stresses[:, 1]
+            I2 = ((stresses[:, 0] + stresses[:, 1]) ** 2 - ((stresses[:, 0]) ** 2 + (stresses[:, 1]) ** 2)) / 2
+
+        # 3D problem
+        elif n == 3:
+            # rankine for the tensile region
+            rk_yield_vals = (t_stresses[:, 0] ** 2 + t_stresses[:, 1] ** 2 + t_stresses[:, 2] ** 2) ** 0.5 - ft[:]
+
+            # invariants for drucker prager yield surface
+            I1 = stresses[:, 0] + stresses[:, 1] + stresses[:, 2]
+            I2 = (
+                (stresses[:, 0] + stresses[:, 1] + stresses[:, 2]) ** 2
+                - ((stresses[:, 0]) ** 2 + (stresses[:, 1]) ** 2 + (stresses[:, 2]) ** 2)
+            ) / 2
+        else:
+            raise ("Problem with input to yield surface, the array with stress values has the wrong size ")
+
+        J2 = 1 / 3 * I1**2 - I2
+        beta = (3.0**0.5) * (fc2 - fc) / (2 * fc2 - fc)
+        Hp = fc2 * fc / ((3.0**0.5) * (2 * fc2 - fc))
+
+        dp_yield_vals = beta / 3 * I1 + J2**0.5 - Hp
+
+        # TODO: is this "correct", does this make sense? for a compression state, what if rk yield > dp yield???
+        yield_vals = np.maximum(rk_yield_vals, dp_yield_vals)
+
+        return yield_vals
+
+    def evaluate_material(self)->None:
+        # convert quadrature spaces to numpy vector
+        alpha_list = self.q_alpha.vector.array
+
+        parameters = {}
+        parameters["alpha_t"] = self.p.alpha_t
+        parameters["E_inf"] = self.p.E_28
+        parameters["alpha_0"] = self.p.alpha_0
+        parameters["a_E"] = self.p.a_E
+        # vectorize the function for speed up
+        E_fkt_vectorized = np.vectorize(self.E_fkt)
+        E_list = E_fkt_vectorized(alpha_list, parameters)
+
+        parameters = {}
+        parameters["X_inf"] = self.p.fc_inf
+        parameters["a_X"] = self.p.a_fc
+
+        fc_list = self.general_hydration_fkt(alpha_list, parameters)
+
+        parameters = {}
+        parameters["X_inf"] = self.p.ft_inf
+        parameters["a_X"] = self.p.a_ft
+
+        if self.p.evolution_ft == True:
+            ft_list = self.general_hydration_fkt(alpha_list, parameters)
+        else:
+            # no evolution....
+            ft_list = np.full_like(alpha_list, self.p.ft_inf)
+
+        # now do the yield function thing!!!
+        # I need stresses!!!
+        # get stress values
+        self.project_sigma(self.q_sigma)
+
+        sigma_list = self.q_sigma.vector().get_local().reshape((-1, self.stress_vector_dim))
+
+        # compute the yield values (values > 0 : failure)
+        yield_list = self.yield_surface(sigma_list, ft_list, fc_list)
+
+        # # project lists onto quadrature spaces
+        self.q_E.vector.array[:] = E_list
+        self.q_fc.vector.array[:] = fc_list
+        self.q_ft.vector.array[:] = ft_list
+        self.q_yield.vector.array[:] = yield_list
+
+    def update_history(self):
+        # no history field currently
+        pass
+
+    def set_timestep(self, dt):
+        self.dt = dt
+        self.dt_form.assign(ufl.Constant(self.dt))
+
+    def set_bcs(self, bcs):
+        # Only now (with the bcs) can we initialize the assembler
+        self.assembler = df.SystemAssembler(self.dR, self.R, bcs)
+
+    def F(self, b, x):
+        # if self.dt <= 0:
+        #    raise RuntimeError("You need to `.set_timestep(dt)` larger than zero before the solve!")
+        if not self.assembler:
+            raise RuntimeError("You need to `.set_bcs(bcs)` before the solve!")
+        self.evaluate_material()
+        self.assembler.assemble(b, x)
+
+    def J(self, A, x):
+        self.assembler.assemble(A)
+
+    def pv_plot(self, t=0):
+        # paraview export
+
+        # displacement plot
+        u_plot = df.project(self.u, self.V)
+        u_plot.rename("Displacement", "test string, what does this do??")  # TODO: what does the second string do?
+        self.pv_file.write(u_plot, t, encoding=df.XDMFFile.Encoding.ASCII)
+
+        # Elasticity parameters without multiplication with E
+        x_mu = 1.0 / (2.0 * (1.0 + self.p.nu))
+        x_lambda = 1.0 * self.p.nu / ((1.0 + self.p.nu) * (1.0 - 2.0 * self.p.nu))
+
+        def x_sigma(v):
+            return 2.0 * x_mu * df.sym(df.grad(v)) + x_lambda * df.tr(df.sym(df.grad(v))) * df.Identity(len(v))
+
+        sigma_plot = df.project(
+            self.sigma_ufl, self.visu_space_T, form_compiler_parameters={"quadrature_degree": self.p.degree}
+        )
+        E_plot = df.project(self.q_E, self.visu_space, form_compiler_parameters={"quadrature_degree": self.p.degree})
+        fc_plot = df.project(self.q_fc, self.visu_space, form_compiler_parameters={"quadrature_degree": self.p.degree})
+        ft_plot = df.project(self.q_ft, self.visu_space, form_compiler_parameters={"quadrature_degree": self.p.degree})
+        yield_plot = df.project(
+            self.q_yield, self.visu_space, form_compiler_parameters={"quadrature_degree": self.p.degree}
+        )
+        E_plot.rename("Young's Modulus", "test string, what does this do??")  # TODO: what does the second string do?
+        fc_plot.rename(
+            "Compressive strength", "test string, what does this do??"
+        )  # TODO: what does the second string do?
+        ft_plot.rename("Tensile strength", "test string, what does this do??")  # TODO: what does the second string do?
+        yield_plot.rename("Yield surface", "test string, what does this do??")  # TODO: what does the second string do?
+        sigma_plot.rename("Stress", "test string, what does this do??")  # TODO: what does the second string do?
+
+        self.pv_file.write(E_plot, t, encoding=df.XDMFFile.Encoding.ASCII)
+        self.pv_file.write(fc_plot, t, encoding=df.XDMFFile.Encoding.ASCII)
+        self.pv_file.write(ft_plot, t, encoding=df.XDMFFile.Encoding.ASCII)
+        self.pv_file.write(yield_plot, t, encoding=df.XDMFFile.Encoding.ASCII)
+        self.pv_file.write(sigma_plot, t, encoding=df.XDMFFile.Encoding.ASCII)
