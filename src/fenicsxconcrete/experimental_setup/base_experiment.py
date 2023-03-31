@@ -1,15 +1,14 @@
 from abc import ABC, abstractmethod
 
 import dolfinx as df
-import numpy as np
 import pint
 import ufl
 
-from fenicsxconcrete.helper import Parameters
+from fenicsxconcrete.helper import LogMixin, Parameters
 from fenicsxconcrete.unit_registry import ureg
 
 
-class Experiment(ABC):
+class Experiment(ABC, LogMixin):
     """base class for experimental setups
 
     Attributes:

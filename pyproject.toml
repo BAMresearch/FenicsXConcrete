@@ -15,7 +15,6 @@ classifiers = [
 dependencies = [
   "fenics-dolfinx",
   "pint",
-  "loguru",
   "gmsh",
   "meshio"
 ]
@@ -24,7 +23,7 @@ license = {file = "LICENSE"}
 name = "fenicsxconcrete"
 readme = "REAMDE.md"
 requires-python = ">=3.10"
-version = "0.0.1"
+version = "0.0.5a1"
 
 [project.optional-dependencies]
 tests = ["pytest", "coverage", "toml"]

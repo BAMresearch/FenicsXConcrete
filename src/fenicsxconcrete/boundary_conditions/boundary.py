@@ -1,4 +1,5 @@
 """Easy definition of boundaries."""
+
 import typing
 from collections.abc import Callable
 
