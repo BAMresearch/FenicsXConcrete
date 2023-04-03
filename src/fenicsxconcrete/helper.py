@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from collections import UserDict  # because: https://realpython.com/inherit-python-dict/
 
 import basix
@@ -234,3 +235,10 @@ def project(
     else:
         solver = df.fem.petsc.LinearProblem(a_proj, b_proj, u=u)
         solver.solve()
+
+
+class LogMixin(object):
+    @property
+    def logger(self):
+        name = self.__class__.__module__
+        return logging.getLogger(name)
