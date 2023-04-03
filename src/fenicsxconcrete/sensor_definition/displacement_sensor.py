@@ -1,11 +1,11 @@
 import dolfinx as df
 
 from fenicsxconcrete.finite_element_problem.base_material import MaterialProblem
-from fenicsxconcrete.sensor_definition.base_sensor import Sensor
+from fenicsxconcrete.sensor_definition.base_sensor import BaseSensor
 from fenicsxconcrete.unit_registry import ureg
 
 
-class DisplacementSensor(Sensor):
+class DisplacementSensor(BaseSensor):
     """A sensor that measure displacement at a specific point"""
 
     def __init__(self, where: list[list[int | float]]) -> None:

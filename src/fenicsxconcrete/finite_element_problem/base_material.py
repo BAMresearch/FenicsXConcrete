@@ -8,7 +8,7 @@ from fenicsxconcrete.experimental_setup.cantilever_beam import CantileverBeam
 from fenicsxconcrete.experimental_setup.compression_cylinder import CompressionCylinder
 from fenicsxconcrete.experimental_setup.tensile_beam import TensileBeam
 from fenicsxconcrete.helper import LogMixin, Parameters
-from fenicsxconcrete.sensor_definition.base_sensor import Sensor
+from fenicsxconcrete.sensor_definition.base_sensor import BaseSensor
 from fenicsxconcrete.unit_registry import ureg
 
 
@@ -88,8 +88,8 @@ class MaterialProblem(ABC, LogMixin):
         # define what to do, to compute the residuals. Called in solve
         """Implemented in child if needed"""
 
-    def add_sensor(self, sensor: Sensor) -> None:
-        if isinstance(sensor, Sensor):
+    def add_sensor(self, sensor: BaseSensor) -> None:
+        if isinstance(sensor, BaseSensor):
             self.sensors[sensor.name] = sensor
         else:
             raise ValueError("The sensor must be of the class Sensor")
@@ -117,7 +117,7 @@ class MaterialProblem(ABC, LogMixin):
             assert key in self
             self[key] = value
 
-        def __setitem__(self, initial_key: str, value: Sensor) -> None:
+        def __setitem__(self, initial_key: str, value: BaseSensor) -> None:
             # check if key exists, if so, add a number to the name
             i = 2
             key = initial_key

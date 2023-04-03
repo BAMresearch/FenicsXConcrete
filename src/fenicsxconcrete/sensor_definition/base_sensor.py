@@ -9,7 +9,7 @@ if typing.TYPE_CHECKING:
 
 
 # sensor template
-class Sensor(LogMixin):
+class BaseSensor(LogMixin):
     """Template for a sensor object"""
 
     def measure(self, problem: MaterialProblem, t: float):
