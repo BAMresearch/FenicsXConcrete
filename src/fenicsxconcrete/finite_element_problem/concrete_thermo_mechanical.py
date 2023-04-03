@@ -8,12 +8,7 @@ from petsc4py.PETSc import ScalarType
 from fenicsxconcrete.experimental_setup.base_experiment import Experiment
 from fenicsxconcrete.experimental_setup.cantilever_beam import CantileverBeam
 from fenicsxconcrete.finite_element_problem.base_material import MaterialProblem
-from fenicsxconcrete.helper import (
-    Parameters,
-    QuadratureEvaluator,
-    QuadratureRule,
-    project,
-)
+from fenicsxconcrete.helper import Parameters, QuadratureEvaluator, QuadratureRule, project
 from fenicsxconcrete.unit_registry import ureg
 
 
@@ -117,21 +112,29 @@ class ConcreteThermoMechanical(MaterialProblem):
 
     def setup(self):
 
+        self.displacement = df.fem.VectorFunctionSpace(self.experiment.mesh, ("CG", self.p["degree"]))
+        self.temperature = df.fem.FunctionSpace(self.experiment.mesh, ("CG", self.p["degree"]))
+
         # setting up the two nonlinear problems
         self.temperature_problem = ConcreteTemperatureHydrationModel(
             self.experiment.mesh, self.p, pv_name=self.pv_name
         )
 
         # here I "pass on the parameters from temperature to mechanics problem.."
-        self.mechanics_problem = ConcreteMechanicsModel(self.experiment.mesh, self.p, pv_name=self.pv_name)
+        bcs_mechanical = self.experiment.create_displ_bcs(self.displacement)
+
+        self.mechanics_problem = ConcreteMechanicsModel(
+            self.experiment.mesh,
+            self.p,
+            bcs_mechanical,
+        )
         # coupling of the output files
-        self.mechanics_problem.pv_file = self.temperature_problem.pv_file
+        # self.mechanics_problem.pv_file = self.temperature_problem.pv_file
 
         # initialize concrete temperature as given in experimental setup
         self.set_inital_T(self.p["T_0"])
 
         # setting bcs
-        self.mechanics_problem.set_bcs(self.experiment.create_displ_bcs(self.mechanics_problem.V))
         self.temperature_problem.set_bcs(self.experiment.create_temp_bcs(self.temperature_problem.V))
 
         # setting up the solvers
@@ -139,6 +142,7 @@ class ConcreteThermoMechanical(MaterialProblem):
         self.temperature_solver.atol = 1e-9
         self.temperature_solver.rtol = 1e-8
 
+        self.mechanics_problem.finalise()
         self.mechanics_solver = df.nls.petsc.NewtonSolver(self.mechanics_problem)
         self.mechanics_solver.atol = 1e-9
         self.mechanics_solver.rtol = 1e-8
@@ -545,7 +549,8 @@ class ConcreteMechanicsModel(df.fem.petsc.NonlinearProblem):
         mesh: df.mesh.Mesh,
         parameters: dict[str, int | float | str | bool],
         rule: QuadratureRule,
-        pv_name: str = "mechanics_output",
+        bcs: list[df.fem.DirichletBCMetaClass],
+        body_forces: ufl.form.Form,
     ):
         self.p_magnitude = parameters
         dim_to_stress_dim = {1: 1, 2: 3, 3: 6}
@@ -568,19 +573,12 @@ class ConcreteMechanicsModel(df.fem.petsc.NonlinearProblem):
 
         # quadrature functions
         self.q_E = df.fem.Function(q_V, name="youngs_modulus")
-        # TODO: are the following needed as Functions or can they be arrays?
-        # self.q_fc = df.fem.Function(q_V, name="compressive_strength")
-        # self.q_ft = df.fem.Function(q_V, name="tensile_strength")
-        # self.q_yield = df.fem.Function(q_V, name="yield_criterion")
 
-        # self.q_alpha = df.fem.Function(q_V, name="degree_of_hydration")
-
-        # self.q_sigma = df.fem.Function(q_VT, name="stress_tensor")
-        self.q_fc = self.rule.create_array(self.mesh, shape=1)
-        self.q_ft = self.rule.create_array(self.mesh, shape=1)
-        self.q_yield = self.rule.create_array(self.mesh, shape=1)
-        self.q_alpha = self.rule.create_array(self.mesh, shape=1)
-        self.q_sigma = self.rule.create_array(self.mesh, shape=self.stress_strain_dim)
+        self.q_fc = self.rule.create_quadrature_array(self.mesh, shape=1)
+        self.q_ft = self.rule.create_quadrature_array(self.mesh, shape=1)
+        self.q_yield = self.rule.create_quadrature_array(self.mesh, shape=1)
+        self.q_alpha = self.rule.create_quadrature_array(self.mesh, shape=1)
+        self.q_sigma = self.rule.create_quadrature_array(self.mesh, shape=self.stress_strain_dim)
 
         # initialize degree of hydration to 1, in case machanics module is run without hydration coupling
         self.q_alpha[:] = 1.0
@@ -600,14 +598,17 @@ class ConcreteMechanicsModel(df.fem.petsc.NonlinearProblem):
             return 2.0 * x_mu * ufl.sym(ufl.grad(v)) + x_lambda * ufl.tr(ufl.sym(ufl.grad(v))) * ufl.Identity(len(v))
 
         # Volume force
+        # TODO: from experiment
         volume_force = [0.0] * self.p_magnitude["dim"]
-        volume_force[-1] = -self.p_magnitude["g"] * self.p_magnitute["rho"]
+        volume_force[-1] = -self.p_magnitude["g"] * self.p_magnitude["rho"]
         f_ufl = ufl.Constant(mesh, tuple(volume_force))
 
         self.sigma_ufl = self.q_E * x_sigma(self.u)
 
         R_ufl = self.q_E * ufl.inner(x_sigma(self.u), ufl.sym(ufl.grad(v))) * self.rule.dx
-        R_ufl += -df.inner(f_ufl, v) * rule.dx  # add volumetric force, aka gravity (in this case)
+        R_ufl += body_forces
+
+        # -df.inner(f_ufl, v) * rule.dx  # add volumetric force, aka gravity (in this case)
         # quadrature point part
         self.R = R_ufl
 
@@ -619,8 +620,7 @@ class ConcreteMechanicsModel(df.fem.petsc.NonlinearProblem):
 
         self.sigma_evaluator = QuadratureEvaluator(self.sigma_voigt(self.sigma_ufl), mesh, self.rule)
 
-        super().__init__(self.R, self.u, [], self.dR)
-        # self.assembler = None  # set as default, to check if bc have been added???
+        super().__init__(self.R, self.u, bcs, self.dR)
 
     def sigma_voigt(self, s):
         # 1D option
@@ -656,56 +656,12 @@ class ConcreteMechanicsModel(df.fem.petsc.NonlinearProblem):
     def general_hydration_fkt(self, alpha: np.ndarray, parameters: dict) -> np.ndarray:
         return parameters["X_inf"] * alpha ** parameters["a_X"]
 
-    def principal_stress(self, stresses: np.ndarray) -> np.ndarray:
-        # checking type of problem
-        n = stresses.shape[1]  # number of stress components in stress vector
-        # finding eigenvalues of symmetric stress tensor
-        # 1D problem
-        if n == 1:
-            principal_stresses = stresses
-        # 2D problem
-        elif n == 3:
-            # the following uses
-            # lambda**2 - tr(sigma)lambda + det(sigma) = 0, solve for lambda using pq formula
-            p = -(stresses[:, 0] + stresses[:, 1])
-            q = stresses[:, 0] * stresses[:, 1] - stresses[:, 2] ** 2
-
-            D = p**2 / 4 - q  # help varibale
-            assert np.all(D >= -1.0e-15)  # otherwise problem with imaginary numbers
-            sqrtD = np.sqrt(D)
-
-            eigenvalues_1 = -p / 2.0 + sqrtD
-            eigenvalues_2 = -p / 2.0 - sqrtD
-
-            # strack lists as array
-            principal_stresses = np.column_stack((eigenvalues_1, eigenvalues_2))
-
-            # principal_stress = np.array([ev1p,ev2p])
-        elif n == 6:
-            principal_stresses = np.empty([len(stresses), 3])
-            # currently slow solution with loop over all stresses and subsequent numpy function call:
-            for i, stress in enumerate(stresses):
-                # convert voigt to tensor, (00,11,22,12,02,01)
-                stress_tensor = np.array(
-                    [
-                        [stress[0], stress[5], stress[4]],
-                        [stress[5], stress[1], stress[3]],
-                        [stress[4], stress[3], stress[2]],
-                    ]
-                )
-                # TODO: remove the sorting
-                principal_stress = np.linalg.eigvalsh(stress_tensor)
-                # sort principal stress from lagest to smallest!!!
-                principal_stresses[i] = np.flip(principal_stress)
-
-        return principal_stresses
-
     def yield_surface(self, stresses: np.ndarray, ft: np.ndarray, fc: float) -> np.ndarray:
         # function for approximated yield surface
         # first approximation, could be changed if we have numbers/information
         fc2 = fc
         # pass voigt notation and compute the principal stress
-        p_stresses = self.principal_stress(stresses)
+        p_stresses = principal_stress(stresses)
 
         # get the principle tensile stresses
         t_stresses = np.where(p_stresses < 0, 0, p_stresses)
@@ -798,11 +754,6 @@ class ConcreteMechanicsModel(df.fem.petsc.NonlinearProblem):
         self.q_ft[:] = ft_array
         self.q_yield[:] = self.yield_surface(sigma_array, ft_array, fc_array)
 
-    # set_timestep does not seem to do anything
-    # def set_timestep(self, dt)->None:
-    #     self.dt = dt
-    #     self.dt_form.assign(ufl.Constant(self.mesh, self.dt))
-
     def set_bcs(self, bcs: list[df.fem.DirichletBCMetaClass]) -> None:
         # this name is important, since it is predefined in the super() class
         self.bcs = bcs
@@ -855,3 +806,48 @@ class ConcreteMechanicsModel(df.fem.petsc.NonlinearProblem):
     #     self.pv_file.write(ft_plot, t, encoding=df.XDMFFile.Encoding.ASCII)
     #     self.pv_file.write(yield_plot, t, encoding=df.XDMFFile.Encoding.ASCII)
     #     self.pv_file.write(sigma_plot, t, encoding=df.XDMFFile.Encoding.ASCII)
+
+
+def principal_stress(stresses: np.ndarray) -> np.ndarray:
+    # checking type of problem
+    n = stresses.shape[1]  # number of stress components in stress vector
+    # finding eigenvalues of symmetric stress tensor
+    # 1D problem
+    if n == 1:
+        principal_stresses = stresses
+    # 2D problem
+    elif n == 3:
+        # the following uses
+        # lambda**2 - tr(sigma)lambda + det(sigma) = 0, solve for lambda using pq formula
+        p = -(stresses[:, 0] + stresses[:, 1])
+        q = stresses[:, 0] * stresses[:, 1] - stresses[:, 2] ** 2
+
+        D = p**2 / 4 - q  # help varibale
+        assert np.all(D >= -1.0e-15)  # otherwise problem with imaginary numbers
+        sqrtD = np.sqrt(D)
+
+        eigenvalues_1 = -p / 2.0 + sqrtD
+        eigenvalues_2 = -p / 2.0 - sqrtD
+
+        # strack lists as array
+        principal_stresses = np.column_stack((eigenvalues_1, eigenvalues_2))
+
+        # principal_stress = np.array([ev1p,ev2p])
+    elif n == 6:
+        principal_stresses = np.empty([len(stresses), 3])
+        # currently slow solution with loop over all stresses and subsequent numpy function call:
+        for i, stress in enumerate(stresses):
+            # convert voigt to tensor, (00,11,22,12,02,01)
+            stress_tensor = np.array(
+                [
+                    [stress[0], stress[5], stress[4]],
+                    [stress[5], stress[1], stress[3]],
+                    [stress[4], stress[3], stress[2]],
+                ]
+            )
+            # TODO: remove the sorting
+            principal_stress = np.linalg.eigvalsh(stress_tensor)
+            # sort principal stress from lagest to smallest!!!
+            principal_stresses[i] = np.flip(principal_stress)
+
+    return principal_stresses
