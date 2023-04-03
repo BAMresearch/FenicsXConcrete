@@ -121,4 +121,4 @@ make html
 
 The `index.html` file is now located in `docs/_build/html/index.html`.
 
-Please take note, if this generates or changes files in `docs/api`. If so, commit and push tehm as well, since this cannot be done automatically by readthedocs. The `_build` directory is listed in the `.gitignore` and should not be commited.
+Please take note, this can generates or changes files in `docs/api`. If so, commit and push them as well, since this is currently not included in your workflow and cannot be done automatically by readthedocs. The `_build` directory is listed in the `.gitignore` and should not be commited.
