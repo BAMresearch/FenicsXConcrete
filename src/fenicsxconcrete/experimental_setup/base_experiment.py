@@ -1,7 +1,6 @@
 from abc import ABC, abstractmethod
 
 import dolfinx as df
-import numpy as np
 import pint
 import ufl
 
