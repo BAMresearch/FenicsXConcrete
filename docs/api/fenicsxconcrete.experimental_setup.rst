@@ -4,6 +4,14 @@ fenicsxconcrete.experimental\_setup package
 Submodules
 ----------
 
+fenicsxconcrete.experimental\_setup.am\_multiple\_layers module
+---------------------------------------------------------------
+
+.. automodule:: fenicsxconcrete.experimental_setup.am_multiple_layers
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 fenicsxconcrete.experimental\_setup.base\_experiment module
 -----------------------------------------------------------
 
@@ -24,6 +32,14 @@ fenicsxconcrete.experimental\_setup.compression\_cylinder module
 ----------------------------------------------------------------
 
 .. automodule:: fenicsxconcrete.experimental_setup.compression_cylinder
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+fenicsxconcrete.experimental\_setup.simple\_beam module
+-------------------------------------------------------
+
+.. automodule:: fenicsxconcrete.experimental_setup.simple_beam
    :members:
    :undoc-members:
    :show-inheritance:
