@@ -2,12 +2,18 @@ import dolfinx as df
 import numpy as np
 import pint
 import ufl
+from petsc4py import PETSc
 from petsc4py.PETSc import ScalarType
 
 from fenicsxconcrete.experimental_setup.base_experiment import Experiment
 from fenicsxconcrete.experimental_setup.cantilever_beam import CantileverBeam
 from fenicsxconcrete.finite_element_problem.base_material import MaterialProblem
-from fenicsxconcrete.helper import Parameters, QuadratureRule, QuadratureEvaluator
+from fenicsxconcrete.helper import (
+    Parameters,
+    QuadratureEvaluator,
+    QuadratureRule,
+    project,
+)
 from fenicsxconcrete.unit_registry import ureg
 
 
@@ -122,7 +128,7 @@ class ConcreteThermoMechanical(MaterialProblem):
         self.mechanics_problem.pv_file = self.temperature_problem.pv_file
 
         # initialize concrete temperature as given in experimental setup
-        self.set_inital_T(self.p.T_0)
+        self.set_inital_T(self.p["T_0"])
 
         # setting bcs
         self.mechanics_problem.set_bcs(self.experiment.create_displ_bcs(self.mechanics_problem.V))
@@ -139,60 +145,64 @@ class ConcreteThermoMechanical(MaterialProblem):
         # if self.wrapper:
         #     self.wrapper.set_geometry(self.mechanics_problem.V, [])
 
+    def solve(self, t=1.0) -> None:
+        if self.wrapper:
+            self.wrapper.next_state()
+        # print('Solving: T') # TODO ouput only a certain log level INFO
 
-#     def solve(self, t=1.0):
-#         if self.wrapper: self.wrapper.next_state()
-#         # print('Solving: T') # TODO ouput only a certain log level INFO
-#         self.temperature_solver.solve(self.temperature_problem, self.temperature_problem.T.vector())
+        self.temperature_solver.solve(self.temperature_problem.u)
 
-#         # set current DOH for computation of Young's modulus
-#         self.mechanics_problem.q_alpha = self.temperature_problem.q_alpha
-#         # print('Solving: u') # TODO ouput only a certain log level INFO
+        # set current DOH for computation of Young's modulus
+        self.mechanics_problem.q_alpha = self.temperature_problem.q_alpha
+        # print('Solving: u') # TODO ouput only a certain log level INFO
 
-#         # mechanics paroblem is not required for temperature, could crash in frist time steps but then be useful
-#         try:
-#             self.mechanics_solver.solve(self.mechanics_problem, self.mechanics_problem.u.vector())
-#         except Exception as e:
-#             print('AAAAAAAAAAHHHHHHHHHH!!!!!')
-#             warnings.warn(f'Mechanics crashed at time: {t}, Error message: {e}')
+        # mechanics paroblem is not required for temperature, could crash in frist time steps but then be useful
+        try:
+            self.mechanics_solver.solve(self.mechanics_problem.u)
+        except:
+            print("AAAAAAAAAAHHHHHHHHHH!!!!!")
 
+        # history update
+        self.temperature_problem.update_history()
 
-#         # history update
-#         self.temperature_problem.update_history()
+        # save fields to global problem for sensor output
+        self.displacement = self.mechanics_problem.u
+        self.temperature = self.temperature_problem.T
 
-#         # save fields to global problem for sensor output
-#         self.displacement = self.mechanics_problem.u
-#         self.temperature = self.temperature_problem.T
-#         self.degree_of_hydration = df.project(self.temperature_problem.q_alpha, self.temperature_problem.visu_space, form_compiler_parameters={'quadrature_degree': self.p.degree})
-#         self.q_degree_of_hydration = self.temperature_problem.q_alpha
-#         self.q_yield = self.mechanics_problem.q_yield
-#         self.stress = self.mechanics_problem.sigma_ufl
+        self.degree_of_hydration = project(
+            self.temperature_problem.q_alpha, self.temperature_problem.visu_space, self.temperature_problem.rule.dx
+        )
 
-#         # get sensor data
-#         for sensor_name in self.sensors:
-#             # go through all sensors and measure
-#             self.sensors[sensor_name].measure(self, self.wrapper, t)
-#         if self.wrapper: self.wrapper.write_state()
+        self.q_degree_of_hydration = self.temperature_problem.q_alpha
+        self.q_yield = self.mechanics_problem.q_yield
+        self.stress = self.mechanics_problem.sigma_ufl
 
-#     def pv_plot(self, t=0):
-#         # calls paraview output for both problems
-#         self.temperature_problem.pv_plot(t=t)
-#         self.mechanics_problem.pv_plot(t=t)
+        # get sensor data
+        for sensor_name in self.sensors:
+            # go through all sensors and measure
+            self.sensors[sensor_name].measure(self, self.wrapper, t)
+        if self.wrapper:
+            self.wrapper.write_state()
 
-#     def set_inital_T(self, T):
-#         self.temperature_problem.set_initial_T(T)
+    def pv_plot(self, t=0):
+        # calls paraview output for both problems
+        self.temperature_problem.pv_plot(t=t)
+        self.mechanics_problem.pv_plot(t=t)
 
-#     def set_timestep(self, dt):
-#         self.temperature_problem.set_timestep(dt)
+    def set_inital_T(self, T: float):
+        self.temperature_problem.set_initial_T(T)
 
-#     def get_heat_of_hydration_ftk(self):
-#         return self.temperature_problem.heat_of_hydration_ftk
+    def set_timestep(self, dt: float):
+        self.temperature_problem.set_timestep(dt)
 
-#     def get_E_alpha_fkt(self):
-#         return np.vectorize(self.mechanics_problem.E_fkt)
+    def get_heat_of_hydration_ftk(self):
+        return self.temperature_problem.heat_of_hydration_ftk
 
-#     def get_X_alpha_fkt(self):
-#         return self.mechanics_problem.general_hydration_fkt
+    def get_E_alpha_fkt(self):
+        return np.vectorize(self.mechanics_problem.E_fkt)
+
+    def get_X_alpha_fkt(self):
+        return self.mechanics_problem.general_hydration_fkt
 
 
 # class ConcreteTempHydrationModel(df.NonlinearProblem):
@@ -541,6 +551,7 @@ class ConcreteMechanicsModel(df.fem.petsc.NonlinearProblem):
         dim_to_stress_dim = {1: 1, 2: 3, 3: 6}
         self.stress_strain_dim = dim_to_stress_dim[self.p_magnitude["dim"]]
         self.rule = rule
+        self.mesh = mesh
         if self.p_magnitude["degree"] == 1:
             self.visu_space = df.fem.FunctionSpace(mesh, ("DG", 0))
             self.visu_space_T = df.fem.TensorFunctionSpace(mesh, ("DG", 0))
@@ -552,22 +563,31 @@ class ConcreteMechanicsModel(df.fem.petsc.NonlinearProblem):
 
         # generic quadrature function space
         q_V = self.rule.create_quadrature_space(mesh)
-        q_VT = self.rule.create_quadrature_vector_space(mesh, dim=self.stress_strain_dim)
+
+        # q_VT = self.rule.create_quadrature_vector_space(mesh, dim=self.stress_strain_dim)
 
         # quadrature functions
         self.q_E = df.fem.Function(q_V, name="youngs_modulus")
-        self.q_fc = df.fem.Function(q_V, name="compressive_strength")
-        self.q_ft = df.fem.Function(q_V, name="tensile_strength")
-        self.q_yield = df.fem.Function(q_V, name="yield_criterion")
-        self.q_alpha = df.fem.Function(q_V, name="degree_of_hydration")
+        # TODO: are the following needed as Functions or can they be arrays?
+        # self.q_fc = df.fem.Function(q_V, name="compressive_strength")
+        # self.q_ft = df.fem.Function(q_V, name="tensile_strength")
+        # self.q_yield = df.fem.Function(q_V, name="yield_criterion")
 
-        self.q_sigma = df.fem.Function(q_VT, name="stress_tensor")
+        # self.q_alpha = df.fem.Function(q_V, name="degree_of_hydration")
+
+        # self.q_sigma = df.fem.Function(q_VT, name="stress_tensor")
+        self.q_fc = self.rule.create_array(self.mesh, shape=1)
+        self.q_ft = self.rule.create_array(self.mesh, shape=1)
+        self.q_yield = self.rule.create_array(self.mesh, shape=1)
+        self.q_alpha = self.rule.create_array(self.mesh, shape=1)
+        self.q_sigma = self.rule.create_array(self.mesh, shape=self.stress_strain_dim)
+
         # initialize degree of hydration to 1, in case machanics module is run without hydration coupling
-        self.q_alpha.vector.array = 1.0
+        self.q_alpha[:] = 1.0
 
         # Define variational problem
-        self.u = df.Function(self.V, name="Displacements")
-        v = df.TestFunction(self.V)
+        self.u = df.fem.Function(self.V, name="Displacements")
+        v = ufl.TestFunction(self.V)
 
         # Elasticity parameters without multiplication with E
         x_mu = 1.0 / (2.0 * (1.0 + self.p_magnitude["nu"]))
@@ -579,7 +599,6 @@ class ConcreteMechanicsModel(df.fem.petsc.NonlinearProblem):
         def x_sigma(v):
             return 2.0 * x_mu * ufl.sym(ufl.grad(v)) + x_lambda * ufl.tr(ufl.sym(ufl.grad(v))) * ufl.Identity(len(v))
 
-        ufl.Constant()
         # Volume force
         volume_force = [0.0] * self.p_magnitude["dim"]
         volume_force[-1] = -self.p_magnitude["g"] * self.p_magnitute["rho"]
@@ -587,7 +606,7 @@ class ConcreteMechanicsModel(df.fem.petsc.NonlinearProblem):
 
         self.sigma_ufl = self.q_E * x_sigma(self.u)
 
-        R_ufl = self.q_E * df.inner(x_sigma(self.u), df.sym(df.grad(v))) * self.rule.dx
+        R_ufl = self.q_E * ufl.inner(x_sigma(self.u), ufl.sym(ufl.grad(v))) * self.rule.dx
         R_ufl += -df.inner(f_ufl, v) * rule.dx  # add volumetric force, aka gravity (in this case)
         # quadrature point part
         self.R = R_ufl
@@ -600,6 +619,7 @@ class ConcreteMechanicsModel(df.fem.petsc.NonlinearProblem):
 
         self.sigma_evaluator = QuadratureEvaluator(self.sigma_voigt(self.sigma_ufl), mesh, self.rule)
 
+        super().__init__(self.R, self.u, [], self.dR)
         # self.assembler = None  # set as default, to check if bc have been added???
 
     def sigma_voigt(self, s):
@@ -617,7 +637,7 @@ class ConcreteMechanicsModel(df.fem.petsc.NonlinearProblem):
 
         return stress_vector
 
-    def E_fkt(self, alpha: float, parameters: dict)->float:
+    def E_fkt(self, alpha: float, parameters: dict) -> float:
 
         if alpha < parameters["alpha_t"]:
             E = (
@@ -633,11 +653,10 @@ class ConcreteMechanicsModel(df.fem.petsc.NonlinearProblem):
             )
         return E
 
-    def general_hydration_fkt(self, alpha: float, parameters: dict):
+    def general_hydration_fkt(self, alpha: np.ndarray, parameters: dict) -> np.ndarray:
+        return parameters["X_inf"] * alpha ** parameters["a_X"]
 
-        return parameters["X_inf"] * alpha ** (parameters["a_X"])
-
-    def principal_stress(self, stresses: np.ndarray)->np.ndarray:
+    def principal_stress(self, stresses: np.ndarray) -> np.ndarray:
         # checking type of problem
         n = stresses.shape[1]  # number of stress components in stress vector
         # finding eigenvalues of symmetric stress tensor
@@ -663,8 +682,6 @@ class ConcreteMechanicsModel(df.fem.petsc.NonlinearProblem):
 
             # principal_stress = np.array([ev1p,ev2p])
         elif n == 6:
-            # for a symetric stress vector a b c e f d we need to solve:
-            # x**3 - x**2(a+b+c) - x(e**2+f**2+d**2-ab-bc-ac) + (abc-ae**2-bf**2-cd**2+2def) = 0, solve for x
             principal_stresses = np.empty([len(stresses), 3])
             # currently slow solution with loop over all stresses and subsequent numpy function call:
             for i, stress in enumerate(stresses):
@@ -676,15 +693,14 @@ class ConcreteMechanicsModel(df.fem.petsc.NonlinearProblem):
                         [stress[4], stress[3], stress[2]],
                     ]
                 )
-                # use numpy for eigenvalues
+                # TODO: remove the sorting
                 principal_stress = np.linalg.eigvalsh(stress_tensor)
                 # sort principal stress from lagest to smallest!!!
                 principal_stresses[i] = np.flip(principal_stress)
 
         return principal_stresses
 
-
-    def yield_surface(self, stresses:np.ndarray, ft:np.ndarray, fc:float)->np.ndarray:
+    def yield_surface(self, stresses: np.ndarray, ft: np.ndarray, fc: float) -> np.ndarray:
         # function for approximated yield surface
         # first approximation, could be changed if we have numbers/information
         fc2 = fc
@@ -739,108 +755,103 @@ class ConcreteMechanicsModel(df.fem.petsc.NonlinearProblem):
 
         return yield_vals
 
-    def evaluate_material(self)->None:
+    def evaluate_material(self) -> None:
         # convert quadrature spaces to numpy vector
-        alpha_list = self.q_alpha.vector.array
+        alpha_array = self.q_alpha.vector.array
 
         parameters = {}
-        parameters["alpha_t"] = self.p.alpha_t
-        parameters["E_inf"] = self.p.E_28
-        parameters["alpha_0"] = self.p.alpha_0
-        parameters["a_E"] = self.p.a_E
+        parameters["alpha_t"] = self.p["alpha_t"]
+        parameters["E_inf"] = self.p["E_28"]
+        parameters["alpha_0"] = self.p["alpha_0"]
+        parameters["a_E"] = self.p["a_E"]
         # vectorize the function for speed up
+        # TODO: remove vectorization. It does nothing for speed-up
         E_fkt_vectorized = np.vectorize(self.E_fkt)
-        E_list = E_fkt_vectorized(alpha_list, parameters)
+        E_array = E_fkt_vectorized(alpha_array, parameters)
 
         parameters = {}
-        parameters["X_inf"] = self.p.fc_inf
-        parameters["a_X"] = self.p.a_fc
+        parameters["X_inf"] = self.p["fc_inf"]
+        parameters["a_X"] = self.p["a_fc"]
 
-        fc_list = self.general_hydration_fkt(alpha_list, parameters)
+        fc_array = self.general_hydration_fkt(alpha_array, parameters)
 
         parameters = {}
-        parameters["X_inf"] = self.p.ft_inf
-        parameters["a_X"] = self.p.a_ft
+        parameters["X_inf"] = self.p["ft_inf"]
+        parameters["a_X"] = self.p["a_ft"]
 
-        if self.p.evolution_ft == True:
-            ft_list = self.general_hydration_fkt(alpha_list, parameters)
+        if self.p["evolution_ft"]:
+            ft_array = self.general_hydration_fkt(alpha_array, parameters)
         else:
             # no evolution....
-            ft_list = np.full_like(alpha_list, self.p.ft_inf)
+            ft_array = np.full_like(alpha_array, self.p["ft_inf"])
 
         # now do the yield function thing!!!
         # I need stresses!!!
         # get stress values
-        self.project_sigma(self.q_sigma)
+        self.sigma_evaluator.evaluate(self.q_sigma)
 
-        sigma_list = self.q_sigma.vector().get_local().reshape((-1, self.stress_vector_dim))
-
-        # compute the yield values (values > 0 : failure)
-        yield_list = self.yield_surface(sigma_list, ft_list, fc_list)
+        sigma_array = self.q_sigma.vector.array.reshape(-1, self.stress_strain_dim)
 
         # # project lists onto quadrature spaces
-        self.q_E.vector.array[:] = E_list
-        self.q_fc.vector.array[:] = fc_list
-        self.q_ft.vector.array[:] = ft_list
-        self.q_yield.vector.array[:] = yield_list
+        self.q_E.vector.array[:] = E_array
+        self.q_fc[:] = fc_array
+        self.q_ft[:] = ft_array
+        self.q_yield[:] = self.yield_surface(sigma_array, ft_array, fc_array)
 
-    def update_history(self):
-        # no history field currently
-        pass
+    # set_timestep does not seem to do anything
+    # def set_timestep(self, dt)->None:
+    #     self.dt = dt
+    #     self.dt_form.assign(ufl.Constant(self.mesh, self.dt))
 
-    def set_timestep(self, dt):
-        self.dt = dt
-        self.dt_form.assign(ufl.Constant(self.dt))
+    def set_bcs(self, bcs: list[df.fem.DirichletBCMetaClass]) -> None:
+        # this name is important, since it is predefined in the super() class
+        self.bcs = bcs
 
-    def set_bcs(self, bcs):
-        # Only now (with the bcs) can we initialize the assembler
-        self.assembler = df.SystemAssembler(self.dR, self.R, bcs)
+    def form(self, x: PETSc.Vec) -> None:
+        """This function is called before the residual or Jacobian is
+        computed. We override it to calculate the values on the quadrature
+        functions.
 
-    def F(self, b, x):
-        # if self.dt <= 0:
-        #    raise RuntimeError("You need to `.set_timestep(dt)` larger than zero before the solve!")
-        if not self.assembler:
-            raise RuntimeError("You need to `.set_bcs(bcs)` before the solve!")
+        Args:
+           x: The vector containing the latest solution
+        """
         self.evaluate_material()
-        self.assembler.assemble(b, x)
+        super().form(x)
 
-    def J(self, A, x):
-        self.assembler.assemble(A)
+    # def pv_plot(self, t=0):
+    #     # paraview export
 
-    def pv_plot(self, t=0):
-        # paraview export
+    #     # displacement plot
+    #     u_plot = df.project(self.u, self.V)
+    #     u_plot.rename("Displacement", "test string, what does this do??")  # TODO: what does the second string do?
+    #     self.pv_file.write(u_plot, t, encoding=df.XDMFFile.Encoding.ASCII)
 
-        # displacement plot
-        u_plot = df.project(self.u, self.V)
-        u_plot.rename("Displacement", "test string, what does this do??")  # TODO: what does the second string do?
-        self.pv_file.write(u_plot, t, encoding=df.XDMFFile.Encoding.ASCII)
+    #     # Elasticity parameters without multiplication with E
+    #     x_mu = 1.0 / (2.0 * (1.0 + self.p.nu))
+    #     x_lambda = 1.0 * self.p.nu / ((1.0 + self.p.nu) * (1.0 - 2.0 * self.p.nu))
 
-        # Elasticity parameters without multiplication with E
-        x_mu = 1.0 / (2.0 * (1.0 + self.p.nu))
-        x_lambda = 1.0 * self.p.nu / ((1.0 + self.p.nu) * (1.0 - 2.0 * self.p.nu))
+    #     def x_sigma(v):
+    #         return 2.0 * x_mu * df.sym(df.grad(v)) + x_lambda * df.tr(df.sym(df.grad(v))) * df.Identity(len(v))
 
-        def x_sigma(v):
-            return 2.0 * x_mu * df.sym(df.grad(v)) + x_lambda * df.tr(df.sym(df.grad(v))) * df.Identity(len(v))
+    #     sigma_plot = df.project(
+    #         self.sigma_ufl, self.visu_space_T, form_compiler_parameters={"quadrature_degree": self.p.degree}
+    #     )
+    #     E_plot = df.project(self.q_E, self.visu_space, form_compiler_parameters={"quadrature_degree": self.p.degree})
+    #     fc_plot = df.project(self.q_fc, self.visu_space, form_compiler_parameters={"quadrature_degree": self.p.degree})
+    #     ft_plot = df.project(self.q_ft, self.visu_space, form_compiler_parameters={"quadrature_degree": self.p.degree})
+    #     yield_plot = df.project(
+    #         self.q_yield, self.visu_space, form_compiler_parameters={"quadrature_degree": self.p.degree}
+    #     )
+    #     E_plot.rename("Young's Modulus", "test string, what does this do??")  # TODO: what does the second string do?
+    #     fc_plot.rename(
+    #         "Compressive strength", "test string, what does this do??"
+    #     )  # TODO: what does the second string do?
+    #     ft_plot.rename("Tensile strength", "test string, what does this do??")  # TODO: what does the second string do?
+    #     yield_plot.rename("Yield surface", "test string, what does this do??")  # TODO: what does the second string do?
+    #     sigma_plot.rename("Stress", "test string, what does this do??")  # TODO: what does the second string do?
 
-        sigma_plot = df.project(
-            self.sigma_ufl, self.visu_space_T, form_compiler_parameters={"quadrature_degree": self.p.degree}
-        )
-        E_plot = df.project(self.q_E, self.visu_space, form_compiler_parameters={"quadrature_degree": self.p.degree})
-        fc_plot = df.project(self.q_fc, self.visu_space, form_compiler_parameters={"quadrature_degree": self.p.degree})
-        ft_plot = df.project(self.q_ft, self.visu_space, form_compiler_parameters={"quadrature_degree": self.p.degree})
-        yield_plot = df.project(
-            self.q_yield, self.visu_space, form_compiler_parameters={"quadrature_degree": self.p.degree}
-        )
-        E_plot.rename("Young's Modulus", "test string, what does this do??")  # TODO: what does the second string do?
-        fc_plot.rename(
-            "Compressive strength", "test string, what does this do??"
-        )  # TODO: what does the second string do?
-        ft_plot.rename("Tensile strength", "test string, what does this do??")  # TODO: what does the second string do?
-        yield_plot.rename("Yield surface", "test string, what does this do??")  # TODO: what does the second string do?
-        sigma_plot.rename("Stress", "test string, what does this do??")  # TODO: what does the second string do?
-
-        self.pv_file.write(E_plot, t, encoding=df.XDMFFile.Encoding.ASCII)
-        self.pv_file.write(fc_plot, t, encoding=df.XDMFFile.Encoding.ASCII)
-        self.pv_file.write(ft_plot, t, encoding=df.XDMFFile.Encoding.ASCII)
-        self.pv_file.write(yield_plot, t, encoding=df.XDMFFile.Encoding.ASCII)
-        self.pv_file.write(sigma_plot, t, encoding=df.XDMFFile.Encoding.ASCII)
+    #     self.pv_file.write(E_plot, t, encoding=df.XDMFFile.Encoding.ASCII)
+    #     self.pv_file.write(fc_plot, t, encoding=df.XDMFFile.Encoding.ASCII)
+    #     self.pv_file.write(ft_plot, t, encoding=df.XDMFFile.Encoding.ASCII)
+    #     self.pv_file.write(yield_plot, t, encoding=df.XDMFFile.Encoding.ASCII)
+    #     self.pv_file.write(sigma_plot, t, encoding=df.XDMFFile.Encoding.ASCII)

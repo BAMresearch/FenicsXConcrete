@@ -12,6 +12,14 @@ fenicsxconcrete.finite\_element\_problem.base\_material module
    :undoc-members:
    :show-inheritance:
 
+fenicsxconcrete.finite\_element\_problem.concrete\_thermo\_mechanical module
+----------------------------------------------------------------------------
+
+.. automodule:: fenicsxconcrete.finite_element_problem.concrete_thermo_mechanical
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 fenicsxconcrete.finite\_element\_problem.linear\_elasticity module
 ------------------------------------------------------------------
 
