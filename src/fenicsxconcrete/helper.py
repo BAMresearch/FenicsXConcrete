@@ -140,7 +140,7 @@ class QuadratureRule:
         self.num_cells = map_c.size_local
         return self.num_cells * self.weights.size
 
-    def create_array(self, mesh: df.mesh.Mesh, shape: int | tuple[int, int] = 0) -> np.ndarray:
+    def create_array(self, mesh: df.mesh.Mesh, shape: int | tuple[int, int] = 1) -> np.ndarray:
         """
         Creates array of a quadrature function without creating the function or the function space.
         This should be used, if operations on quadrature points are needed, but not all values are needed
