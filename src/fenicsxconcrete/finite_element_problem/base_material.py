@@ -113,10 +113,6 @@ class MaterialProblem(ABC, LogMixin):
         def __getattr__(self, key):
             return self[key]
 
-        def __setattr__(self, key, value):
-            assert key in self
-            self[key] = value
-
         def __setitem__(self, initial_key: str, value: BaseSensor) -> None:
             # check if key exists, if so, add a number to the name
             i = 2
