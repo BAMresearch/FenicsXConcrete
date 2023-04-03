@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import typing
+from abc import ABC, abstractmethod
 
 from fenicsxconcrete.helper import LogMixin
 
@@ -9,9 +10,10 @@ if typing.TYPE_CHECKING:
 
 
 # sensor template
-class BaseSensor(LogMixin):
+class BaseSensor(ABC, LogMixin):
     """Template for a sensor object"""
 
+    @abstractmethod
     def measure(self, problem: MaterialProblem, t: float):
         """Needs to be implemented in child, depending on the sensor"""
         raise NotImplementedError

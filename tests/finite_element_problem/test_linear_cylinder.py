@@ -5,7 +5,7 @@ import pytest
 from fenicsxconcrete.experimental_setup.compression_cylinder import CompressionCylinder
 from fenicsxconcrete.finite_element_problem.linear_elasticity import LinearElasticity
 from fenicsxconcrete.helper import Parameters
-from fenicsxconcrete.sensor_definition.other_sensor import ReactionForceSensorBottom
+from fenicsxconcrete.sensor_definition.reaction_force_sensor import ReactionForceSensorBottom
 from fenicsxconcrete.unit_registry import ureg
 
 
