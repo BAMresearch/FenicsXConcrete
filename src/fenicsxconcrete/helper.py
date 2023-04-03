@@ -140,6 +140,23 @@ class QuadratureRule:
         self.num_cells = map_c.size_local
         return self.num_cells * self.weights.size
 
+    def create_array(self, mesh: df.mesh.Mesh, shape: int | tuple[int, int] = 0) -> np.ndarray:
+        """
+        Creates array of a quadrature function without creating the function or the function space.
+        This should be used, if operations on quadrature points are needed, but not all values are needed
+        in a ufl form.
+
+        Args:
+            mesh: A mesh.
+            shape: Local shape of the quadrature space. Example: `shape = 1` for Scalar,
+              `shape = (n, 1)` for vector and `shape = (n,n)` for Tensor.
+        Returns:
+            An array that is equivalent to `quadrature_function.vector.array`.
+        """
+        n_points = self.number_of_points(mesh)
+        n_local = shape if isinstance(shape, int) else shape[0] * shape[1]
+        return np.zeros(n_points * n_local)
+
 
 def _basix_cell_type_to_ufl(cell_type: basix.CellType) -> ufl.Cell:
     conversion = {
@@ -188,3 +205,32 @@ class QuadratureEvaluator:
         elif isinstance(q, df.fem.Function):
             self.expr.eval(self.cells, values=q.vector.array.reshape(self.num_cells, -1))
             q.x.scatter_forward()
+
+
+def project(
+    v: df.fem.Function | ufl.core.expr.Expr, V: df.fem.FunctionSpace, dx: ufl.Measure, u: df.fem.Function | None = None
+) -> None | df.fem.Function:
+    """
+    Calculates an approximation of `v` on the space `V`
+    Args:
+        v: The expression that we want to evaluate.
+        V: The function space on which we want to evaluate.
+        dx: The measure that is used for the integration. This is important, if we want to evaluate
+            a Quadrature function on a _normal_ space.
+        u: The output function.
+
+    Returns:
+        A function if `u` is None, otherwise `None`.
+
+    """
+    dv = ufl.TrialFunction(V)
+    v_ = ufl.TestFunction(V)
+    a_proj = ufl.inner(dv, v_) * dx
+    b_proj = ufl.inner(v, v_) * dx
+    if u is None:
+        solver = df.fem.petsc.LinearProblem(a_proj, b_proj)
+        uh = solver.solve()
+        return uh
+    else:
+        solver = df.fem.petsc.LinearProblem(a_proj, b_proj, u=u)
+        solver.solve()
