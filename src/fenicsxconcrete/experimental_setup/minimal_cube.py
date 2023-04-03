@@ -7,6 +7,7 @@ import numpy as np
 import pint
 import ufl
 from mpi4py import MPI
+from petsc4py.PETSc import ScalarType
 
 from fenicsxconcrete.boundary_conditions.bcs import BoundaryConditions
 from fenicsxconcrete.boundary_conditions.boundary import plane_at, point_at
@@ -60,7 +61,7 @@ class MinimalCubeExperiment(Experiment):
                     [0.0, 0.0, 0.0],
                     [self.p["length"], self.p["height"], self.p["width"]],
                 ],
-                [self.p["num_elements_length"], self.p["num_elements_height"], self.p["num_elements_width"]],
+                [self.p["num_elements_length"], self.p["num_elements_width"], self.p["num_elements_height"]],
                 cell_type=df.mesh.CellType.hexahedron,
             )
 
@@ -77,8 +78,8 @@ class MinimalCubeExperiment(Experiment):
         setup_parameters = {}
         setup_parameters["dim"] = 3 * ureg("")
         setup_parameters["num_elements_length"] = 10 * ureg("")
-        setup_parameters["num_elements_height"] = 10 * ureg("")
         setup_parameters["num_elements_width"] = 10 * ureg("")
+        setup_parameters["num_elements_height"] = 10 * ureg("")
 
         return setup_parameters
 
@@ -106,6 +107,15 @@ class MinimalCubeExperiment(Experiment):
         """
 
         self.top_displacement.value = top_displacement.magnitude
+
+    def create_body_force(self, v: ufl.argument.Argument) -> ufl.form.Form:
+        force_vector = np.zeros(self.p["dim"])
+        force_vector[-1] = -self.p["rho"] * self.p["g"]  # works for 2D and 3D
+
+        f = df.fem.Constant(self.mesh, ScalarType(force_vector))
+        L = ufl.dot(f, v) * ufl.dx
+
+        return L
 
     def boundary_top(self) -> Callable:
         if self.p["dim"] == 2:
