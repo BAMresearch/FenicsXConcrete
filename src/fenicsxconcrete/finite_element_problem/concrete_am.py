@@ -35,7 +35,7 @@ class ConcreteAM(MaterialProblem):
         self,
         experiment: Experiment,
         parameters: dict[str, pint.Quantity],
-        material_law: str,
+        nonlinear_problem: df.fem.petsc.NonlinearProblem,
         pv_name: str = "pv_output_full",
         pv_path: str | None = None,
     ) -> None:
@@ -46,10 +46,8 @@ class ConcreteAM(MaterialProblem):
         # updating parameters, overriding defaults
         default_p.update(parameters)
 
-        # set name of material law class
-        self.material_law = material_law
+        self.nonlinear_problem = nonlinear_problem
 
-        self.logger(__name__)
         super().__init__(experiment, default_p, pv_name, pv_path)
 
     @staticmethod
@@ -102,19 +100,23 @@ class ConcreteAM(MaterialProblem):
     def setup(self) -> None:
         # set up problem
 
-        if self.mech_prob_string.lower() == "concretethixelasticmodel":
-            self.mechanics_problem = ConcreteThixElasticModel(self.experiment.mesh, self.p, pv_name=self.pv_name)
-        else:
-            raise ValueError(f"material law {self.mechanics_problem} not yet implemented")
+        self.displacement = df.fem.VectorFunctionSpace(self.experiment.mesh, ("CG", self.p["degree"]))
+        self.pseudo_density = df.fem.VectorFunctionSpace(self.experiment.mesh, ("DG", 0))
+
+        bcs = self.experiment.create_displacement_boundary(self.displacement)
+        external_forces = self.experiment.create_force_boundary(ufl.TestFunction(self.displacement),pd=self.pseudo_density)
+        body_forces = self.experiment.create_body_force(ufl.TestFunction(self.displacement),pd=self.pseudo_density)
 
 
-        # setting bcs
-        self.mechanics_problem.set_bc(self.experiment.create_displacement_boundary(self.mechanics_problem.V))
-
-        # external load
-        self.mechanics_problem.set_force(self.experiment.create_force_boundary(self.v))
-        # body load
-        self.mechanics_problem.set_body_force(self.experiment.create_body_force(self.v))
+        try:
+            self.mechanics_problem = self.nonlinear_problem(self.experiment.mesh,
+                                                            self.p,
+                                                            self.displacement,
+                                                            bcs,
+                                                            body_forces,
+                                                            external_forces)
+        except:
+            raise ValueError(f"nonlinear problem {self.nonlinear_problem} not yet implemented")
 
 
         # setting up the solver
@@ -124,8 +126,8 @@ class ConcreteAM(MaterialProblem):
         self.mechanics_solver.rtol = 1e-8
         self.mechanics_solver.report = True
 
-        self.V = self.mechanics_problem.V  # for reaction force sensor
-        self.residual = None  # initialize
+        # self.V = self.mechanics_problem.V  # for reaction force sensor
+        # self.residual = None  # initialize
 
     def solve(self, t: float = 1.0) -> None:
         # define what to do, to solve this problem
@@ -180,7 +182,9 @@ class ConcreteThixElasticModel(df.fem.petsc.NonlinearProblem):
         mesh: df.mesh.Mesh,
         parameters: dict[str, int | float | str | bool],
         rule: QuadratureRule,
-        pv_name: str = "mechanics_output",
+        u: df.fem.Function,
+        bcs: list[df.fem.DirichletBCMetaClass],
+        body_forces: ufl.form.Form,
     ):
         self.p_magnitude = parameters
         dim_to_stress_dim = {1: 1, 2: 3, 3: 6}
@@ -198,23 +202,24 @@ class ConcreteThixElasticModel(df.fem.petsc.NonlinearProblem):
         self.visu_space_eps = self.visu_space_T
         self.visu_space_sig = self.visu_space_T
 
+        # standard space
         self.V = df.fem.VectorFunctionSpace(mesh, ("CG", self.p_magnitude["degree"]))
+        # space for element activation: constant per element
+        self.V_pd = df.fem.VectorFunctionSpace(mesh, ("DG", 0))
 
         # generic quadrature function space
         q_V = self.rule.create_quadrature_space(mesh)
         q_VT = self.rule.create_quadrature_vector_space(mesh, dim=self.stress_strain_dim)
 
         # quadrature functions
-        # to initialize values (otherwise initialized by 0)
-        self.q_path = df.fem.Function(q_V, name="path time defined overall")
+        self.q_path = df.Function(self.V_pd, name="path time")
+        self.q_pd = df.Function(self.V_pd, name="pseudo density")
 
-        # computed values
-        self.q_pd = df.fem.Function(q_V, name="pseudo density")  # active or nonactive
         self.q_E = df.fem.Function(q_V, name="youngs modulus")
-        self.q_fd = df.fem.Function(q_V, name="load factor")  # for density
+
+        # self.q_fd = df.fem.Function(q_V, name="load factor")  # for density ???
 
         self.q_eps = df.fem.Function(q_VT, name="strain")
-
         self.q_sig = df.fem.Function(q_VT, name="stress")
         self.q_dsig = df.fem.Function(q_VT, name="delta stress")
         self.q_sig_old = df.fem.Function(q_VT, name="old stress")
