@@ -1,5 +1,3 @@
-import logging
-
 import dolfinx as df
 import numpy as np
 import pint
@@ -11,7 +9,7 @@ from petsc4py.PETSc import ScalarType
 from fenicsxconcrete.experimental_setup.am_multiple_layers import AmMultipleLayers
 from fenicsxconcrete.experimental_setup.base_experiment import Experiment
 from fenicsxconcrete.finite_element_problem.base_material import MaterialProblem
-from fenicsxconcrete.helper import Parameters
+from fenicsxconcrete.helper import Parameters, QuadratureEvaluator, QuadratureRule
 from fenicsxconcrete.unit_registry import ureg
 
 
@@ -55,6 +53,23 @@ class ConcreteAM(MaterialProblem):
         super().__init__(experiment, default_p, pv_name, pv_path)
 
     @staticmethod
+    def parameter_description() -> dict[str, str]:
+        description = {
+            "rho": "density of fresh concrete",
+            "nu": "Poissons Ratio",
+            "E_0": "Youngs Modulus at age=0",
+            "R_E": "Reflocculation (first) rate",
+            "A_E": "Structuration (second) rate",
+            "t_f": "Reflocculation time (switch point)",
+            "age_0": "Start age of concrete",
+            "degree": "Polynomial degree for the FEM model",
+            "u_bc": "Displacement on top for boundary conditions type",  # TODO
+            "load_time": "load applied in 1 s",
+        }
+
+        return description
+
+    @staticmethod
     def default_parameters() -> tuple[Experiment, dict[str, pint.Quantity]]:
         """
         Static method that returns a set of default parameters.
@@ -64,24 +79,23 @@ class ConcreteAM(MaterialProblem):
         # default experiment
         experiment = AmMultipleLayers(AmMultipleLayers.default_parameters())
 
-        model_parameters = {}
-        # Material parameter for concrete model with structural build-up
-        model_parameters["rho"] = 2070 * ureg("kg/m^3")  # density of fresh concrete
-        model_parameters["nu"] = 0.3 * ureg("")  # Poissons Ratio
-
-        ### default parameters required for thix elastic model
-        # Youngs modulus is changing over age (see E_fkt) following the bilinear approach Kruger et al 2019
-        # (https://www.sciencedirect.com/science/article/pii/S0950061819317507) with two different rates
-        model_parameters["E_0"] = 15000 * ureg("Pa")  # Youngs Modulus at age=0
-        model_parameters["R_E"] = 15 * ureg("Pa/s")  # Reflocculation (first) rate
-        model_parameters["A_E"] = 30 * ureg("Pa/s")  # Structuration (second) rate
-        model_parameters["t_f"] = 300 * ureg("s")  # Reflocculation time (switch point)
-        model_parameters["age_0"] = 0 * ureg("s")  # start age of concrete
-
-        # other model parameters
-        model_parameters["degree"] = 2 * ureg("")  # polynomial degree
-        model_parameters["u_bc"] = 0.1 * ureg("")  # displacement on top
-        model_parameters["load_time"] = 1 * ureg("s")  # load applied in 1 s
+        model_parameters = {
+            # Material parameter for concrete model with structural build-up
+            "rho": 2070 * ureg("kg/m^3"),  # density of fresh concrete
+            "nu": 0.3 * ureg(""),  # Poissons Ratio
+            ### default parameters required for thix elastic model
+            # Youngs modulus is changing over age (see E_fkt) following the bilinear approach Kruger et al 2019
+            # (https://www.sciencedirect.com/science/article/pii/S0950061819317507) with two different rates
+            "E_0": 15000 * ureg("Pa"),  # Youngs Modulus at age=0
+            "R_E": 15 * ureg("Pa/s"),  # Reflocculation (first) rate
+            "A_E": 30 * ureg("Pa/s"),  # Structuration (second) rate
+            "t_f": 300 * ureg("s"),  # Reflocculation time (switch point)
+            "age_0": 0 * ureg("s"),  # start age of concrete
+            # other model parameters
+            "degree": 2 * ureg(""),  # polynomial degree
+            "u_bc": 0.1 * ureg(""),  # displacement on top
+            "load_time": 1 * ureg("s"),  # load applied in 1 s
+        }
 
         return experiment, model_parameters
 
@@ -93,23 +107,25 @@ class ConcreteAM(MaterialProblem):
         else:
             raise ValueError(f"material law {self.mechanics_problem} not yet implemented")
 
-        self.V = self.mechanics_problem.V  # for reaction force sensor
-        self.residual = None  # initialize
 
         # setting bcs
-        bcs = self.experiment.create_displacement_boundary(self.mechanics_problem.V)
+        self.mechanics_problem.set_bc(self.experiment.create_displacement_boundary(self.mechanics_problem.V))
+
         # external load
-        external_force = self.experiment.create_force_boundary(self.v)
+        self.mechanics_problem.set_force(self.experiment.create_force_boundary(self.v))
         # body load
-        body_force = self.experiment.create_body_force(self.v)
-        self.mechanics_problem.set(bcs, external_force, body_force)
+        self.mechanics_problem.set_body_force(self.experiment.create_body_force(self.v))
+
 
         # setting up the solver
         self.mechanics_solver = df.nls.petsc.NewtonSolver(MPI.COMM_WORLD, self.mechanics_problem)
         self.mechanics_solver.convergence_criterion = "incremental"
-        self.mechanics_solver.atol = 1e-7
-        self.mechanics_solver.rtol = 1e-6
+        self.mechanics_solver.atol = 1e-9
+        self.mechanics_solver.rtol = 1e-8
         self.mechanics_solver.report = True
+
+        self.V = self.mechanics_problem.V  # for reaction force sensor
+        self.residual = None  # initialize
 
     def solve(self, t: float = 1.0) -> None:
         # define what to do, to solve this problem
@@ -133,24 +149,112 @@ class ConcreteAM(MaterialProblem):
             self.sensors[sensor_name].measure(self, t)
 
         # update age & path before next step!
-        self.mechanics_problem.update_values()
+        self.mechanics_problem.update_history()
 
     def compute_residuals(self) -> None:
         # define what to do, to compute the residuals. Called in solve
-        self.residual = ufl.action(self.mecahnics_problem.R, self.displacement)
+        self.residual = ufl.action(self.mechanics_problem.R, self.displacement)
 
     def set_initial_path(self, path):
         self.mechanics_problem.set_initial_path(path)
 
 
 class ConcreteThixElasticModel(df.fem.petsc.NonlinearProblem):
-    # linear elasticity law with age dependent Youngs modulus modelling the thixotropy
-    # tensor format!!
-    # incremental formulated u = u_old + du solve for du with given load increment df (using function q_fd) and material evaluation for dsigma/depsilon
+    """ incremental linear elastic thixotropy concrete model
 
-    def __init__(self, mesh, p, pv_name="mechanics_output", **kwargs):
-        super().__init__(self)
+        linear elasticity law with age dependent Youngs modulus modelling the thixotropy
+        tensor format!!
+        incremental formulated u = u_old + du solve for du with given load increment df (using function q_fd) and material evaluation for dsigma/depsilon
 
+
+    Args:
+        mesh : The mesh.
+        parameters : Dictionary of material parameters.
+        rule: The quadrature rule.
+        pv_name: Name of the output file.
+
+    """
+
+    def __init__(
+        self,
+        mesh: df.mesh.Mesh,
+        parameters: dict[str, int | float | str | bool],
+        rule: QuadratureRule,
+        pv_name: str = "mechanics_output",
+    ):
+        self.p_magnitude = parameters
+        dim_to_stress_dim = {1: 1, 2: 3, 3: 6}
+        self.stress_strain_dim = dim_to_stress_dim[self.p_magnitude["dim"]]
+        self.rule = rule
+
+        if self.p_magnitude["degree"] == 1:
+            self.visu_space = df.fem.FunctionSpace(mesh, ("DG", 0))
+            self.visu_space_T = df.fem.TensorFunctionSpace(mesh, ("DG", 0))
+        else:
+            self.visu_space = df.fem.FunctionSpace(mesh, ("CG", 1))
+            self.visu_space_T = df.fem.TensorFunctionSpace(mesh, ("CG", 1))
+
+        # interface to problem for sensor output: # here tensor format is used for e_eps/q_sig
+        self.visu_space_eps = self.visu_space_T
+        self.visu_space_sig = self.visu_space_T
+
+        self.V = df.fem.VectorFunctionSpace(mesh, ("CG", self.p_magnitude["degree"]))
+
+        # generic quadrature function space
+        q_V = self.rule.create_quadrature_space(mesh)
+        q_VT = self.rule.create_quadrature_vector_space(mesh, dim=self.stress_strain_dim)
+
+        # quadrature functions
+        # to initialize values (otherwise initialized by 0)
+        self.q_path = df.fem.Function(q_V, name="path time defined overall")
+
+        # computed values
+        self.q_pd = df.fem.Function(q_V, name="pseudo density")  # active or nonactive
+        self.q_E = df.fem.Function(q_V, name="youngs modulus")
+        self.q_fd = df.fem.Function(q_V, name="load factor")  # for density
+
+        self.q_eps = df.fem.Function(q_VT, name="strain")
+
+        self.q_sig = df.fem.Function(q_VT, name="stress")
+        self.q_dsig = df.fem.Function(q_VT, name="delta stress")
+        self.q_sig_old = df.fem.Function(q_VT, name="old stress")
+
+        self.u_old = df.fem.Function(self.V, name="old displacement")
+        self.u = df.fem.Function(self.V, name="displacement")
+
+        # Define variational problem
+        self.du = df.Function(self.V,  name="delta displacements")
+        v = df.TestFunction(self.V)
+
+        # build up form
+        # multiplication with activated elements / current Young's modulus
+        R_ufl = self.q_E * df.inner(self.x_sigma(self.du), self.eps(v)) * self.rule.dx
+
+        external_force = self.set_force()
+        if self.set_body_force():
+            R_ufl -= external_force
+
+        body_force = self.set_body_force()
+        if body_force:
+            R_ufl -= self.body_force
+
+        # quadrature point part
+        self.R = R_ufl
+
+        # derivative
+        # normal form
+        dR_ufl = df.derivative(R_ufl, self.u)
+        # quadrature part
+        self.dR = dR_ufl
+
+        self.sigma_evaluator = QuadratureEvaluator(self.sigma_voigt(self.sigma_ufl), mesh, self.rule)
+
+    def set_bc(self):
+        # ???
+    def set_force(self):
+        # ???
+    def set_body_force():
+        #???
     def F(self, x: PETSc.Vec, b: PETSc.Vec):
         super().F(x, b)
 
