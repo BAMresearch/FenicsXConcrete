@@ -28,6 +28,14 @@ fenicsxconcrete.experimental\_setup.compression\_cylinder module
    :undoc-members:
    :show-inheritance:
 
+fenicsxconcrete.experimental\_setup.simple\_beam module
+-------------------------------------------------------
+
+.. automodule:: fenicsxconcrete.experimental_setup.simple_beam
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 fenicsxconcrete.experimental\_setup.tensile\_beam module
 --------------------------------------------------------
 

@@ -1,4 +1,3 @@
-import logging
 from collections.abc import Callable
 
 import dolfinx as df
@@ -32,7 +31,6 @@ class AmMultipleLayers(Experiment):
 
         # updating parameters, overriding defaults
         default_p.update(parameters)
-        self.logger = logging.getLogger(__name__)
         super().__init__(default_p)
 
     @staticmethod

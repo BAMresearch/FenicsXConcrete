@@ -5,18 +5,17 @@ dependencies:
   # runtime
   - fenics-dolfinx
   - pint
-  - loguru
   - matplotlib
   - python-gmsh
   - meshio
   # tests
   - pytest
   - coverage
+  - toml
   # docs
   - sphinx
   - myst-parser
   - sphinx_rtd_theme
-  - toml
   # formatting
   - black
   - isort
