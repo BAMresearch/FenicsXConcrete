@@ -50,6 +50,7 @@ def test_disp(dim: int):
     experiment = UniaxialCubeExperiment(parameters)
     problem = LinearElasticity(experiment, parameters, pv_name=file_name, pv_path=data_path)
 
+    # add sensors
     if dim == 2:
         problem.add_sensor(StressSensor([[0.5, 0.5, 0.0]]))
         problem.add_sensor(StrainSensor([[0.5, 0.5, 0.0]]))
@@ -57,15 +58,10 @@ def test_disp(dim: int):
         problem.add_sensor(StressSensor([[0.5, 0.5, 0.5]]))
         problem.add_sensor(StrainSensor([[0.5, 0.5, 0.5]]))
 
-    # apply displacement
+    # apply displacement load and solve
     problem.experiment.apply_displ_load(displacement)
     problem.solve()
     problem.pv_plot()
-
-    # get stresses and strains over time
-    # print("Stress sensor", problem.sensors["StressSensor"].data)
-    # print("strain sensor", problem.sensors["StrainSensor"].data)
-    # print("time", problem.sensors["StrainSensor"].time)
 
     # checks
     analytic_eps = displacement.to_base_units() / (1.0 * ureg("m"))
@@ -105,10 +101,3 @@ def test_disp(dim: int):
         assert problem.sensors["StressSensor"].data[-1][-1].magnitude == pytest.approx(
             (analytic_eps * problem.parameters["E"]).magnitude
         )
-
-
-if __name__ == "__main__":
-
-    test_disp(2)
-
-    # test_disp(3)
