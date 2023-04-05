@@ -4,6 +4,8 @@ from fenicsxconcrete.experimental_setup.compression_cylinder import CompressionC
 from fenicsxconcrete.finite_element_problem.linear_elasticity import LinearElasticity
 from fenicsxconcrete.sensor_definition.displacement_sensor import DisplacementSensor
 from fenicsxconcrete.sensor_definition.reaction_force_sensor import ReactionForceSensor
+from fenicsxconcrete.sensor_definition.strain_sensor import StrainSensor
+from fenicsxconcrete.sensor_definition.stress_sensor import StressSensor
 from fenicsxconcrete.unit_registry import ureg
 
 
@@ -42,7 +44,7 @@ def test_base_sensor() -> None:
     assert (m_data.magnitude == mm_data.magnitude / 1000).all()
 
 
-@pytest.mark.parametrize("sensor", [DisplacementSensor, ReactionForceSensor])
+@pytest.mark.parametrize("sensor", [DisplacementSensor, ReactionForceSensor, StressSensor, StrainSensor])
 def test_base_units(sensor) -> None:
     """test that the units defined in base_unit for the sensor are actually base units for this system"""
     dummy_value = 1 * sensor.base_unit()

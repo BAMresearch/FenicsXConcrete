@@ -52,11 +52,11 @@ def test_disp(dim: int):
 
     # add sensors
     if dim == 2:
-        problem.add_sensor(StressSensor([[0.5, 0.5, 0.0]]))
-        problem.add_sensor(StrainSensor([[0.5, 0.5, 0.0]]))
+        problem.add_sensor(StressSensor([0.5, 0.5, 0.0]))
+        problem.add_sensor(StrainSensor([0.5, 0.5, 0.0]))
     elif dim == 3:
-        problem.add_sensor(StressSensor([[0.5, 0.5, 0.5]]))
-        problem.add_sensor(StrainSensor([[0.5, 0.5, 0.5]]))
+        problem.add_sensor(StressSensor([0.5, 0.5, 0.5]))
+        problem.add_sensor(StrainSensor([0.5, 0.5, 0.5]))
 
     # apply displacement load and solve
     problem.experiment.apply_displ_load(displacement)
@@ -76,7 +76,7 @@ def test_disp(dim: int):
         )
         assert problem.sensors["StrainSensor"].data[-1][1] == pytest.approx(0.0)
         # stress in yy direction
-        assert problem.sensors["StressSensor"].data[-1][-1].magnitude == pytest.approx(
+        assert problem.sensors["StressSensor"].data[-1][-1] == pytest.approx(
             (analytic_eps * problem.parameters["E"]).magnitude
         )
     elif dim == 3:
@@ -88,16 +88,16 @@ def test_disp(dim: int):
         assert problem.sensors["StrainSensor"].data[-1][0] == pytest.approx(-problem.parameters["nu"] * analytic_eps)
         # shear strains
         sum_mixed_strains = (
-            problem.sensors["StrainSensor"].data[-1][1].magnitude  # xy
-            - problem.sensors["StrainSensor"].data[-1][3].magnitude  # yx
-            - problem.sensors["StrainSensor"].data[-1][2].magnitude  # xz
-            - problem.sensors["StrainSensor"].data[-1][6].magnitude  # zx
-            - problem.sensors["StrainSensor"].data[-1][5].magnitude  # yz
-            - problem.sensors["StrainSensor"].data[-1][7].magnitude  # zy
+            problem.sensors["StrainSensor"].data[-1][1]  # xy
+            - problem.sensors["StrainSensor"].data[-1][3]  # yx
+            - problem.sensors["StrainSensor"].data[-1][2]  # xz
+            - problem.sensors["StrainSensor"].data[-1][6]  # zx
+            - problem.sensors["StrainSensor"].data[-1][5]  # yz
+            - problem.sensors["StrainSensor"].data[-1][7]  # zy
         )
         assert sum_mixed_strains == pytest.approx(0.0)
 
         # stress in zz direction
-        assert problem.sensors["StressSensor"].data[-1][-1].magnitude == pytest.approx(
+        assert problem.sensors["StressSensor"].data[-1][-1] == pytest.approx(
             (analytic_eps * problem.parameters["E"]).magnitude
         )

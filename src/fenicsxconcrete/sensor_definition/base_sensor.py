@@ -8,7 +8,12 @@ from fenicsxconcrete.unit_registry import ureg
 
 # sensor template
 class BaseSensor(ABC, LogMixin):
-    """Template for a sensor object"""
+    """Template for a sensor object
+
+    Attributes:
+        data: list of measured value
+        time: list of time stamps
+    """
 
     def __init__(self) -> None:
         self.data = []
@@ -64,7 +69,12 @@ class BaseSensor(ABC, LogMixin):
 
 
 class PointSensor(BaseSensor):
-    """A sensor that measures values at a specific point"""
+    """
+    A sensor that measures values at a specific point
+
+    Attributes:
+        where: location where the value is measured
+    """
 
     def __init__(self, where: list[int | float]) -> None:
         """

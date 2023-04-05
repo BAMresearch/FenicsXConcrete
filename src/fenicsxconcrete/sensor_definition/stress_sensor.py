@@ -3,11 +3,11 @@ import ufl
 
 from fenicsxconcrete.finite_element_problem.base_material import MaterialProblem
 from fenicsxconcrete.helper import project
-from fenicsxconcrete.sensor_definition.base_sensor import Sensor
+from fenicsxconcrete.sensor_definition.base_sensor import PointSensor
 from fenicsxconcrete.unit_registry import ureg
 
 
-class StressSensor(Sensor):
+class StressSensor(PointSensor):
     """A sensor that measure the stress tensor at a specific point
 
     Attributes:
@@ -16,17 +16,6 @@ class StressSensor(Sensor):
         time: list of time stamps with unit
 
     """
-
-    def __init__(self, where: list[list[int | float]]) -> None:
-        """initialize object
-
-        Args:
-            where: location where the value is measured
-
-        """
-        self.where = where
-        self.data = []
-        self.time = []
 
     def measure(self, problem: MaterialProblem, t: float = 1.0) -> None:
         """measure stress at given point
@@ -54,16 +43,20 @@ class StressSensor(Sensor):
         cells = []
 
         # Find cells whose bounding-box collide with the points
-        cell_candidates = df.geometry.compute_collisions(bb_tree, self.where)
+        cell_candidates = df.geometry.compute_collisions(bb_tree, [self.where])
 
         # Choose one of the cells that contains the point
-        colliding_cells = df.geometry.compute_colliding_cells(problem.experiment.mesh, cell_candidates, self.where)
-        for i, point in enumerate(self.where):
-            if len(colliding_cells.links(i)) > 0:
-                cells.append(colliding_cells.links(i)[0])
+        colliding_cells = df.geometry.compute_colliding_cells(problem.experiment.mesh, cell_candidates, [self.where])
+        if len(colliding_cells.links(0)) > 0:
+            cells.append(colliding_cells.links(0)[0])
 
         # adding correct units to stress
-        stress_data = stress.eval(self.where, cells) * ureg("N/m^2")
+        stress_data = stress.eval([self.where], cells)
 
         self.data.append(stress_data)
         self.time.append(t)
+
+    @staticmethod
+    def base_unit() -> ureg:
+        """Defines the base unit of this sensor"""
+        return ureg("N/m^2")
