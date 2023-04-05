@@ -1,9 +1,11 @@
 from abc import ABC, abstractmethod
+from collections.abc import Callable
 
 import dolfinx as df
 import pint
 import ufl
 
+from fenicsxconcrete.boundary_conditions.boundary import plane_at, point_at
 from fenicsxconcrete.helper import LogMixin, Parameters
 from fenicsxconcrete.unit_registry import ureg
 
@@ -62,3 +64,20 @@ class Experiment(ABC, LogMixin):
     def create_body_force(self, v: ufl.argument.Argument | None = None) -> ufl.form.Form | None:
         # define empty body force function
         pass
+
+    def boundary_top(self) -> Callable:
+        if self.p["dim"] == 2:
+            return plane_at(self.p["height"], 1)
+        elif self.p["dim"] == 3:
+            return plane_at(self.p["height"], 2)
+
+    def boundary_bottom(self) -> Callable:
+        """specify boundary: plane at bottom
+
+        Returns: fct defining if dof is at boundary
+
+        """
+        if self.p["dim"] == 2:
+            return plane_at(0.0, "y")
+        elif self.p["dim"] == 3:
+            return plane_at(0.0, "z")

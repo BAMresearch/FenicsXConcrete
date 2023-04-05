@@ -8,8 +8,16 @@ from fenicsxconcrete.sensor_definition.base_sensor import BaseSensor
 from fenicsxconcrete.unit_registry import ureg
 
 
-class ReactionForceSensorBottom(BaseSensor):
+class ReactionForceSensor(BaseSensor):
     """A sensor that measure the reaction force at the bottom perpendicular to the surface"""
+
+    def __init__(self, surface=None) -> None:
+        """
+        Arguments:
+            where : Point where to measure
+        """
+        super().__init__()
+        self.surface = surface
 
     def measure(self, problem: MaterialProblem, t: float = 1.0) -> None:
         """
@@ -19,26 +27,19 @@ class ReactionForceSensorBottom(BaseSensor):
                 time of measurement for time dependent problems
         """
         # boundary condition
-        bottom_surface = problem.experiment.boundary_bottom()
+        if self.surface is None:
+            self.surface = problem.experiment.boundary_bottom()
 
         v_reac = df.fem.Function(problem.V)
         bc_generator = BoundaryConditions(problem.mesh, problem.V)
         if problem.p["dim"] == 2:
             bc_generator.add_dirichlet_bc(
-                df.fem.Constant(domain=problem.mesh, c=1.0),
-                bottom_surface,
-                1,
-                "geometrical",
-                1,
+                df.fem.Constant(domain=problem.mesh, c=1.0), self.surface, 1, "geometrical", 1
             )
 
         elif problem.p["dim"] == 3:
             bc_generator.add_dirichlet_bc(
-                df.fem.Constant(domain=problem.mesh, c=1.0),
-                bottom_surface,
-                2,
-                "geometrical",
-                2,
+                df.fem.Constant(domain=problem.mesh, c=1.0), self.surface, 2, "geometrical", 2
             )
 
         df.fem.set_bc(v_reac.vector, bc_generator.bcs)

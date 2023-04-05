@@ -6,7 +6,7 @@ import pytest
 from fenicsxconcrete.experimental_setup.am_multiple_layers import AmMultipleLayers
 from fenicsxconcrete.finite_element_problem.linear_elasticity import LinearElasticity
 from fenicsxconcrete.helper import Parameters
-from fenicsxconcrete.sensor_definition.reaction_force_sensor import ReactionForceSensorBottom
+from fenicsxconcrete.sensor_definition.reaction_force_sensor import ReactionForceSensor
 from fenicsxconcrete.unit_registry import ureg
 
 
@@ -52,14 +52,14 @@ def test_am_single_layer(dimension: int) -> None:
     # setting up the problem
     experiment = AmMultipleLayers(setup_parameters)
     problem = LinearElasticity(experiment, setup_parameters)
-    problem.add_sensor(ReactionForceSensorBottom())
+    problem.add_sensor(ReactionForceSensor())
 
     # solving and plotting
     problem.solve()
     problem.pv_plot()
 
     # check sensor output
-    force_bottom = problem.sensors["ReactionForceSensorBottom"].data
+    force_bottom = problem.sensors["ReactionForceSensor"].data
 
     dead_load = (
         problem.parameters["g"]
