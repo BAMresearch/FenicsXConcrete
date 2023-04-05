@@ -25,7 +25,7 @@ class LinearElasticity(MaterialProblem):
 
         # adding default material parameter, will be overridden by outside input
         default_p = Parameters()
-        # default_p['dummy'] = 'example' * ureg('')  # example default parameter for this class
+        default_p["stress_state"] = "plane_strain" * ureg("")  # default stress state in 2D, optional "plane_stress"
 
         # updating parameters, overriding defaults
         default_p.update(parameters)
@@ -39,6 +39,10 @@ class LinearElasticity(MaterialProblem):
             self.p["E"] * self.p["nu"] / ((1 + self.p["nu"]) * (1 - 2 * self.p["nu"])),
         )
         self.mu = df.fem.Constant(self.mesh, self.p["E"] / (2 * (1 + self.p["nu"])))
+        if self.p["dim"] == 2 and self.p["stress_state"].lower() == "plane_stress":
+            self.lambda_ = df.fem.Constant(
+                self.mesh, 2.0 * self.mu.value * self.lambda_.value / (self.lambda_.value + 2 * self.mu.value)
+            )
 
         # define function space ets.
         self.V = df.fem.VectorFunctionSpace(self.mesh, ("Lagrange", self.p["degree"]))  # 2 for quadratic elements
