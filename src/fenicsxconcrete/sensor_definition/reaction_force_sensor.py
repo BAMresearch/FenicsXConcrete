@@ -5,14 +5,11 @@ import ufl
 from fenicsxconcrete.boundary_conditions.bcs import BoundaryConditions
 from fenicsxconcrete.finite_element_problem.base_material import MaterialProblem
 from fenicsxconcrete.sensor_definition.base_sensor import BaseSensor
+from fenicsxconcrete.unit_registry import ureg
 
 
 class ReactionForceSensorBottom(BaseSensor):
     """A sensor that measure the reaction force at the bottom perpendicular to the surface"""
-
-    def __init__(self) -> None:
-        self.data = []
-        self.time = []
 
     def measure(self, problem: MaterialProblem, t: float = 1.0) -> None:
         """
@@ -49,3 +46,8 @@ class ReactionForceSensorBottom(BaseSensor):
 
         self.data.append(computed_force)
         self.time.append(t)
+
+    @staticmethod
+    def base_unit() -> ureg:
+        """Defines the base unit of this sensor"""
+        return ureg.newton
