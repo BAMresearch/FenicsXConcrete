@@ -14,7 +14,8 @@ class CantileverBeam(Experiment):
     """Sets up a cantilever beam, clamped on one side and loaded with gravity
 
     Attributes:
-        see base class
+        parameters : parameter dictionary with units
+        p : parameter dictionary without units
 
     """
 
@@ -68,7 +69,7 @@ class CantileverBeam(Experiment):
         """set up a working set of parameter values as example
 
         Returns:
-            setup_parameters: dictionary with a working set of the required parameter
+            dictionary with a working set of the required parameter
 
         """
 
@@ -90,7 +91,7 @@ class CantileverBeam(Experiment):
             V: function space
 
         Returns:
-            displacement_bcs: list of dirichlet boundary conditions
+            list of dirichlet boundary conditions
 
         """
 
@@ -118,7 +119,7 @@ class CantileverBeam(Experiment):
             v: test function
 
         Returns:
-            L: form for body force
+            form for body force
 
         """
 

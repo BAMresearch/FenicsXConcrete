@@ -21,7 +21,8 @@ class AmMultipleLayers(Experiment):
     the mesh includes all (activation via pseudo-density)
 
     Attributes:
-        see base class
+        parameters : parameter dictionary with units
+        p : parameter dictionary without units
 
     """
 
@@ -105,7 +106,7 @@ class AmMultipleLayers(Experiment):
             V: function space
 
         Returns:
-            bc_generator.bcs: list of dirichlet boundary conditions
+            list of dirichlet boundary conditions
 
         """
 
@@ -136,7 +137,7 @@ class AmMultipleLayers(Experiment):
             v: test function
 
         Returns:
-            L: form for body force
+            form for body force
 
         """
 

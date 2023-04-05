@@ -14,7 +14,8 @@ class TensileBeam(Experiment):
     """Sets up a tensile beam experiment, clamped on one side and loaded with force on the other side
 
     Attributes:
-        see base class
+        parameters : parameter dictionary with units
+        p : parameter dictionary without units
 
     """
 
@@ -67,7 +68,7 @@ class TensileBeam(Experiment):
         """set up a working set of parameter values as example
 
         Returns:
-            setup_parameters: dictionary with a working set of the required parameter
+            dictionary with a working set of the required parameter
 
         """
 
@@ -90,7 +91,7 @@ class TensileBeam(Experiment):
             V: Function space of the structure
 
         Returns:
-            displacement_bcs: A list of DirichletBC objects, defining the boundary conditions
+            list of DirichletBC objects, defining the boundary conditions
 
         """
 
@@ -118,7 +119,7 @@ class TensileBeam(Experiment):
             v: test function
 
         Returns:
-            L: form for force boundary
+            form for force boundary
 
         """
 

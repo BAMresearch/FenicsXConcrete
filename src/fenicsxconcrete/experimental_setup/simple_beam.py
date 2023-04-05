@@ -18,7 +18,8 @@ class SimpleBeam(Experiment):
     """Sets up a simply supported beam, fix on the left
 
     Attributes:
-        see base class
+        parameters : parameter dictionary with units
+        p : parameter dictionary without units
 
     """
 
@@ -72,7 +73,7 @@ class SimpleBeam(Experiment):
         """set up a working set of parameter values as example
 
         Returns:
-            setup_parameters: dictionary with a working set of the required parameter
+            dictionary with a working set of the required parameter
 
         """
 
@@ -96,7 +97,7 @@ class SimpleBeam(Experiment):
             V: function space
 
         Returns:
-            bc_generator.bcs: list of dirichlet boundary conditions
+            list of dirichlet boundary conditions
 
         """
 
@@ -132,7 +133,7 @@ class SimpleBeam(Experiment):
             v: test function
 
         Returns:
-            L: form for body force
+            form for body force
 
         """
 
@@ -177,7 +178,7 @@ class SimpleBeam(Experiment):
             v: test function
 
         Returns:
-            L: form for force boundary
+            form for force boundary
 
         """
 

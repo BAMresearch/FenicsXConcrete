@@ -27,7 +27,7 @@ def generate_cylinder_mesh(radius: float, height: float, mesh_density: float, el
         element_degree: degree of the discretization elements, quadratic geometry by default
 
     Returns:
-        mesh: cylinder mesh for dolfin
+        cylinder mesh for dolfin
 
     """
 
@@ -75,7 +75,8 @@ class CompressionCylinder(Experiment):
     """A cylinder mesh for a uni-axial displacement load
 
     Attributes:
-        see base class
+        parameters : parameter dictionary with units
+        p : parameter dictionary without units
 
     """
 
@@ -161,7 +162,7 @@ class CompressionCylinder(Experiment):
         """set up a working set of parameter values as example
 
         Returns:
-            default_parameters: dictionary with a working set of the required parameter
+            dictionary with a working set of the required parameter
 
         """
 
@@ -192,7 +193,7 @@ class CompressionCylinder(Experiment):
             V: Function space of the structure
 
         Returns:
-            bc_generator.bcs: A list of DirichletBC objects, defining the boundary conditions
+            list of DirichletBC objects, defining the boundary conditions
 
         """
 
