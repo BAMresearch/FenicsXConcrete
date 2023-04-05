@@ -41,7 +41,7 @@ def test_sensor_options() -> None:
     default_setup, fem_parameters = LinearElasticity.default_parameters()
 
     sensor_location = [setup_parameters["length"].magnitude, 0.0, 0.0]
-    sensor = DisplacementSensor([sensor_location])
+    sensor = DisplacementSensor(sensor_location)
 
     # setting up the problem
     experiment = CantileverBeam(setup_parameters)  # Specifies the domain, discretises it and apply Dirichlet BCs
