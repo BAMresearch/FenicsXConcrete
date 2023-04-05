@@ -48,7 +48,7 @@ class QuadratureRule:
 
     Attributes:
         type (basix.QuadratureType): The quadrature type.
-        cell_type (basix.CellType): The type of FEM cell.
+        cell_type (ufl.Cell): The type of FEM cell.
         degree (int): The quadrature degree.
         points (np.ndarray): The quadrature points on the refernce cell.
         weights (np.ndarray): The weights of the quadrature rule.
@@ -61,16 +61,17 @@ class QuadratureRule:
     def __init__(
         self,
         type: basix.QuadratureType = basix.QuadratureType.Default,
-        cell_type: basix.CellType = basix.CellType.triangle,
+        cell_type: ufl.Cell = ufl.triangle,
         degree: int = 1,
     ):
         self.type = type
         self.cell_type = cell_type
         self.degree = degree
-        self.points, self.weights = basix.make_quadrature(self.quadrature_type, self.cell_type, self.degree)
+        basix_cell = _ufl_cell_type_to_basix(self.cell_type)
+        self.points, self.weights = basix.make_quadrature(self.type, basix_cell, self.degree)
         self.dx = ufl.dx(
             metadata={
-                "quadrature_rule": self.quadrature_type.name,
+                "quadrature_rule": self.type.name,
                 "quadrature_degree": self.degree,
             }
         )
@@ -83,11 +84,12 @@ class QuadratureRule:
         Returns:
             A scalar quadrature `FunctionSpace` on `mesh`.
         """
+        assert mesh.ufl_cell() == self.cell_type
         Qe = ufl.FiniteElement(
             "Quadrature",
-            _basix_cell_type_to_ufl(self.cell_type),
+            self.cell_type,
             self.degree,
-            quad_scheme=self.quadrature_type.name,
+            quad_scheme=self.type.name,
         )
 
         return df.fem.FunctionSpace(mesh, Qe)
@@ -101,11 +103,12 @@ class QuadratureRule:
         Returns:
             A vector valued quadrature `FunctionSpace` on `mesh`.
         """
+        assert mesh.ufl_cell() == self.cell_type
         Qe = ufl.VectorElement(
             "Quadrature",
-            _basix_cell_type_to_ufl(self.cell_type),
+            self.cell_type,
             self.degree,
-            quad_scheme=self.quadrature_type.name,
+            quad_scheme=self.type.name,
             dim=dim,
         )
 
@@ -120,11 +123,12 @@ class QuadratureRule:
         Returns:
             A tensor valued quadrature `FunctionSpace` on `mesh`.
         """
+        assert mesh.ufl_cell() == self.cell_type
         Qe = ufl.TensorElement(
             "Quadrature",
-            _basix_cell_type_to_ufl(self.cell_type),
+            self.cell_type,
             self.degree,
-            quad_scheme=self.quadrature_type.name,
+            quad_scheme=self.type.name,
             shape=shape,
         )
 
@@ -137,6 +141,8 @@ class QuadratureRule:
         Returns:
             Number of quadrature points that the QuadratureRule would generate on `mesh`
         """
+        assert mesh.ufl_cell() == self.cell_type
+
         map_c = mesh.topology.index_map(mesh.topology.dim)
         self.num_cells = map_c.size_local
         return self.num_cells * self.weights.size
@@ -170,6 +176,17 @@ def _basix_cell_type_to_ufl(cell_type: basix.CellType) -> ufl.Cell:
     return conversion[cell_type]
 
 
+def _ufl_cell_type_to_basix(cell_type: ufl.Cell) -> basix.CellType:
+    conversion = {
+        ufl.interval: basix.CellType.interval,
+        ufl.triangle: basix.CellType.triangle,
+        ufl.tetrahedron: basix.CellType.tetrahedron,
+        ufl.quadrilateral: basix.CellType.quadrilateral,
+        ufl.hexahedron: basix.CellType.hexahedron,
+    }
+    return conversion[cell_type]
+
+
 class QuadratureEvaluator:
     """
     A class that evaluates a ufl expression on a quadrature space.
@@ -181,6 +198,7 @@ class QuadratureEvaluator:
     """
 
     def __init__(self, ufl_expression: ufl.core.expr.Expr, mesh: df.mesh.Mesh, rule: QuadratureRule) -> None:
+        assert mesh.ufl_cell() == rule.cell_type
         map_c = mesh.topology.index_map(mesh.topology.dim)
         self.num_cells = map_c.size_local
 
