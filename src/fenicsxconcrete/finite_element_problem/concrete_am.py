@@ -42,6 +42,7 @@ class ConcreteAM(MaterialProblem):
 
         # adding default material parameter, will be overridden by outside input
         default_p = Parameters()
+        default_p["stress_state"] = 'plane_strain' # default stress state for 2D optional "plane_stress"
 
         # updating parameters, overriding defaults
         default_p.update(parameters)
@@ -61,7 +62,6 @@ class ConcreteAM(MaterialProblem):
             "t_f": "Reflocculation time (switch point)",
             "age_0": "Start age of concrete",
             "degree": "Polynomial degree for the FEM model",
-            "u_bc": "Displacement on top for boundary conditions type",  # TODO
             "load_time": "load applied in 1 s",
         }
 
@@ -91,7 +91,6 @@ class ConcreteAM(MaterialProblem):
             "age_0": 0 * ureg("s"),  # start age of concrete
             # other model parameters
             "degree": 2 * ureg(""),  # polynomial degree
-            "u_bc": 0.1 * ureg(""),  # displacement on top
             "load_time": 1 * ureg("s"),  # load applied in 1 s
         }
 

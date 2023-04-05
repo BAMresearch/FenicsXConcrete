@@ -34,7 +34,7 @@ class StrainSensor(Sensor):
                 ufl.dx,
             )
         else:
-            strain = project(problem.strain, problem.visu_space_T, ufl.dx)
+            strain = project(problem.strain, problem.visu_space_T, problem.rule.dx)
 
         # finding the cells corresponding to the point
         bb_tree = df.geometry.BoundingBoxTree(problem.experiment.mesh, problem.experiment.mesh.topology.dim)
@@ -45,7 +45,6 @@ class StrainSensor(Sensor):
 
         # Choose one of the cells that contains the point
         colliding_cells = df.geometry.compute_colliding_cells(problem.experiment.mesh, cell_candidates, self.where)
-        print("coll", colliding_cells)
         for i, point in enumerate(self.where):
             if len(colliding_cells.links(i)) > 0:
                 cells.append(colliding_cells.links(i)[0])
