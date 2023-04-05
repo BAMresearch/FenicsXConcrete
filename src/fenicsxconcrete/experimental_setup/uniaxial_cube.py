@@ -35,6 +35,9 @@ class UniaxialCubeExperiment(Experiment):
 
         # initialize a set of default parameters
         default_p = Parameters()
+        default_p["height"] = 1 * ureg("m")
+        default_p["width"] = 1 * ureg("m")
+        default_p["length"] = 1 * ureg("m")
 
         default_p.update(parameters)
 
@@ -63,13 +66,15 @@ class UniaxialCubeExperiment(Experiment):
 
         self.logger.debug("setup mesh for %s", self.p["dim"])
 
+        print(self.p)
+
         if self.p["dim"] == 2:
             # build a rectangular mesh
             self.mesh = df.mesh.create_rectangle(
                 MPI.COMM_WORLD,
                 [
                     [0.0, 0.0],
-                    [1.0, 1.0],
+                    [self.p["length"], self.p["height"]],
                 ],
                 [self.p["num_elements_length"], self.p["num_elements_height"]],
                 cell_type=df.mesh.CellType.quadrilateral,
@@ -79,7 +84,7 @@ class UniaxialCubeExperiment(Experiment):
                 MPI.COMM_WORLD,
                 [
                     [0.0, 0.0, 0.0],
-                    [1.0, 1.0, 1.0],
+                    [self.p["length"], self.p["width"], self.p["height"]],
                 ],
                 [self.p["num_elements_length"], self.p["num_elements_width"], self.p["num_elements_height"]],
                 cell_type=df.mesh.CellType.hexahedron,
@@ -146,55 +151,3 @@ class UniaxialCubeExperiment(Experiment):
         """
 
         self.top_displacement.value = top_displacement.magnitude
-
-    def boundary_bottom(self) -> Callable:
-        """specify boundary: plane at bottom
-
-        Returns:
-            fct defining if dof is at boundary
-
-        """
-
-        if self.p["dim"] == 2:
-            return plane_at(0.0, "y")
-        elif self.p["dim"] == 3:
-            return plane_at(0.0, "z")
-
-    def boundary_left(self) -> Callable:
-        """specify boundary: plane at left side
-
-        Returns:
-            fct defining if dof is at boundary
-
-        """
-
-        if self.p["dim"] == 2:
-            return plane_at(0.0, "x")
-        elif self.p["dim"] == 3:
-            return plane_at(0.0, "x")
-
-    def boundary_top(self) -> Callable:
-        """specify boundary: plane at top
-
-        Returns:
-            fct defining if dof is at boundary
-
-        """
-
-        if self.p["dim"] == 2:
-            return plane_at(1.0, "y")
-        elif self.p["dim"] == 3:
-            return plane_at(1.0, "z")
-
-    def boundary_front(self) -> Callable:
-        """specify boundary: plane at front
-
-        only for 3D case front plane
-
-        Returns:
-            fct defining if dof is at boundary
-
-        """
-
-        if self.p["dim"] == 3:
-            return plane_at(0.0, "y")

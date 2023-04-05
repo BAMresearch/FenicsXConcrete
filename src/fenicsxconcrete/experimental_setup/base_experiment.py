@@ -66,6 +66,12 @@ class Experiment(ABC, LogMixin):
         pass
 
     def boundary_top(self) -> Callable:
+        """specify boundary: plane at top
+
+        Returns:
+            fct defining if dof is at boundary
+
+        """
         if self.p["dim"] == 2:
             return plane_at(self.p["height"], 1)
         elif self.p["dim"] == 3:
@@ -81,3 +87,66 @@ class Experiment(ABC, LogMixin):
             return plane_at(0.0, "y")
         elif self.p["dim"] == 3:
             return plane_at(0.0, "z")
+
+    def boundary_left(self) -> Callable:
+        """specify boundary: plane at left side
+
+        Returns:
+            fct defining if dof is at boundary
+
+        """
+        if self.p["dim"] == 2:
+            return plane_at(0.0, "x")
+        elif self.p["dim"] == 3:
+            return plane_at(0.0, "x")
+
+    def boundary_right(self) -> Callable:
+        """specify boundary: plane at left side
+
+        Returns:
+            fct defining if dof is at boundary
+
+        """
+        if self.p["dim"] == 2:
+            return plane_at(self.p["length"], "x")
+        elif self.p["dim"] == 3:
+            return plane_at(self.p["length"], "x")
+
+    def boundary_front(self) -> Callable:
+        """specify boundary: plane at front
+
+        only for 3D case front plane
+
+        Returns:
+            fct defining if dof is at boundary
+
+        """
+        if self.p["dim"] == 3:
+            return plane_at(0.0, "y")
+
+    def boundary_back(self) -> Callable:
+        """specify boundary: plane at front
+
+        only for 3D case front plane
+
+        Returns:
+            fct defining if dof is at boundary
+
+        """
+        if self.p["dim"] == 3:
+            return plane_at(self.p["width"], "y")
+
+    def boundary_full(self) -> Callable:
+        """specify boundary: plane at front
+
+        only for 3D case front plane
+
+        Returns:
+            fct defining if dof is at boundary
+
+        """
+        boundary_full = self.boundary_left() + self.boundary_right() + self.boundary_front() + self.boundary_bottom()
+        if self.p["dim"] == 3:
+            boundary_full += self.boundary_front() + self.boundary_back()
+
+        return boundary_full

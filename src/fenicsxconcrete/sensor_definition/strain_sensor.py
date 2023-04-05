@@ -27,6 +27,7 @@ class StrainSensor(PointSensor):
             )
         else:
             # TODO: I cannot test this lines, yet
+            #       why???
             strain = project(problem.strain, problem.visu_space_T, problem.rule.dx)
 
         # finding the cells corresponding to the point

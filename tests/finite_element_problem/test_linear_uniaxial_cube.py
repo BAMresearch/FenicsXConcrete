@@ -50,13 +50,14 @@ def test_disp(dim: int):
     experiment = UniaxialCubeExperiment(parameters)
     problem = LinearElasticity(experiment, parameters, pv_name=file_name, pv_path=data_path)
 
-    # add sensors
     if dim == 2:
-        problem.add_sensor(StressSensor([0.5, 0.5, 0.0]))
-        problem.add_sensor(StrainSensor([0.5, 0.5, 0.0]))
+        sensor_location = [0.5, 0.5, 0.0]
     elif dim == 3:
-        problem.add_sensor(StressSensor([0.5, 0.5, 0.5]))
-        problem.add_sensor(StrainSensor([0.5, 0.5, 0.5]))
+        sensor_location = [0.5, 0.5, 0.5]
+
+    # add sensors
+    problem.add_sensor(StressSensor(sensor_location))
+    problem.add_sensor(StrainSensor(sensor_location))
 
     # apply displacement load and solve
     problem.experiment.apply_displ_load(displacement)
@@ -64,40 +65,38 @@ def test_disp(dim: int):
     problem.pv_plot()
 
     # checks
-    analytic_eps = displacement.to_base_units() / (1.0 * ureg("m"))
+    analytic_eps = (displacement.to_base_units() / (1.0 * ureg("m"))).magnitude
+
+    strain_result = problem.sensors["StrainSensor"].get_last_data_point().magnitude
+    stress_result = problem.sensors["StressSensor"].get_last_data_point().magnitude
     if dim == 2:
         # strain in yy direction
-        assert problem.sensors["StrainSensor"].data[-1][-1] == pytest.approx(analytic_eps)
+        assert strain_result[-1] == pytest.approx(analytic_eps)
         # strain in xx direction
-        assert problem.sensors["StrainSensor"].data[-1][0] == pytest.approx(-problem.parameters["nu"] * analytic_eps)
+        assert strain_result[0] == pytest.approx(-problem.parameters["nu"].magnitude * analytic_eps)
         # strain in xy and yx direction
-        assert problem.sensors["StrainSensor"].data[-1][1] == pytest.approx(
-            problem.sensors["StrainSensor"].data[-1][2]
-        )
-        assert problem.sensors["StrainSensor"].data[-1][1] == pytest.approx(0.0)
+        assert strain_result[1] == pytest.approx(strain_result[2])
+        assert strain_result[1] == pytest.approx(0.0)
         # stress in yy direction
-        assert problem.sensors["StressSensor"].data[-1][-1] == pytest.approx(
-            (analytic_eps * problem.parameters["E"]).magnitude
-        )
+        assert stress_result[-1] == pytest.approx((analytic_eps * problem.parameters["E"]).magnitude)
+
     elif dim == 3:
         # strain in zz direction
-        assert problem.sensors["StrainSensor"].data[-1][-1] == pytest.approx(analytic_eps)
+        assert strain_result[-1] == pytest.approx(analytic_eps)
         # strain in yy direction
-        assert problem.sensors["StrainSensor"].data[-1][4] == pytest.approx(-problem.parameters["nu"] * analytic_eps)
+        assert strain_result[4] == pytest.approx(-problem.parameters["nu"].magnitude * analytic_eps)
         # strain in xx direction
-        assert problem.sensors["StrainSensor"].data[-1][0] == pytest.approx(-problem.parameters["nu"] * analytic_eps)
+        assert strain_result[0] == pytest.approx(-problem.parameters["nu"].magnitude * analytic_eps)
         # shear strains
         sum_mixed_strains = (
-            problem.sensors["StrainSensor"].data[-1][1]  # xy
-            - problem.sensors["StrainSensor"].data[-1][3]  # yx
-            - problem.sensors["StrainSensor"].data[-1][2]  # xz
-            - problem.sensors["StrainSensor"].data[-1][6]  # zx
-            - problem.sensors["StrainSensor"].data[-1][5]  # yz
-            - problem.sensors["StrainSensor"].data[-1][7]  # zy
+            strain_result[1]  # xy
+            - strain_result[3]  # yx
+            - strain_result[2]  # xz
+            - strain_result[6]  # zx
+            - strain_result[5]  # yz
+            - strain_result[7]  # zy
         )
         assert sum_mixed_strains == pytest.approx(0.0)
 
         # stress in zz direction
-        assert problem.sensors["StressSensor"].data[-1][-1] == pytest.approx(
-            (analytic_eps * problem.parameters["E"]).magnitude
-        )
+        assert stress_result[-1] == pytest.approx((analytic_eps * problem.parameters["E"].magnitude))
