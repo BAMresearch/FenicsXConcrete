@@ -2,13 +2,13 @@ import copy
 
 import pytest
 
-from fenicsxconcrete.experimental_setup.uniaxial_cube import UniaxialCubeExperiment
 from fenicsxconcrete.experimental_setup.am_multiple_layers import AmMultipleLayers
 from fenicsxconcrete.experimental_setup.base_experiment import Experiment
 from fenicsxconcrete.experimental_setup.cantilever_beam import CantileverBeam
 from fenicsxconcrete.experimental_setup.compression_cylinder import CompressionCylinder
 from fenicsxconcrete.experimental_setup.simple_beam import SimpleBeam
 from fenicsxconcrete.experimental_setup.tensile_beam import TensileBeam
+from fenicsxconcrete.experimental_setup.uniaxial_cube import UniaxialCubeExperiment
 from fenicsxconcrete.finite_element_problem.linear_elasticity import LinearElasticity
 from fenicsxconcrete.unit_registry import ureg
 
@@ -38,7 +38,9 @@ def test_default_parameters(setup: Experiment) -> None:
 
 
 # to imporve coverage, I want to test the error messages
-@pytest.mark.parametrize("setup", [CantileverBeam, TensileBeam, SimpleBeam, CompressionCylinder, AmMultipleLayers])
+@pytest.mark.parametrize(
+    "setup", [CantileverBeam, TensileBeam, SimpleBeam, CompressionCylinder, AmMultipleLayers, UniaxialCubeExperiment]
+)
 def test_default_parameters(setup: Experiment) -> None:
     setup_parameters = setup.default_parameters()
 
