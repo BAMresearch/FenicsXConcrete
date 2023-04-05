@@ -48,7 +48,7 @@ class AmMultipleLayers(Experiment):
         """set up a working set of parameter values as example
 
         Returns:
-            setup_parameters: dictionary with a working set of the required parameter
+            dictionary with a working set of the required parameter
 
         """
 
