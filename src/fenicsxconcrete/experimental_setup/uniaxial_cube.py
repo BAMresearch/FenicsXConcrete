@@ -52,9 +52,9 @@ class UniaxialCubeExperiment(Experiment):
         setup_parameters = {}
 
         setup_parameters["dim"] = 3 * ureg("")
-        setup_parameters["num_elements_length"] = 10 * ureg("")
-        setup_parameters["num_elements_width"] = 10 * ureg("")
-        setup_parameters["num_elements_height"] = 10 * ureg("")
+        setup_parameters["num_elements_length"] = 2 * ureg("")
+        setup_parameters["num_elements_width"] = 2 * ureg("")
+        setup_parameters["num_elements_height"] = 2 * ureg("")
 
         return setup_parameters
 
