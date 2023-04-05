@@ -2,11 +2,13 @@ import copy
 
 import pytest
 
+from fenicsxconcrete.finite_element_problem.base_material import MaterialProblem
+from fenicsxconcrete.finite_element_problem.concrete_thermo_mechanical import ConcreteThermoMechanical
 from fenicsxconcrete.finite_element_problem.linear_elasticity import LinearElasticity
 
 
-@pytest.mark.parametrize("material_model", [LinearElasticity])
-def test_default_dictionaries(material_model: type[LinearElasticity]) -> None:
+@pytest.mark.parametrize("material_model", [LinearElasticity, ConcreteThermoMechanical])
+def test_default_dictionaries(material_model: MaterialProblem) -> None:
     """This function creates experimental setups with the respective default dictionaries
 
     This makes sure all relevant values are included"""

@@ -8,7 +8,7 @@ import ufl
 from petsc4py import PETSc
 
 from fenicsxconcrete.experimental_setup.base_experiment import Experiment
-from fenicsxconcrete.experimental_setup.cantilever_beam import CantileverBeam
+from fenicsxconcrete.experimental_setup.minimal_cube import MinimalCubeExperiment
 from fenicsxconcrete.finite_element_problem.base_material import MaterialProblem
 from fenicsxconcrete.helper import Parameters, QuadratureEvaluator, QuadratureRule, project
 from fenicsxconcrete.unit_registry import ureg
@@ -83,7 +83,7 @@ class ConcreteThermoMechanical(MaterialProblem):
         Returns:
             The default parameters as a dictionary.
         """
-        experiment = CantileverBeam(CantileverBeam.default_parameters())
+        experiment = MinimalCubeExperiment(MinimalCubeExperiment.default_parameters())
         # Material parameter for concrete model with temperature and hydration
         default_parameters = {
             "igc": 8.3145 * ureg("J/K/mol"),
@@ -96,7 +96,7 @@ class ConcreteThermoMechanical(MaterialProblem):
             "B2": 0.0024229 * ureg(""),
             "eta": 5.554 * ureg(""),
             "alpha_max": 0.875 * ureg(""),
-            "T_ref": 25.0 * ureg.degC,
+            "T_ref": ureg.Quantity(25, ureg.degC),
             "temp_adjust_law": "exponential" * ureg(""),
             "degree": 2 * ureg(""),
             "q_degree": 2 * ureg(""),
@@ -109,25 +109,31 @@ class ConcreteThermoMechanical(MaterialProblem):
             "a_fc": 1.2 * ureg(""),
             "ft_inf": 467000 * ureg(""),
             "a_ft": 1.0 * ureg(""),
-            "evolution_ft": True * ureg(""),
+            "evolution_ft": "True" * ureg(""),
         }
         default_parameters["E_act"] = 5653.0 * default_parameters["igc"] * ureg("J/mol")
         return experiment, default_parameters
 
+    def compute_residuals(self) -> None:
+        pass
+
     def setup(self) -> None:
         self.rule = QuadratureRule(cell_type=self.mesh.ufl_cell(), degree=self.p["q_degree"])
-        self.displacement = df.fem.VectorFunctionSpace(self.experiment.mesh, ("CG", self.p["degree"]))
-        self.temperature = df.fem.FunctionSpace(self.experiment.mesh, ("CG", self.p["degree"]))
+        self.displacement_space = df.fem.VectorFunctionSpace(self.experiment.mesh, ("CG", self.p["degree"]))
+        self.temperature_space = df.fem.FunctionSpace(self.experiment.mesh, ("CG", self.p["degree"]))
 
-        bcs_temperature = self.experiment.create_temperature_bcs(self.temperature)
+        self.displacement = df.fem.Function(self.displacement_space)
+        self.temperature = df.fem.Function(self.temperature_space)
+
+        bcs_temperature = self.experiment.create_temperature_bcs(self.temperature_space)
         # setting up the two nonlinear problems
         self.temperature_problem = ConcreteTemperatureHydrationModel(
             self.experiment.mesh, self.p, self.rule, self.temperature, bcs_temperature
         )
 
         # here I "pass on the parameters from temperature to mechanics problem.."
-        bcs_mechanical = self.experiment.create_displacement_boundary(self.displacement)
-        body_forces = self.experiment.create_body_force(ufl.TestFunction(self.displacement))
+        bcs_mechanical = self.experiment.create_displacement_boundary(self.displacement_space)
+        body_forces = self.experiment.create_body_force(ufl.TestFunction(self.displacement_space))
 
         self.mechanics_problem = ConcreteMechanicsModel(
             self.experiment.mesh,
@@ -140,13 +146,15 @@ class ConcreteThermoMechanical(MaterialProblem):
 
         # initialize concrete temperature as given in experimental setup
         self.set_inital_T(self.p["T_0"])
+        # TODO: this is not supposed to be set here
+        self.temperature_problem.set_timestep(0.001)
 
         # setting up the solvers
-        self.temperature_solver = df.nls.petsc.NewtonSolver(self.temperature_problem)
+        self.temperature_solver = df.nls.petsc.NewtonSolver(self.mesh.comm, self.temperature_problem)
         self.temperature_solver.atol = 1e-9
         self.temperature_solver.rtol = 1e-8
 
-        self.mechanics_solver = df.nls.petsc.NewtonSolver(self.mechanics_problem)
+        self.mechanics_solver = df.nls.petsc.NewtonSolver(self.mesh.comm, self.mechanics_problem)
         self.mechanics_solver.atol = 1e-9
         self.mechanics_solver.rtol = 1e-8
         # if self.wrapper:
@@ -274,9 +282,9 @@ class ConcreteTemperatureHydrationModel(df.fem.petsc.NonlinearProblem):
         q_V = self.rule.create_quadrature_space(self.mesh)
 
         # quadrature functions
-        self.q_alpha = df.fem.Function(q_V, name="degree of hydration")
-        self.q_delta_alpha = df.fem.Function(q_V, name="inrease in degree of hydration")
-        self.q_ddalpha_dT = df.fem.Function(q_V, name="derivative of delta alpha wrt temperature")
+        self.q_alpha = df.fem.Function(q_V, name="degree_of_hydration")
+        self.q_delta_alpha = df.fem.Function(q_V, name="inrease_in_degree_of_hydration")
+        self.q_ddalpha_dT = df.fem.Function(q_V, name="derivative_of_delta_alpha_wrt_temperature")
 
         # quadrature arrays
         self.q_array_T = self.rule.create_quadrature_array(self.mesh)  # df.fem.Function(q_V, name="temperature")
@@ -379,7 +387,7 @@ class ConcreteTemperatureHydrationModel(df.fem.petsc.NonlinearProblem):
             for delta_alpha in delta_alpha_list:
                 delta_alpha_opt = scipy.optimize.newton(
                     self.delta_alpha_fkt,
-                    args=(alpha, T + self.p["zero_C"]),
+                    args=(alpha, T),
                     fprime=self.delta_alpha_prime,
                     x0=delta_alpha,
                 )
@@ -500,7 +508,7 @@ class ConcreteTemperatureHydrationModel(df.fem.petsc.NonlinearProblem):
     def temp_adjust(self, T: np.ndarray) -> np.ndarray:
         val = 1
         if self.p["temp_adjust_law"] == "exponential":
-            val = np.exp(-self.p["E_act"] / self.p["igc"] * (1 / T - 1 / (self.p["T_ref"] + self.p["zero_C"])))
+            val = np.exp(-self.p["E_act"] / self.p["igc"] * (1 / T - 1 / (self.p["T_ref"])))
         elif self.p["temp_adjust_law"] == "off":
             pass
         else:
@@ -531,8 +539,8 @@ class ConcreteTemperatureHydrationModel(df.fem.petsc.NonlinearProblem):
     # derivative of affinity with respect to delta alpha, needed for evaluation
     def daffinity_ddalpha(self, delta_alpha: np.ndarray, alpha_n: np.ndarray) -> np.ndarray:
         affinity_prime = (
-            self.p.B1
-            * np.exp(-self.p.eta * (delta_alpha + alpha_n) / self.p.alpha_max)
+            self.p["B1"]
+            * np.exp(-self.p["eta"] * (delta_alpha + alpha_n) / self.p["alpha_max"])
             * (
                 (self.p["alpha_max"] - (delta_alpha + alpha_n))
                 * (self.p["B2"] / self.p["alpha_max"] + (delta_alpha + alpha_n))
@@ -591,23 +599,23 @@ class ConcreteMechanicsModel(df.fem.petsc.NonlinearProblem):
 
         # Define variational problem
         # self.u = df.fem.Function(self.V, name="Displacements")
-        v = ufl.TestFunction(self.V)
+        v = ufl.TestFunction(u.function_space)
 
         # Elasticity parameters without multiplication with E
         self.x_mu = 1.0 / (2.0 * (1.0 + self.p["nu"]))
         self.x_lambda = 1.0 * self.p["nu"] / ((1.0 + self.p["nu"]) * (1.0 - 2.0 * self.p["nu"]))
 
-        R_ufl = ufl.inner(self.sigma(self.u), ufl.sym(ufl.grad(v))) * self.rule.dx
+        R_ufl = ufl.inner(self.sigma(u), ufl.sym(ufl.grad(v))) * self.rule.dx
         R_ufl += body_forces
 
         self.R = R_ufl
 
         # derivative
         # normal form
-        dR_ufl = ufl.derivative(R_ufl, self.u)
+        dR_ufl = ufl.derivative(R_ufl, u)
         # quadrature part
         self.dR = dR_ufl
-        self.x_sigma_evaluator = QuadratureEvaluator(self.sigma_voigt(self._x_sigma(u)))
+        self.x_sigma_evaluator = QuadratureEvaluator(self.sigma_voigt(self._x_sigma(u)), self.mesh, self.rule)
         super().__init__(self.R, u, bcs, self.dR)
 
     def _x_sigma(self, v: ufl.core.expr.Expr) -> ufl.core.expr.Expr:
@@ -655,13 +663,13 @@ class ConcreteMechanicsModel(df.fem.petsc.NonlinearProblem):
     def sigma_voigt(self, s: ufl.core.expr.Expr) -> ufl.core.expr.Expr:
         # 1D option
         if s.ufl_shape == (1, 1):
-            stress_vector = df.as_vector((s[0, 0]))
+            stress_vector = ufl.as_vector((s[0, 0]))
         # 2D option
         elif s.ufl_shape == (2, 2):
-            stress_vector = df.as_vector((s[0, 0], s[1, 1], s[0, 1]))
+            stress_vector = ufl.as_vector((s[0, 0], s[1, 1], s[0, 1]))
         # 3D option
         elif s.ufl_shape == (3, 3):
-            stress_vector = df.as_vector((s[0, 0], s[1, 1], s[2, 2], s[0, 1], s[1, 2], s[0, 2]))
+            stress_vector = ufl.as_vector((s[0, 0], s[1, 1], s[2, 2], s[0, 1], s[1, 2], s[0, 2]))
         else:
             raise ("Problem with stress tensor shape for voigt notation")
         return stress_vector
@@ -693,7 +701,7 @@ class ConcreteMechanicsModel(df.fem.petsc.NonlinearProblem):
         parameters["X_inf"] = self.p["ft_inf"]
         parameters["a_X"] = self.p["a_ft"]
 
-        if self.p["evolution_ft"]:
+        if self.p["evolution_ft"] == "True":
             self.q_ft.vector.array[:] = self.general_hydration_fkt(self.q_array_alpha, parameters)
         else:
             # no evolution....

@@ -204,7 +204,7 @@ class QuadratureEvaluator:
 
         self.cells = np.arange(0, self.num_cells, dtype=np.int32)
 
-        self.expr = df.fem.Expression(ufl_expression, self.rule.points)
+        self.expr = df.fem.Expression(ufl_expression, rule.points)
 
     def evaluate(self, q: np.ndarray | df.fem.Function | None = None) -> np.ndarray | None:
         """

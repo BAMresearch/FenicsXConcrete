@@ -10,7 +10,7 @@ from mpi4py import MPI
 from petsc4py.PETSc import ScalarType
 
 from fenicsxconcrete.boundary_conditions.bcs import BoundaryConditions
-from fenicsxconcrete.boundary_conditions.boundary import plane_at, point_at
+from fenicsxconcrete.boundary_conditions.boundary import plane_at
 from fenicsxconcrete.experimental_setup.base_experiment import Experiment
 from fenicsxconcrete.helper import Parameters
 from fenicsxconcrete.unit_registry import ureg
@@ -47,21 +47,25 @@ class MinimalCubeExperiment(Experiment):
             # build a rectangular mesh
             self.mesh = df.mesh.create_rectangle(
                 MPI.COMM_WORLD,
-                [
-                    [0.0, 0.0],
-                    [self.p["length"], self.p["height"]],
-                ],
-                [self.p["num_elements_length"], self.p["num_elements_height"]],
+                np.vstack(
+                    (
+                        self.p["start_point"],
+                        self.p["end_point"],
+                    )
+                ),
+                self.p["num_elements"],
                 cell_type=df.mesh.CellType.quadrilateral,
             )
         elif self.p["dim"] == 3:
             self.mesh = df.mesh.create_box(
                 MPI.COMM_WORLD,
-                [
-                    [0.0, 0.0, 0.0],
-                    [self.p["length"], self.p["height"], self.p["width"]],
-                ],
-                [self.p["num_elements_length"], self.p["num_elements_width"], self.p["num_elements_height"]],
+                np.vstack(
+                    (
+                        self.p["start_point"],
+                        self.p["end_point"],
+                    )
+                ),
+                self.p["num_elements"],
                 cell_type=df.mesh.CellType.hexahedron,
             )
 
@@ -75,12 +79,12 @@ class MinimalCubeExperiment(Experiment):
         """
         # this must de defined in each setup class
 
-        setup_parameters = {}
-        setup_parameters["dim"] = 3 * ureg("")
-        setup_parameters["num_elements_length"] = 10 * ureg("")
-        setup_parameters["num_elements_width"] = 10 * ureg("")
-        setup_parameters["num_elements_height"] = 10 * ureg("")
-
+        setup_parameters = {
+            "dim": 3 * ureg(""),
+            "start_point": np.array([0.0, 0.0, 0.0]) * ureg("m"),
+            "end_point": np.array([1.0, 1.0, 1.0]) * ureg("m"),
+            "num_elements": np.array([10, 10, 10]) * ureg("m"),
+        }
         return setup_parameters
 
     def create_displacement_boundary(self, V: df.fem.FunctionSpace) -> list[df.fem.bcs.DirichletBCMetaClass]:
@@ -95,8 +99,13 @@ class MinimalCubeExperiment(Experiment):
 
         # define boundary conditions generator
         bc_generator = BoundaryConditions(self.mesh, V)
+        bc_generator.add_dirichlet_bc(np.zeros(self.p["dim"]), self.boundary_bottom(), method="geometrical")
 
         return bc_generator.bcs
+
+    def create_temperature_bcs(self, V: df.fem.FunctionSpace):
+
+        return []
 
     def apply_displ_load(self, top_displacement: pint.Quantity | float) -> None:
         """Updates the applied displacement load
