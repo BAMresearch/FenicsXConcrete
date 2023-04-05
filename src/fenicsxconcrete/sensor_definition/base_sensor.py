@@ -30,7 +30,9 @@ class BaseSensor(ABC, LogMixin):
 
     def get_data_list(self):
         """Returns the measured data with respective unit"""
-        return self.data * self.units
+        data = self.data * self.base_unit()  # add base units
+        data.ito(self.units)  # convert to target units
+        return data
 
     def get_time_list(self):
         """Returns the time data with respective unit"""
@@ -43,11 +45,22 @@ class BaseSensor(ABC, LogMixin):
         except ValueError:  # I want my own value error that is meaningful to the input
             raise ValueError(f"There is no data measured at time {t}")
 
-        return self.data[i] * self.units
+        data = self.data[i] * self.base_unit()  # add base units
+        data.ito(self.units)  # convert to target units
+
+        return data
 
     def get_last_data_point(self):
         """Returns the measured data with respective unit"""
-        return self.data[-1] * self.units
+        data = self.data[-1] * self.base_unit()  # add base units
+        data.ito(self.units)  # convert to target units
+        return data
+
+    def set_units(self, units) -> None:
+        """sets the units which the sensor should return"""
+        new_unit = ureg(units)
+        assert self.base_unit().dimensionality == new_unit.dimensionality
+        self.units = new_unit
 
 
 class PointSensor(BaseSensor):

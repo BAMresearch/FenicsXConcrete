@@ -4,6 +4,7 @@ from fenicsxconcrete.experimental_setup.compression_cylinder import CompressionC
 from fenicsxconcrete.finite_element_problem.linear_elasticity import LinearElasticity
 from fenicsxconcrete.sensor_definition.displacement_sensor import DisplacementSensor
 from fenicsxconcrete.sensor_definition.reaction_force_sensor import ReactionForceSensorBottom
+from fenicsxconcrete.unit_registry import ureg
 
 
 def test_base_sensor() -> None:
@@ -31,6 +32,14 @@ def test_base_sensor() -> None:
     # testing value error for wrong time
     with pytest.raises(ValueError):
         u_sensor.get_data_at_time(t=42)
+    # testing set unit
+    m_data = u_sensor.get_last_data_point()
+    u_sensor.set_units("mm")
+    mm_data = u_sensor.get_last_data_point()
+    # check units
+    assert u_sensor.get_last_data_point().units == ureg.millimeter
+    # check magnitude
+    assert (m_data.magnitude == mm_data.magnitude / 1000).all()
 
 
 @pytest.mark.parametrize("sensor", [DisplacementSensor, ReactionForceSensorBottom])
