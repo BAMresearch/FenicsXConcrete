@@ -2,6 +2,7 @@ import copy
 
 import pytest
 
+from fenicsxconcrete.experimental_setup.uniaxial_cube import UniaxialCubeExperiment
 from fenicsxconcrete.experimental_setup.am_multiple_layers import AmMultipleLayers
 from fenicsxconcrete.experimental_setup.base_experiment import Experiment
 from fenicsxconcrete.experimental_setup.cantilever_beam import CantileverBeam
@@ -12,7 +13,9 @@ from fenicsxconcrete.finite_element_problem.linear_elasticity import LinearElast
 from fenicsxconcrete.unit_registry import ureg
 
 
-@pytest.mark.parametrize("setup", [CantileverBeam, TensileBeam, SimpleBeam, CompressionCylinder, AmMultipleLayers])
+@pytest.mark.parametrize(
+    "setup", [CantileverBeam, TensileBeam, SimpleBeam, CompressionCylinder, AmMultipleLayers, UniaxialCubeExperiment]
+)
 def test_default_parameters(setup: Experiment) -> None:
     """This function creates experimental setups with the respective default dictionaries
 
