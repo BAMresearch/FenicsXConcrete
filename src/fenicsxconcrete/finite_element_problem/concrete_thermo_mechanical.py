@@ -147,7 +147,7 @@ class ConcreteThermoMechanical(MaterialProblem):
         # initialize concrete temperature as given in experimental setup
         self.set_inital_T(self.p["T_0"])
         # TODO: this is not supposed to be set here
-        self.temperature_problem.set_timestep(0.001)
+        self.temperature_problem.set_timestep(10)
 
         # setting up the solvers
         self.temperature_solver = df.nls.petsc.NewtonSolver(self.mesh.comm, self.temperature_problem)
