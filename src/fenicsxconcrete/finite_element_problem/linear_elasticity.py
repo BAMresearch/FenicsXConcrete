@@ -39,6 +39,10 @@ class LinearElasticity(MaterialProblem):
             self.p["E"] * self.p["nu"] / ((1 + self.p["nu"]) * (1 - 2 * self.p["nu"])),
         )
         self.mu = df.fem.Constant(self.mesh, self.p["E"] / (2 * (1 + self.p["nu"])))
+        if self.p["dim"] == 2 and self.p["stress_state"].lower() == "plane_stress":
+            self.lambda_ = df.fem.Constant(
+                self.mesh, 2.0 * self.mu.value * self.lambda_.value / (self.lambda_.value + 2 * self.mu.value)
+            )
 
         # define function space ets.
         self.V = df.fem.VectorFunctionSpace(self.mesh, ("Lagrange", self.p["degree"]))  # 2 for quadratic elements
@@ -82,6 +86,10 @@ class LinearElasticity(MaterialProblem):
         model_parameters["rho"] = 7750 * ureg("kg/m^3")
         model_parameters["E"] = 210e9 * ureg("N/m^2")
         model_parameters["nu"] = 0.28 * ureg("")
+
+        # only relevant for 2D
+        # default is plane_strain (not needed to specify)
+        model_parameters["stress_state"] = "plane_strain" * ureg("")  # or "plane_stress"
 
         return experiment, model_parameters
 
