@@ -8,13 +8,21 @@ from fenicsxconcrete.unit_registry import ureg
 
 
 class StrainSensor(Sensor):
-    """A sensor that measure the strain tensor at a specific point"""
+    """A sensor that measure the strain tensor at a specific point
+
+    Attributes:
+        where: location where the value is measured
+        date: list of measured values with unit
+        time: list of time stamps with unit
+
+    """
 
     def __init__(self, where: list[list[int | float]]) -> None:
         """
         Args:
             where : location where the value is measured
         """
+
         self.where = where
         self.data = []
         self.time = []
@@ -22,9 +30,11 @@ class StrainSensor(Sensor):
     def measure(self, problem: MaterialProblem, t: float = 1.0) -> None:
         """
         Args:
-            problem : FEM problem object
-            t : time of measurement for time dependent problems
+            problem: FEM problem object
+            t: time of measurement for time dependent problems
+
         """
+
         # project stress onto visualization space
         if not hasattr(problem, "strain"):
             self.logger.debug("strain not defined in problem - needs to compute stress first")
@@ -34,7 +44,8 @@ class StrainSensor(Sensor):
                 ufl.dx,
             )
         else:
-            strain = project(problem.strain, problem.visu_space_T, ufl.dx)
+            # TODO: I cannot test this lines, yet
+            strain = project(problem.strain, problem.visu_space_T, problem.rule.dx)
 
         # finding the cells corresponding to the point
         bb_tree = df.geometry.BoundingBoxTree(problem.experiment.mesh, problem.experiment.mesh.topology.dim)

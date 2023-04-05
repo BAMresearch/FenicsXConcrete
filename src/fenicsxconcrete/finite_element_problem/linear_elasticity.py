@@ -25,7 +25,7 @@ class LinearElasticity(MaterialProblem):
 
         # adding default material parameter, will be overridden by outside input
         default_p = Parameters()
-        # default_p['dummy'] = 'example' * ureg('')  # example default parameter for this class
+        default_p["stress_state"] = "plane_strain" * ureg("")  # default stress state in 2D, optional "plane_stress"
 
         # updating parameters, overriding defaults
         default_p.update(parameters)
@@ -86,10 +86,6 @@ class LinearElasticity(MaterialProblem):
         model_parameters["rho"] = 7750 * ureg("kg/m^3")
         model_parameters["E"] = 210e9 * ureg("N/m^2")
         model_parameters["nu"] = 0.28 * ureg("")
-
-        # only relevant for 2D
-        # default is plane_strain (not needed to specify)
-        model_parameters["stress_state"] = "plane_strain" * ureg("")  # or "plane_stress"
 
         return experiment, model_parameters
 
