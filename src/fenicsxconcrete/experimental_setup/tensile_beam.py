@@ -11,7 +11,21 @@ from fenicsxconcrete.unit_registry import ureg
 
 
 class TensileBeam(Experiment):
+    """Sets up a tensile beam experiment, clamped on one side and loaded with force on the other side
+
+    Attributes:
+        see base class
+
+    """
+
     def __init__(self, parameters: dict[str, pint.Quantity] | None = None) -> None:
+        """initializes the object, for the rest, see base class
+
+        Args:
+            parameters: dictionary containing the required parameters for the experiment set-up
+                        see default_parameters for a first guess
+
+        """
         # initialize a set of "basic parameters"
         default_p = Parameters()
         # default_p['dummy'] = 'example' * ureg('')  # example default parameter for this class
@@ -50,7 +64,12 @@ class TensileBeam(Experiment):
 
     @staticmethod
     def default_parameters() -> dict[str, pint.Quantity]:
-        """returns a dictionary with required parameters and a set of working values as example"""
+        """set up a working set of parameter values as example
+
+        Returns:
+            setup_parameters: dictionary with a working set of the required parameter
+
+        """
 
         setup_parameters = {}
         setup_parameters["length"] = 1 * ureg("m")
@@ -65,7 +84,15 @@ class TensileBeam(Experiment):
         return setup_parameters
 
     def create_displacement_boundary(self, V) -> list:
-        # define displacement boundary
+        """Defines the displacement boundary conditions
+
+        Args:
+            V: Function space of the structure
+
+        Returns:
+            displacement_bcs: A list of DirichletBC objects, defining the boundary conditions
+
+        """
 
         # fenics will individually call this function for every node and will note the true or false value.
         def clamped_boundary(x):
@@ -85,6 +112,16 @@ class TensileBeam(Experiment):
         return displacement_bcs
 
     def create_force_boundary(self, v: ufl.argument.Argument) -> ufl.form.Form:
+        """distributed load on top of beam
+
+        Args:
+            v: test function
+
+        Returns:
+            L: form for force boundary
+
+        """
+
         boundaries = [
             (1, lambda x: np.isclose(x[0], self.p["length"])),
             (2, lambda x: np.isclose(x[0], 0)),

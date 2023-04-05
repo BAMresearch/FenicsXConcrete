@@ -22,6 +22,10 @@ class Experiment(ABC, LogMixin):
 
         This is needs to be called by children
         Constant parameters are defined here
+
+        Args:
+            parameters: parameter dictionary with units
+
         """
 
         # initialize parameter attributes
@@ -45,20 +49,52 @@ class Experiment(ABC, LogMixin):
     @staticmethod
     @abstractmethod
     def default_parameters() -> dict[str, pint.Quantity]:
-        """returns a dictionary with required parameters and a set of working values as example"""
+        """set up a working set of parameter values as example
+
+        must be defined in each child
+
+        Returns:
+            a dictionary with required parameters and a set of working values as example
+
+        """
 
     @abstractmethod
     def create_displacement_boundary(self, V: df.fem.FunctionSpace) -> list[df.fem.bcs.DirichletBCMetaClass] | None:
-        """returns a list with displacement boundary conditions
+        """define empty displacement boundary conditions (to be done in child)
 
         this function is abstract until there is a need for a material that does not need a displacement boundary
         once that is required, just make this a normal function that returns an empty list
+
+        Args:
+            V: function space
+
+        Returns:
+            if defined a list with displacement boundary conditions otherwise None
+
         """
 
     def create_force_boundary(self, v: ufl.argument.Argument | None = None) -> ufl.form.Form | None:
-        # define empty force boundary
+        """define empty force boundary (to be done in child)
+
+        Args:
+            v: test function
+
+        Returns:
+            if defined a form for the force otherwise None
+
+        """
+
         pass
 
     def create_body_force(self, v: ufl.argument.Argument | None = None) -> ufl.form.Form | None:
-        # define empty body force function
+        """define empty body force function
+
+        Args:
+            v: test function
+
+        Returns:
+            if defined a form for the body force otherwise None
+
+        """
+
         pass
