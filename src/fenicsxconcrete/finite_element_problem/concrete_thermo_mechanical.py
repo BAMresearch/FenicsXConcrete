@@ -6,7 +6,6 @@ import pint
 import scipy
 import ufl
 from petsc4py import PETSc
-from petsc4py.PETSc import ScalarType
 
 from fenicsxconcrete.experimental_setup.base_experiment import Experiment
 from fenicsxconcrete.experimental_setup.cantilever_beam import CantileverBeam
@@ -61,6 +60,7 @@ class ConcreteThermoMechanical(MaterialProblem):
             "T_ref": "reference temperature",
             "temp_adjust_law": "TODO",
             "degree": "Polynomial degree for the FEM model",
+            "q_degree": "Polynomial degree for which the quadrature rule integrates correctly",
             "E_28": "Youngs Modulus of concrete",
             "nu": "Poissons Ratio",
             "alpha_t": "TODO",
@@ -99,6 +99,7 @@ class ConcreteThermoMechanical(MaterialProblem):
             "T_ref": 25.0 * ureg.degC,
             "temp_adjust_law": "exponential" * ureg(""),
             "degree": 2 * ureg(""),
+            "q_degree": 2 * ureg(""),
             "E_28": 15 * ureg("MPa"),
             "nu": 0.2 * ureg(""),
             "alpha_t": 0.2 * ureg(""),
@@ -113,8 +114,8 @@ class ConcreteThermoMechanical(MaterialProblem):
         default_parameters["E_act"] = 5653.0 * default_parameters["igc"] * ureg("J/mol")
         return experiment, default_parameters
 
-    def setup(self):
-        self.rule = QuadratureRule()
+    def setup(self) -> None:
+        self.rule = QuadratureRule(cell_type=self.mesh.ufl_cell(), degree=self.p["q_degree"])
         self.displacement = df.fem.VectorFunctionSpace(self.experiment.mesh, ("CG", self.p["degree"]))
         self.temperature = df.fem.FunctionSpace(self.experiment.mesh, ("CG", self.p["degree"]))
 
@@ -428,8 +429,8 @@ class ConcreteTemperatureHydrationModel(df.fem.petsc.NonlinearProblem):
 
         # solve for alpha at each quadrature point
         # here the newton raphson method of the scipy package is used
-        # the zero value of the delta_alpha_fkt is found for each entry in alpha_n_list is found. the corresponding temparature
-        # is given in temperature_list and as starting point the value of last step used from delta_alpha_n
+        # the zero value of the delta_alpha_fkt is found for each entry in alpha_n_list is found. the corresponding
+        # temparature is given in temperature_list and as starting point the value of last step used from delta_alpha_n
         try:
             delta_alpha = scipy.optimize.newton(
                 self.delta_alpha_fkt,
