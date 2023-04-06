@@ -4,6 +4,7 @@ from fenicsxconcrete.experimental_setup.compression_cylinder import CompressionC
 from fenicsxconcrete.experimental_setup.uniaxial_cube import UniaxialCubeExperiment
 from fenicsxconcrete.finite_element_problem.linear_elasticity import LinearElasticity
 from fenicsxconcrete.sensor_definition.reaction_force_sensor import ReactionForceSensor
+from fenicsxconcrete.sensor_definition.stress_sensor import StressSensor
 from fenicsxconcrete.unit_registry import ureg
 
 
@@ -40,13 +41,22 @@ def test_reaction_force_sensor() -> None:
 def test_full_boundary_reaction(dim: int) -> None:
     setup_parameters = UniaxialCubeExperiment.default_parameters()
     setup_parameters["dim"] = dim * ureg("")
+    setup_parameters["degree"] = 1 * ureg("")  # TODO: WHY DOES THIS FAIL FOR degree = 2 ??? !!!
     setup_parameters["strain_state"] = "multiaxial" * ureg("")
     cube = UniaxialCubeExperiment(setup_parameters)
     default_setup, fem_parameters = LinearElasticity.default_parameters()
     fem_parameters["nu"] = 0.2 * ureg("")
     fem_problem = LinearElasticity(cube, fem_parameters)
 
-    # define sensors
+    # define stress sensor
+    if dim == 2:
+        sensor_location = [0.5, 0.5, 0.0]
+    elif dim == 3:
+        sensor_location = [0.5, 0.5, 0.5]
+    stress_sensor = StressSensor(sensor_location)
+    fem_problem.add_sensor(stress_sensor)
+
+    # define reactionforce sensors
     sensor = ReactionForceSensor(surface=cube.boundary_left())
     fem_problem.add_sensor(sensor)
     sensor = ReactionForceSensor(surface=cube.boundary_right())
@@ -61,7 +71,7 @@ def test_full_boundary_reaction(dim: int) -> None:
         sensor = ReactionForceSensor(surface=cube.boundary_back())
         fem_problem.add_sensor(sensor)
 
-    fem_problem.experiment.apply_displ_load(-0.001 * ureg("m"))
+    fem_problem.experiment.apply_displ_load(0.002 * ureg("m"))
     fem_problem.solve()
     fem_problem.pv_plot()
 
@@ -70,20 +80,25 @@ def test_full_boundary_reaction(dim: int) -> None:
     force_top = fem_problem.sensors.ReactionForceSensor3.get_last_entry().magnitude[-1]
     force_bottom = fem_problem.sensors.ReactionForceSensor4.get_last_entry().magnitude[-1]
 
-    print("left :", force_left)
-    print("right :", force_right)
-    print("top :", force_top)
-    print("bottom :", force_bottom)
-
+    # checking opposing forces left-right and top-bottom
     assert force_left == pytest.approx(-1 * force_right)
     assert force_top == pytest.approx(-1 * force_bottom)
+    # checking equal forces on sides
+    assert force_left == pytest.approx(force_bottom)
 
     if dim == 3:
         force_front = fem_problem.sensors.ReactionForceSensor5.get_last_entry().magnitude[1]
         force_back = fem_problem.sensors.ReactionForceSensor6.get_last_entry().magnitude[1]
-        print("front :", force_front)
-        print("back :", force_back)
 
+        # checking opposing forces front-back
         assert force_front == pytest.approx(-1 * force_back)
+        # checking equal forces left-front
+        assert force_left == pytest.approx(force_front)
 
-    assert force_left == pytest.approx(force_bottom)
+    # check homogeneous stress state
+    stress = fem_problem.sensors.StressSensor.get_last_entry().magnitude
+    if dim == 2:
+        assert stress[0] == pytest.approx(stress[3])
+    if dim == 3:
+        assert stress[0] == pytest.approx(stress[4])
+        assert stress[0] == pytest.approx(stress[8])
