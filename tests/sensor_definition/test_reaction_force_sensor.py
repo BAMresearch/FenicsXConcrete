@@ -19,7 +19,7 @@ def test_reaction_force_sensor() -> None:
     fem_problem.add_sensor(sensor1)
     sensor2 = ReactionForceSensor(surface=setup.boundary_bottom())
     fem_problem.add_sensor(sensor2)
-    sensor3 = ReactionForceSensor(surface=setup.boundary_top())
+    sensor3 = ReactionForceSensor(surface=setup.boundary_top(), name="top_sensor")
     fem_problem.add_sensor(sensor3)
 
     fem_problem.experiment.apply_displ_load(-0.001 * ureg("m"))
@@ -33,7 +33,7 @@ def test_reaction_force_sensor() -> None:
 
     # testing top boundary value
     assert fem_problem.sensors.ReactionForceSensor.get_last_entry().magnitude[-1] == pytest.approx(
-        -1 * fem_problem.sensors.ReactionForceSensor3.get_last_entry().magnitude[-1]
+        -1 * fem_problem.sensors.top_sensor.get_last_entry().magnitude[-1]
     )
 
 

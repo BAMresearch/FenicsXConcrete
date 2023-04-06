@@ -15,10 +15,14 @@ class BaseSensor(ABC, LogMixin):
         time: list of time stamps
     """
 
-    def __init__(self) -> None:
+    def __init__(self, name=None) -> None:
         self.data = []
         self.time = []
         self.units = self.base_unit()
+        if name is None:
+            self.name = self.__class__.__name__
+        else:
+            self.name = name
 
     @abstractmethod
     def measure(self):
@@ -29,9 +33,8 @@ class BaseSensor(ABC, LogMixin):
     def base_unit():
         """Defines the base unit of this sensor"""
 
-    @property
-    def name(self) -> str:
-        return self.__class__.__name__
+    # def class_name(self) -> str:
+    #     return self.__class__.__name__
 
     def get_data_list(self):
         """Returns the measured data with respective unit"""
@@ -79,12 +82,12 @@ class PointSensor(BaseSensor):
         where: location where the value is measured
     """
 
-    def __init__(self, where: list[int | float]) -> None:
+    def __init__(self, where: list[int | float], name=None) -> None:
         """
         Arguments:
             where : Point where to measure
         """
-        super().__init__()
+        super().__init__(name=name)
         self.where = where
 
     @abstractmethod

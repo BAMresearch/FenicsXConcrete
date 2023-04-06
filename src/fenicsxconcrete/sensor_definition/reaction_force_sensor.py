@@ -11,12 +11,12 @@ from fenicsxconcrete.unit_registry import ureg
 class ReactionForceSensor(BaseSensor):
     """A sensor that measure the reaction force at the bottom perpendicular to the surface"""
 
-    def __init__(self, surface=None) -> None:
+    def __init__(self, surface=None, name=None) -> None:
         """
         Arguments:
             where : Point where to measure
         """
-        super().__init__()
+        super().__init__(name=name)
         self.surface = surface
 
     def measure(self, problem: MaterialProblem, t: float = 1.0) -> None:
