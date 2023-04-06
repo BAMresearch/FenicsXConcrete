@@ -55,11 +55,14 @@ class BaseSensor(ABC, LogMixin):
 
         return data
 
-    def get_last_data_point(self):
+    def get_last_entry(self):
         """Returns the measured data with respective unit"""
-        data = self.data[-1] * self.base_unit()  # add base units
-        data.ito(self.units)  # convert to target units
-        return data
+        if len(self.data) > 0:
+            data = self.data[-1] * self.base_unit()  # add base units
+            data.ito(self.units)  # convert to target units
+            return data
+        else:
+            raise RuntimeError("There is no measured data to retrieve.")
 
     def set_units(self, units) -> None:
         """sets the units which the sensor should return"""

@@ -35,7 +35,7 @@ def simple_setup(
     problem.solve()  # solving this
 
     # last measurement, parameter dict
-    return problem.sensors[sensor.name].data[-1], problem.parameters
+    return problem.sensors[sensor.name].get_last_entry().magnitude[-1], problem.parameters
 
 
 @pytest.mark.parametrize("dim", [2, 3])

@@ -6,7 +6,6 @@ import pint
 from mpi4py import MPI
 
 from fenicsxconcrete.boundary_conditions.bcs import BoundaryConditions
-from fenicsxconcrete.boundary_conditions.boundary import plane_at
 from fenicsxconcrete.experimental_setup.base_experiment import Experiment
 from fenicsxconcrete.helper import Parameters
 from fenicsxconcrete.unit_registry import ureg
@@ -58,6 +57,8 @@ class UniaxialCubeExperiment(Experiment):
         setup_parameters["num_elements_length"] = 2 * ureg("")
         setup_parameters["num_elements_width"] = 2 * ureg("")
         setup_parameters["num_elements_height"] = 2 * ureg("")
+        setup_parameters["strain_state"] = "uniaxial" * ureg("")
+        setup_parameters["strain_state"] = "uniaxial" * ureg("")
 
         return setup_parameters
 
@@ -65,8 +66,6 @@ class UniaxialCubeExperiment(Experiment):
         """Generates the mesh in 2D or 3D based on parameters"""
 
         self.logger.debug("setup mesh for %s", self.p["dim"])
-
-        print(self.p)
 
         if self.p["dim"] == 2:
             # build a rectangular mesh
@@ -118,10 +117,21 @@ class UniaxialCubeExperiment(Experiment):
                 np.float64(0.0), boundary=self.boundary_left(), sub=0, method="geometrical", entity_dim=0
             )
 
-            # displacement controlled
-            bc_generator.add_dirichlet_bc(
-                self.top_displacement, boundary=self.boundary_top(), sub=1, method="geometrical", entity_dim=1
-            )
+            if self.p["strain_state"] == "uniaxial":
+                # displacement controlled
+                bc_generator.add_dirichlet_bc(
+                    self.top_displacement, boundary=self.boundary_top(), sub=1, method="geometrical", entity_dim=1
+                )
+            elif self.p["strain_state"] == "multiaxial":
+                # displacement controlled
+                bc_generator.add_dirichlet_bc(
+                    self.top_displacement, boundary=self.boundary_top(), sub=1, method="geometrical", entity_dim=1
+                )
+                bc_generator.add_dirichlet_bc(
+                    self.top_displacement, boundary=self.boundary_right(), sub=0, method="geometrical", entity_dim=0
+                )
+            else:
+                raise ValueError(f'Strain_state value: {self.p["strain_state"]} is not implemented in 2D.')
 
         elif self.p["dim"] == 3:
             # uniaxial bcs
@@ -136,9 +146,22 @@ class UniaxialCubeExperiment(Experiment):
             )
 
             # displacement controlled
-            bc_generator.add_dirichlet_bc(
-                self.top_displacement, boundary=self.boundary_top(), sub=2, method="geometrical", entity_dim=2
-            )
+            if self.p["strain_state"] == "uniaxial":
+                bc_generator.add_dirichlet_bc(
+                    self.top_displacement, boundary=self.boundary_top(), sub=2, method="geometrical", entity_dim=2
+                )
+            elif self.p["strain_state"] == "multiaxial":
+                bc_generator.add_dirichlet_bc(
+                    self.top_displacement, boundary=self.boundary_top(), sub=2, method="geometrical", entity_dim=2
+                )
+                bc_generator.add_dirichlet_bc(
+                    self.top_displacement, boundary=self.boundary_right(), sub=0, method="geometrical", entity_dim=0
+                )
+                bc_generator.add_dirichlet_bc(
+                    self.top_displacement, boundary=self.boundary_back(), sub=1, method="geometrical", entity_dim=1
+                )
+            else:
+                raise ValueError(f'Strain_state value: {self.p["strain_state"]} is not implemented in 3D.')
 
         return bc_generator.bcs
 

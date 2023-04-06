@@ -63,5 +63,5 @@ def test_linear_tensile_beam(dimension: int, results: list[float]) -> None:
         assert file.is_file()
 
     # check sensor output
-    displacement_data = problem.sensors["DisplacementSensor"].get_last_data_point()
+    displacement_data = problem.sensors["DisplacementSensor"].get_last_entry()
     assert displacement_data.magnitude == pytest.approx(results)

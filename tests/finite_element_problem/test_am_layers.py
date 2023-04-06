@@ -59,7 +59,7 @@ def test_am_single_layer(dimension: int) -> None:
     problem.pv_plot()
 
     # check sensor output
-    force_bottom = problem.sensors["ReactionForceSensor"].data
+    force_bottom = problem.sensors["ReactionForceSensor"].get_last_entry().magnitude
 
     dead_load = (
         problem.parameters["g"]
@@ -74,4 +74,4 @@ def test_am_single_layer(dimension: int) -> None:
         dead_load *= setup_parameters["layer_width"]
 
     # dead load of full structure
-    assert sum(force_bottom) == pytest.approx(-dead_load.magnitude)
+    assert force_bottom[-1] == pytest.approx(-dead_load.magnitude)

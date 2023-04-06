@@ -135,18 +135,3 @@ class Experiment(ABC, LogMixin):
         """
         if self.p["dim"] == 3:
             return plane_at(self.p["width"], "y")
-
-    def boundary_full(self) -> Callable:
-        """specify boundary: plane at front
-
-        only for 3D case front plane
-
-        Returns:
-            fct defining if dof is at boundary
-
-        """
-        boundary_full = self.boundary_left() + self.boundary_right() + self.boundary_front() + self.boundary_bottom()
-        if self.p["dim"] == 3:
-            boundary_full += self.boundary_front() + self.boundary_back()
-
-        return boundary_full

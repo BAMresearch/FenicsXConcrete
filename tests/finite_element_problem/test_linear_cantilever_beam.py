@@ -63,7 +63,7 @@ def test_linear_cantilever_beam(dimension: int, results: list[float]) -> None:
         assert file.is_file()
 
     # check sensor output
-    displacement_data = problem.sensors["DisplacementSensor"].get_last_data_point()
+    displacement_data = problem.sensors["DisplacementSensor"].get_last_entry()
     assert displacement_data.magnitude == pytest.approx(results)
 
     # Second test
@@ -73,6 +73,6 @@ def test_linear_cantilever_beam(dimension: int, results: list[float]) -> None:
     problem2 = LinearElasticity(experiment, fem_parameters)
     problem2.add_sensor(sensor)
     problem2.solve()
-    displacement_data2 = problem2.sensors["DisplacementSensor"].get_last_data_point()
+    displacement_data2 = problem2.sensors["DisplacementSensor"].get_last_entry()
 
     assert displacement_data2.magnitude * increase == pytest.approx(displacement_data.magnitude)

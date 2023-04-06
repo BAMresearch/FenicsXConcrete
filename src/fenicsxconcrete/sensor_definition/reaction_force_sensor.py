@@ -31,21 +31,31 @@ class ReactionForceSensor(BaseSensor):
             self.surface = problem.experiment.boundary_bottom()
 
         v_reac = df.fem.Function(problem.V)
-        bc_generator = BoundaryConditions(problem.mesh, problem.V)
-        if problem.p["dim"] == 2:
-            bc_generator.add_dirichlet_bc(
-                df.fem.Constant(domain=problem.mesh, c=1.0), self.surface, 1, "geometrical", 1
-            )
 
-        elif problem.p["dim"] == 3:
-            bc_generator.add_dirichlet_bc(
+        reaction_force_vector = []
+
+        bc_generator_x = BoundaryConditions(problem.mesh, problem.V)
+        bc_generator_x.add_dirichlet_bc(df.fem.Constant(domain=problem.mesh, c=1.0), self.surface, 0, "geometrical", 0)
+        df.fem.set_bc(v_reac.vector, bc_generator_x.bcs)
+        computed_force_x = -df.fem.assemble_scalar(df.fem.form(ufl.action(problem.residual, v_reac)))
+        reaction_force_vector.append(computed_force_x)
+
+        bc_generator_y = BoundaryConditions(problem.mesh, problem.V)
+        bc_generator_y.add_dirichlet_bc(df.fem.Constant(domain=problem.mesh, c=1.0), self.surface, 1, "geometrical", 1)
+        df.fem.set_bc(v_reac.vector, bc_generator_y.bcs)
+        computed_force_y = -df.fem.assemble_scalar(df.fem.form(ufl.action(problem.residual, v_reac)))
+        reaction_force_vector.append(computed_force_y)
+
+        if problem.p["dim"] == 3:
+            bc_generator_z = BoundaryConditions(problem.mesh, problem.V)
+            bc_generator_z.add_dirichlet_bc(
                 df.fem.Constant(domain=problem.mesh, c=1.0), self.surface, 2, "geometrical", 2
             )
+            df.fem.set_bc(v_reac.vector, bc_generator_z.bcs)
+            computed_force_z = -df.fem.assemble_scalar(df.fem.form(ufl.action(problem.residual, v_reac)))
+            reaction_force_vector.append(computed_force_z)
 
-        df.fem.set_bc(v_reac.vector, bc_generator.bcs)
-        computed_force = -df.fem.assemble_scalar(df.fem.form(ufl.action(problem.residual, v_reac)))
-
-        self.data.append(computed_force)
+        self.data.append(reaction_force_vector)
         self.time.append(t)
 
     @staticmethod
