@@ -121,5 +121,7 @@ class MaterialProblem(ABC, LogMixin):
                 while key in self:
                     key = initial_key + str(i)
                     i += 1
+                # rename the sensor object
+                value.name = key
 
             super().__setitem__(key, value)
