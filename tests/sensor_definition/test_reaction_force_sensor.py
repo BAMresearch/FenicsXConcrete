@@ -73,7 +73,6 @@ def test_full_boundary_reaction(dim: int) -> None:
 
     fem_problem.experiment.apply_displ_load(0.002 * ureg("m"))
     fem_problem.solve()
-    fem_problem.pv_plot()
 
     force_left = fem_problem.sensors.ReactionForceSensor.get_last_entry().magnitude[0]
     force_right = fem_problem.sensors.ReactionForceSensor2.get_last_entry().magnitude[0]
