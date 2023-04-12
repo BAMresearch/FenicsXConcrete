@@ -33,7 +33,7 @@ class StrainSensor(PointSensor):
             self.logger.debug("strain not defined in problem - needs to compute stress first")
             strain = project(
                 problem.epsilon(problem.displacement),  # stress fct from problem
-                df.fem.TensorFunctionSpace(problem.experiment.mesh, ("CG", 1)),  # tensor space
+                df.fem.TensorFunctionSpace(problem.experiment.mesh, ("Lagrange", 1)),  # tensor space
                 ufl.dx,
             )
         else:

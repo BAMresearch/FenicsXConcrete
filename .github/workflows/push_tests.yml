@@ -54,7 +54,8 @@ jobs:
         run: |
           cd $GITHUB_WORKSPACE
           # grab the coverage output and also print it to the screen
-          coverage run -m pytest -s -W error::UserWarning && coverage xml
+          coverage run -m pytest -s -W error::UserWarning
+          coverage xml
           COVERAGE_REPORT=$(coverage report -m | tee /dev/stderr)
           
           # passing a multiline string to output to use it in next job
