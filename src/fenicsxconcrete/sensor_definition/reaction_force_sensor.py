@@ -1,5 +1,6 @@
+from collections.abc import Callable
+
 import dolfinx as df
-import numpy as np
 import ufl
 
 from fenicsxconcrete.boundary_conditions.bcs import BoundaryConditions
@@ -9,22 +10,35 @@ from fenicsxconcrete.unit_registry import ureg
 
 
 class ReactionForceSensor(BaseSensor):
-    """A sensor that measure the reaction force at the bottom perpendicular to the surface"""
+    """A sensor that measures the reaction force at a specified surface
 
-    def __init__(self, surface=None, name=None) -> None:
+    Attributes:
+        data: list of measured values
+        time: list of time stamps
+        units : pint definition of the base unit a sensor returns
+        name : name of the sensor, default is class name, but can be changed
+        surface : function that defines the surface where the reaction force is measured
+    """
+
+    def __init__(self, surface: Callable | None = None, name: str | None = None) -> None:
         """
+        initializes a reaction force sensor, for further details, see base class
+
         Arguments:
-            where : Point where to measure
+            surface : a function that defines the reaction boundary, default is the bottom surface
+            name : name of the sensor, default is class name, but can be changed
         """
         super().__init__(name=name)
         self.surface = surface
 
     def measure(self, problem: MaterialProblem, t: float = 1.0) -> None:
         """
+        The reaction force vector of the defined surface is added to the data list,
+        as well as the time t to the time list
+
         Arguments:
             problem : FEM problem object
-            t : float, optional
-                time of measurement for time dependent problems
+            t : time of measurement for time dependent problems, default is 1
         """
         # boundary condition
         if self.surface is None:
@@ -60,5 +74,9 @@ class ReactionForceSensor(BaseSensor):
 
     @staticmethod
     def base_unit() -> ureg:
-        """Defines the base unit of this sensor"""
+        """Defines the base unit of this sensor
+
+        Returns:
+            the base unit as pint unit object
+        """
         return ureg.newton

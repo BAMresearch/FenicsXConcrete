@@ -8,24 +8,25 @@ from fenicsxconcrete.unit_registry import ureg
 
 
 class StressSensor(PointSensor):
-    """A sensor that measure the stress tensor at a specific point
+    """A sensor that measures stress at a specific point
 
     Attributes:
+        data: list of measured values
+        time: list of time stamps
+        units : pint definition of the base unit a sensor returns
+        name : name of the sensor, default is class name, but can be changed
         where: location where the value is measured
-        date: list of measured values with unit
-        time: list of time stamps with unit
-
     """
 
     def measure(self, problem: MaterialProblem, t: float = 1.0) -> None:
-        """measure stress at given point
-
-        Args:
-            problem : FEM problem object
-            t : time of measurement for time dependent problems
-
         """
+        The stress value at the defined point is added to the data list,
+        as well as the time t to the time list
 
+        Arguments:
+            problem : FEM problem object
+            t : time of measurement for time dependent problems, default is 1
+        """
         # project stress onto visualization space
         if not hasattr(problem, "stress"):
             self.logger.debug("strain not defined in problem - needs to compute stress first")
@@ -35,7 +36,8 @@ class StressSensor(PointSensor):
                 ufl.dx,
             )
         else:
-            # TODO: I cannot test this lines, yet
+            # TODO: I cannot test this lines, yet (comment: Annika)
+            #       why is it implemented??? how do you know it works? (comment: Erik)
             stress = project(problem.stress, problem.visu_space_T, problem.rule.dx)
 
         # finding the cells corresponding to the point
@@ -58,5 +60,9 @@ class StressSensor(PointSensor):
 
     @staticmethod
     def base_unit() -> ureg:
-        """Defines the base unit of this sensor"""
+        """Defines the base unit of this sensor
+
+        Returns:
+            the base unit as pint unit object
+        """
         return ureg("N/m^2")

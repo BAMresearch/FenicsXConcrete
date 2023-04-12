@@ -6,14 +6,24 @@ from fenicsxconcrete.unit_registry import ureg
 
 
 class DisplacementSensor(PointSensor):
-    """A sensor that measure displacement at a specific points"""
+    """A sensor that measures displacement at a specific point
+
+    Attributes:
+        data: list of measured values
+        time: list of time stamps
+        units : pint definition of the base unit a sensor returns
+        name : name of the sensor, default is class name, but can be changed
+        where: location where the value is measured
+    """
 
     def measure(self, problem: MaterialProblem, t: float = 1.0) -> None:
         """
+        The displacement value at the defined point is added to the data list,
+        as well as the time t to the time list
+
         Arguments:
             problem : FEM problem object
-            t : float, optional
-                time of measurement for time dependent problems
+            t : time of measurement for time dependent problems, default is 1
         """
         # get displacements
         bb_tree = df.geometry.BoundingBoxTree(problem.experiment.mesh, problem.experiment.mesh.topology.dim)
@@ -37,5 +47,9 @@ class DisplacementSensor(PointSensor):
 
     @staticmethod
     def base_unit() -> ureg:
-        """Defines the base unit of this sensor"""
+        """Defines the base unit of this sensor
+
+        Returns:
+            the base unit as pint unit object
+        """
         return ureg.meter
