@@ -15,7 +15,7 @@ from fenicsxconcrete.unit_registry import ureg
 
 
 class AmMultipleLayers(Experiment):
-    """sets up a simple layered structure
+    """set up a simple layered structure
 
     all layers of the same height are on top of each other, the boundary on the bottom is fixed
     the mesh includes all (activation via pseudo-density)
@@ -27,7 +27,7 @@ class AmMultipleLayers(Experiment):
     """
 
     def __init__(self, parameters: dict[str, pint.Quantity]):
-        """initializes the object, for the rest, see base class
+        """initialize the object, for the rest, see base class
 
         Args:
             parameters: dictionary containing the required parameters for the experiment set-up
@@ -70,7 +70,11 @@ class AmMultipleLayers(Experiment):
         return setup_parameters
 
     def setup(self) -> None:
-        """define the mesh for 2D and 3D"""
+        """define the mesh for 2D and 3D
+
+        Raises:
+            ValueError: if dimension (self.p["dim"]) is not 2 or 3
+        """
 
         self.logger.debug("setup mesh for %s", self.p["dim"])
         print(self.p["dim"])

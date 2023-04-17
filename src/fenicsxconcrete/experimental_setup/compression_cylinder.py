@@ -81,7 +81,7 @@ class CompressionCylinder(Experiment):
     """
 
     def __init__(self, parameters: dict[str, pint.Quantity] | None = None) -> None:
-        """initializes the object, for the rest, see base class
+        """initialize the object, for the rest, see base class
 
         Standard parameters are set
         setup function called
@@ -102,9 +102,12 @@ class CompressionCylinder(Experiment):
         self.top_displacement = df.fem.Constant(domain=self.mesh, c=0.0)  # applied via fkt: apply_displ_load(...)
 
     def setup(self) -> None:
-        """Generates the mesh based on parameters
+        """Generate the mesh based on parameters
 
         This function is called during __init__
+
+        Raises:
+            ValueError: if dimension (self.p["dim"]) is not 2 or 3
 
         """
 
@@ -187,7 +190,7 @@ class CompressionCylinder(Experiment):
         return default_parameters
 
     def create_displacement_boundary(self, V: df.fem.FunctionSpace) -> list[df.fem.bcs.DirichletBCMetaClass]:
-        """Defines the displacement boundary conditions
+        """Define the displacement boundary conditions
 
         Args:
             V: Function space of the structure
@@ -249,7 +252,7 @@ class CompressionCylinder(Experiment):
         return bc_generator.bcs
 
     def apply_displ_load(self, top_displacement: pint.Quantity | float) -> None:
-        """Updates the applied displacement load
+        """Update the applied displacement load
 
         Args:
             top_displacement: Displacement of the top boundary in mm, > 0 ; tension, < 0 ; compression

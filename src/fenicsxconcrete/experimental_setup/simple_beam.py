@@ -15,7 +15,7 @@ from fenicsxconcrete.unit_registry import ureg
 
 
 class SimpleBeam(Experiment):
-    """Sets up a simply supported beam, fix on the left
+    """Set up a simply supported beam, fix on the left
 
     Attributes:
         parameters : parameter dictionary with units
@@ -24,7 +24,7 @@ class SimpleBeam(Experiment):
     """
 
     def __init__(self, parameters: dict[str, pint.Quantity]) -> None:
-        """initializes the object,  for the rest, see base class
+        """initialize the object,  for the rest, see base class
 
         Args:
             parameters: dictionary containing the required parameters for the experiment set-up
@@ -42,7 +42,11 @@ class SimpleBeam(Experiment):
         super().__init__(default_p)
 
     def setup(self):
-        """defines the mesh for 2D or 3D"""
+        """define the mesh for 2D or 3D
+
+        Raises:
+            ValueError: if dimension (self.p["dim"]) is not 2 or 3
+        """
 
         if self.p["dim"] == 2:
             self.mesh = df.mesh.create_rectangle(

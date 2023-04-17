@@ -11,7 +11,7 @@ from fenicsxconcrete.unit_registry import ureg
 
 
 class CantileverBeam(Experiment):
-    """Sets up a cantilever beam, clamped on one side and loaded with gravity
+    """Set up a cantilever beam, clamped on one side and loaded with gravity
 
     Attributes:
         parameters : parameter dictionary with units
@@ -20,7 +20,7 @@ class CantileverBeam(Experiment):
     """
 
     def __init__(self, parameters: dict[str, pint.Quantity] | None = None):
-        """initializes the object, for the rest, see base class
+        """initialize the object, for the rest, see base class
 
         Args:
             parameters: dictionary containing the required parameters for the experiment set-up
@@ -38,7 +38,11 @@ class CantileverBeam(Experiment):
         super().__init__(default_p)
 
     def setup(self) -> None:
-        """defines the mesh for 2D or 3D"""
+        """define the mesh for 2D or 3D
+
+        Raises:
+            ValueError: if dimension (self.p["dim"]) is not 2 or 3
+        """
 
         if self.p["dim"] == 2:
             self.mesh = df.mesh.create_rectangle(
@@ -66,7 +70,7 @@ class CantileverBeam(Experiment):
 
     @staticmethod
     def default_parameters() -> dict[str, pint.Quantity]:
-        """sets up a working set of parameter values as example
+        """set up a working set of parameter values as example
 
         Returns:
             dictionary with a working set of the required parameter
