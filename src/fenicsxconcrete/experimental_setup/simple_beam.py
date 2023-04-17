@@ -15,7 +15,7 @@ from fenicsxconcrete.unit_registry import ureg
 
 
 class SimpleBeam(Experiment):
-    """Set up a simply supported beam, fix on the left
+    """Sets up a simply supported beam, fix on the left
 
     Attributes:
         parameters : parameter dictionary with units
@@ -24,7 +24,7 @@ class SimpleBeam(Experiment):
     """
 
     def __init__(self, parameters: dict[str, pint.Quantity]) -> None:
-        """initialize the object,  for the rest, see base class
+        """initializes the object,  for the rest, see base class
 
         Args:
             parameters: dictionary containing the required parameters for the experiment set-up
@@ -42,7 +42,7 @@ class SimpleBeam(Experiment):
         super().__init__(default_p)
 
     def setup(self):
-        """define the mesh for 2D or 3D
+        """defines the mesh for 2D or 3D
 
         Raises:
             ValueError: if dimension (self.p["dim"]) is not 2 or 3
@@ -74,7 +74,7 @@ class SimpleBeam(Experiment):
 
     @staticmethod
     def default_parameters() -> dict[str, pint.Quantity]:
-        """set up a working set of parameter values as example
+        """sets up a working set of parameter values as example
 
         Returns:
             dictionary with a working set of the required parameter
@@ -95,7 +95,7 @@ class SimpleBeam(Experiment):
         return setup_parameters
 
     def create_displacement_boundary(self, V) -> list:
-        """define displacement boundary as fixed at bottom
+        """defines displacement boundary as fixed at bottom
 
         Args:
             V: function space
@@ -131,7 +131,7 @@ class SimpleBeam(Experiment):
         return bc_generator.bcs
 
     def create_body_force(self, v: ufl.argument.Argument) -> ufl.form.Form:
-        """define body force
+        """defines body force
 
         Args:
             v: test function
@@ -150,7 +150,7 @@ class SimpleBeam(Experiment):
         return L
 
     def boundary_left(self) -> Callable:
-        """specify boundary at bottom
+        """specifies boundary at bottom
 
         Returns:
             fct defining boundary
@@ -163,7 +163,7 @@ class SimpleBeam(Experiment):
             return line_at([0, 0], ["x", "z"])
 
     def boundary_right(self) -> Callable:
-        """specify boundary at bottom
+        """specifies boundary at bottom
 
         Returns:
             fct defining boundary

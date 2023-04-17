@@ -15,7 +15,7 @@ from fenicsxconcrete.unit_registry import ureg
 
 
 class AmMultipleLayers(Experiment):
-    """set up a simple layered structure
+    """sets up a simple layered structure
 
     all layers of the same height are on top of each other, the boundary on the bottom is fixed
     the mesh includes all (activation via pseudo-density)
@@ -27,7 +27,7 @@ class AmMultipleLayers(Experiment):
     """
 
     def __init__(self, parameters: dict[str, pint.Quantity]):
-        """initialize the object, for the rest, see base class
+        """initializes the object, for the rest, see base class
 
         Args:
             parameters: dictionary containing the required parameters for the experiment set-up
@@ -45,7 +45,7 @@ class AmMultipleLayers(Experiment):
 
     @staticmethod
     def default_parameters() -> dict[str, pint.Quantity]:
-        """set up a working set of parameter values as example
+        """sets up a working set of parameter values as example
 
         Returns:
             dictionary with a working set of the required parameter
@@ -70,7 +70,7 @@ class AmMultipleLayers(Experiment):
         return setup_parameters
 
     def setup(self) -> None:
-        """define the mesh for 2D and 3D
+        """defines the mesh for 2D and 3D
 
         Raises:
             ValueError: if dimension (self.p["dim"]) is not 2 or 3
@@ -104,7 +104,7 @@ class AmMultipleLayers(Experiment):
             raise ValueError(f'wrong dimension: {self.p["dim"]} is not implemented for problem setup')
 
     def create_displacement_boundary(self, V: df.fem.FunctionSpace) -> list[df.fem.bcs.DirichletBCMetaClass]:
-        """define displacement boundary as fixed at bottom
+        """defines displacement boundary as fixed at bottom
 
         Args:
             V: function space
@@ -135,7 +135,7 @@ class AmMultipleLayers(Experiment):
         return bc_generator.bcs
 
     def create_body_force(self, v: ufl.argument.Argument) -> ufl.form.Form:
-        """define body force
+        """defines body force
 
         Args:
             v: test function
@@ -154,7 +154,7 @@ class AmMultipleLayers(Experiment):
         return L
 
     def boundary_bottom(self) -> Callable:
-        """specific boundary at bottom
+        """specifies boundary at bottom
 
         Returns:
             fct defining if dof is at boundary

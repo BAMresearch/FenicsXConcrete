@@ -11,7 +11,7 @@ from fenicsxconcrete.unit_registry import ureg
 
 
 class CantileverBeam(Experiment):
-    """Set up a cantilever beam, clamped on one side and loaded with gravity
+    """Sets up a cantilever beam, clamped on one side and loaded with gravity
 
     Attributes:
         parameters : parameter dictionary with units
@@ -20,7 +20,7 @@ class CantileverBeam(Experiment):
     """
 
     def __init__(self, parameters: dict[str, pint.Quantity] | None = None):
-        """initialize the object, for the rest, see base class
+        """initializes the object, for the rest, see base class
 
         Args:
             parameters: dictionary containing the required parameters for the experiment set-up
@@ -38,7 +38,7 @@ class CantileverBeam(Experiment):
         super().__init__(default_p)
 
     def setup(self) -> None:
-        """define the mesh for 2D or 3D
+        """defines the mesh for 2D or 3D
 
         Raises:
             ValueError: if dimension (self.p["dim"]) is not 2 or 3
@@ -70,7 +70,7 @@ class CantileverBeam(Experiment):
 
     @staticmethod
     def default_parameters() -> dict[str, pint.Quantity]:
-        """set up a working set of parameter values as example
+        """sets up a working set of parameter values as example
 
         Returns:
             dictionary with a working set of the required parameter
@@ -89,7 +89,7 @@ class CantileverBeam(Experiment):
         return setup_parameters
 
     def create_displacement_boundary(self, V) -> list:
-        """define displacement boundary as fixed at bottom
+        """defines displacement boundary as fixed at bottom
 
         Args:
             V: function space
@@ -117,7 +117,7 @@ class CantileverBeam(Experiment):
         return displacement_bcs
 
     def create_body_force(self, v: ufl.argument.Argument) -> ufl.form.Form:
-        """define body force
+        """defines body force
 
         Args:
             v: test function

@@ -11,7 +11,7 @@ from fenicsxconcrete.unit_registry import ureg
 
 
 class TensileBeam(Experiment):
-    """Set up a tensile beam experiment, clamped on one side and loaded with force on the other side
+    """Sets up a tensile beam experiment, clamped on one side and loaded with force on the other side
 
     Attributes:
         parameters : parameter dictionary with units
@@ -20,7 +20,7 @@ class TensileBeam(Experiment):
     """
 
     def __init__(self, parameters: dict[str, pint.Quantity] | None = None) -> None:
-        """initialize the object, for the rest, see base class
+        """initializes the object, for the rest, see base class
 
         Args:
             parameters: dictionary containing the required parameters for the experiment set-up
@@ -37,7 +37,7 @@ class TensileBeam(Experiment):
         super().__init__(default_p)
 
     def setup(self) -> None:
-        """define the mesh for 2D or 3D
+        """defines the mesh for 2D or 3D
 
         Raises:
             ValueError: if dimension (self.p["dim"]) is not 2 or 3
@@ -69,7 +69,7 @@ class TensileBeam(Experiment):
 
     @staticmethod
     def default_parameters() -> dict[str, pint.Quantity]:
-        """set up a working set of parameter values as example
+        """sets up a working set of parameter values as example
 
         Returns:
             dictionary with a working set of the required parameter
@@ -89,7 +89,7 @@ class TensileBeam(Experiment):
         return setup_parameters
 
     def create_displacement_boundary(self, V) -> list:
-        """Define the displacement boundary conditions
+        """Defines the displacement boundary conditions
 
         Args:
             V: Function space of the structure

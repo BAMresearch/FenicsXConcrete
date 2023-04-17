@@ -12,7 +12,7 @@ from fenicsxconcrete.unit_registry import ureg
 
 
 class UniaxialCubeExperiment(Experiment):
-    """set up an uniaxial cube structure with displacement load
+    """sets up an uniaxial cube structure with displacement load
 
     2D unit square or 3D unit cube with uniaxial boundary conditions
     displacement controlled
@@ -44,7 +44,7 @@ class UniaxialCubeExperiment(Experiment):
 
     @staticmethod
     def default_parameters() -> dict[str, pint.Quantity]:
-        """set up a working set of parameter values as example
+        """sets up a working set of parameter values as example
 
         Returns:
             dictionary with a working set of the required parameter
@@ -63,7 +63,11 @@ class UniaxialCubeExperiment(Experiment):
         return setup_parameters
 
     def setup(self) -> None:
-        """Generates the mesh in 2D or 3D based on parameters"""
+        """Generates the mesh in 2D or 3D based on parameters
+
+        Raises:
+            ValueError: if dimension (self.p["dim"]) is not 2 or 3
+        """
 
         self.logger.debug("setup mesh for %s", self.p["dim"])
 

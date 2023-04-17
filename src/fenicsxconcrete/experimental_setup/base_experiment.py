@@ -62,7 +62,7 @@ class Experiment(ABC, LogMixin):
 
     @abstractmethod
     def create_displacement_boundary(self, V: df.fem.FunctionSpace) -> list[df.fem.bcs.DirichletBCMetaClass] | None:
-        """define empty displacement boundary conditions (to be done in child)
+        """defines empty displacement boundary conditions (to be done in child)
 
         this function is abstract until there is a need for a material that does not need a displacement boundary
         once that is required, just make this a normal function that returns an empty list
@@ -76,7 +76,7 @@ class Experiment(ABC, LogMixin):
         """
 
     def create_force_boundary(self, v: ufl.argument.Argument | None = None) -> ufl.form.Form | None:
-        """define empty force boundary (to be done in child)
+        """defines empty force boundary (to be done in child)
 
         Args:
             v: test function
@@ -89,7 +89,7 @@ class Experiment(ABC, LogMixin):
         pass
 
     def create_body_force(self, v: ufl.argument.Argument | None = None) -> ufl.form.Form | None:
-        """define empty body force function
+        """defines empty body force function
 
         Args:
             v: test function
@@ -102,7 +102,7 @@ class Experiment(ABC, LogMixin):
         pass
 
     def boundary_top(self) -> Callable:
-        """specify boundary: plane at top
+        """specifies boundary: plane at top
 
         Returns:
             fct defining if dof is at boundary
@@ -114,7 +114,7 @@ class Experiment(ABC, LogMixin):
             return plane_at(self.p["height"], 2)
 
     def boundary_bottom(self) -> Callable:
-        """specify boundary: plane at bottom
+        """specifies boundary: plane at bottom
 
         Returns: fct defining if dof is at boundary
 
@@ -125,7 +125,7 @@ class Experiment(ABC, LogMixin):
             return plane_at(0.0, "z")
 
     def boundary_left(self) -> Callable:
-        """specify boundary: plane at left side
+        """specifies boundary: plane at left side
 
         Returns:
             fct defining if dof is at boundary
@@ -137,7 +137,7 @@ class Experiment(ABC, LogMixin):
             return plane_at(0.0, "x")
 
     def boundary_right(self) -> Callable:
-        """specify boundary: plane at left side
+        """specifies boundary: plane at left side
 
         Returns:
             fct defining if dof is at boundary
@@ -149,7 +149,7 @@ class Experiment(ABC, LogMixin):
             return plane_at(self.p["length"], "x")
 
     def boundary_front(self) -> Callable:
-        """specify boundary: plane at front
+        """specifies boundary: plane at front
 
         only for 3D case front plane
 
@@ -161,7 +161,7 @@ class Experiment(ABC, LogMixin):
             return plane_at(0.0, "y")
 
     def boundary_back(self) -> Callable:
-        """specify boundary: plane at front
+        """specifies boundary: plane at front
 
         only for 3D case front plane
 
