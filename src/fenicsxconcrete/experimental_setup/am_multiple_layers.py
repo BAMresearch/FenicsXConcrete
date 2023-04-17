@@ -152,16 +152,3 @@ class AmMultipleLayers(Experiment):
         L = ufl.dot(f, v) * ufl.dx
 
         return L
-
-    def boundary_bottom(self) -> Callable:
-        """specifies boundary at bottom
-
-        Returns:
-            fct defining if dof is at boundary
-
-        """
-
-        if self.p["dim"] == 2:
-            return plane_at(0.0, "y")
-        elif self.p["dim"] == 3:
-            return plane_at(0.0, "z")
