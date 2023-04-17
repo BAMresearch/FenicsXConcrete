@@ -49,7 +49,7 @@ class Experiment(ABC, LogMixin):
     @staticmethod
     @abstractmethod
     def default_parameters() -> dict[str, pint.Quantity]:
-        """set up a working set of parameter values as example
+        """sets up a working set of parameter values as example
 
         must be defined in each child
 
