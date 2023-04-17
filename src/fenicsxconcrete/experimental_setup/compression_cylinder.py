@@ -260,29 +260,3 @@ class CompressionCylinder(Experiment):
         """
 
         self.top_displacement.value = top_displacement.magnitude
-
-    def boundary_top(self) -> Callable:
-        """specify boundary at top
-
-        Returns:
-            fct defining boundary
-
-        """
-
-        if self.p["dim"] == 2:
-            return plane_at(self.p["height"], 1)
-        elif self.p["dim"] == 3:
-            return plane_at(self.p["height"], 2)
-
-    def boundary_bottom(self) -> Callable:
-        """specify boundary at bottom
-
-        Returns:
-            fct defining boundary
-
-        """
-
-        if self.p["dim"] == 2:
-            return plane_at(0.0, 1)
-        elif self.p["dim"] == 3:
-            return plane_at(0.0, 2)

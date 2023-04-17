@@ -1,9 +1,11 @@
 from abc import ABC, abstractmethod
+from collections.abc import Callable
 
 import dolfinx as df
 import pint
 import ufl
 
+from fenicsxconcrete.boundary_conditions.boundary import plane_at, point_at
 from fenicsxconcrete.helper import LogMixin, Parameters
 from fenicsxconcrete.unit_registry import ureg
 
@@ -98,3 +100,74 @@ class Experiment(ABC, LogMixin):
         """
 
         pass
+
+    def boundary_top(self) -> Callable:
+        """specify boundary: plane at top
+
+        Returns:
+            fct defining if dof is at boundary
+
+        """
+        if self.p["dim"] == 2:
+            return plane_at(self.p["height"], 1)
+        elif self.p["dim"] == 3:
+            return plane_at(self.p["height"], 2)
+
+    def boundary_bottom(self) -> Callable:
+        """specify boundary: plane at bottom
+
+        Returns: fct defining if dof is at boundary
+
+        """
+        if self.p["dim"] == 2:
+            return plane_at(0.0, "y")
+        elif self.p["dim"] == 3:
+            return plane_at(0.0, "z")
+
+    def boundary_left(self) -> Callable:
+        """specify boundary: plane at left side
+
+        Returns:
+            fct defining if dof is at boundary
+
+        """
+        if self.p["dim"] == 2:
+            return plane_at(0.0, "x")
+        elif self.p["dim"] == 3:
+            return plane_at(0.0, "x")
+
+    def boundary_right(self) -> Callable:
+        """specify boundary: plane at left side
+
+        Returns:
+            fct defining if dof is at boundary
+
+        """
+        if self.p["dim"] == 2:
+            return plane_at(self.p["length"], "x")
+        elif self.p["dim"] == 3:
+            return plane_at(self.p["length"], "x")
+
+    def boundary_front(self) -> Callable:
+        """specify boundary: plane at front
+
+        only for 3D case front plane
+
+        Returns:
+            fct defining if dof is at boundary
+
+        """
+        if self.p["dim"] == 3:
+            return plane_at(0.0, "y")
+
+    def boundary_back(self) -> Callable:
+        """specify boundary: plane at front
+
+        only for 3D case front plane
+
+        Returns:
+            fct defining if dof is at boundary
+
+        """
+        if self.p["dim"] == 3:
+            return plane_at(self.p["width"], "y")
