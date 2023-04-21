@@ -44,16 +44,16 @@ def project(
 ) -> None | df.fem.Function:
     """
     Calculates an approximation of `v` on the space `V`
+
     Args:
         v: The expression that we want to evaluate.
         V: The function space on which we want to evaluate.
         dx: The measure that is used for the integration. This is important, if we want to evaluate
-            a Quadrature function on a _normal_ space.
+        a Quadrature function on a normal space.
         u: The output function.
 
     Returns:
         A function if `u` is None, otherwise `None`.
-
     """
     dv = ufl.TrialFunction(V)
     v_ = ufl.TestFunction(V)

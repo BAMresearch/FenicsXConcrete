@@ -29,7 +29,7 @@ The material model used is a linear elastic constitutive model.
 
 from fenicsxconcrete.experimental_setup.compression_cylinder import CompressionCylinder
 from fenicsxconcrete.finite_element_problem.linear_elasticity import LinearElasticity
-from fenicsxconcrete.sensor_definition.other_sensor import ReactionForceSensorBottom
+from fenicsxconcrete.sensor_definition.reaction_force_sensor import ReactionForceSensor
 from fenicsxconcrete.unit_registry import ureg
 
 parameters = {}
@@ -43,7 +43,7 @@ parameters["bc_setting"] = "fixed" * ureg("")
 parameters["mesh_density"] = 10 * ureg("")
 
 displacement = -0.003 * ureg("m")
-sensor = ReactionForceSensorBottom()
+sensor = ReactionForceSensor()
 
 experiment = CompressionCylinder(parameters)
 problem = LinearElasticity(experiment, parameters)
@@ -53,7 +53,7 @@ problem.experiment.apply_displ_load(displacement)
 
 problem.solve()
 
-measured = problem.sensors[sensor.name].data[-1]
-measured.ito("kN")  # convert units
+measured = problem.sensors[sensor.name].data[0][-1]
 
-print(f"The reaction force is {abs(measured.magnitude):.2f} {measured.units}.")
+
+print(f"The reaction force is {abs(measured):.2f} {sensor.units}.")

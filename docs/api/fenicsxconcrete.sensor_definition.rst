@@ -20,10 +20,26 @@ fenicsxconcrete.sensor\_definition.displacement\_sensor module
    :undoc-members:
    :show-inheritance:
 
-fenicsxconcrete.sensor\_definition.other\_sensor module
--------------------------------------------------------
+fenicsxconcrete.sensor\_definition.reaction\_force\_sensor module
+-----------------------------------------------------------------
 
-.. automodule:: fenicsxconcrete.sensor_definition.other_sensor
+.. automodule:: fenicsxconcrete.sensor_definition.reaction_force_sensor
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+fenicsxconcrete.sensor\_definition.strain\_sensor module
+--------------------------------------------------------
+
+.. automodule:: fenicsxconcrete.sensor_definition.strain_sensor
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+fenicsxconcrete.sensor\_definition.stress\_sensor module
+--------------------------------------------------------
+
+.. automodule:: fenicsxconcrete.sensor_definition.stress_sensor
    :members:
    :undoc-members:
    :show-inheritance:

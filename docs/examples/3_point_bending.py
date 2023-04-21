@@ -49,7 +49,7 @@ problem = LinearElasticity(beam_setup, parameters)
 # Third, set up a sensor and add it to the problem to access results of the FEM simulation:
 
 sensor_location = [parameters["length"].magnitude / 2, parameters["width"].magnitude / 2, 0.0]
-sensor = DisplacementSensor([sensor_location])
+sensor = DisplacementSensor(sensor_location)
 
 problem.add_sensor(sensor)
 
@@ -60,8 +60,5 @@ problem.add_sensor(sensor)
 problem.solve()
 
 displacement_data = problem.sensors["DisplacementSensor"].data[0]
-displacement_data.ito("mm")  # convert the pint unit
 
-print(
-    f"The displacement at the center of the beam in loading direction is {displacement_data.magnitude[2]:.2f} {displacement_data.units}."
-)
+print(f"The displacement at the center of the beam in loading direction is {displacement_data[2]:.2f} {sensor.units}.")
