@@ -56,7 +56,7 @@ def test_force_response(bc_setting: int, degree: int, dim: str) -> None:
     elif dim == 3:
         result = fem_p["E"] * np.pi * fem_p["radius"] ** 2 * displacement / fem_p["height"]
 
-    assert measured.magnitude == pytest.approx(result.magnitude, 0.05)
+    assert measured == pytest.approx(result.magnitude, 0.05)
 
 
 @pytest.mark.parametrize("bc_setting", ["fixed", "free"])
