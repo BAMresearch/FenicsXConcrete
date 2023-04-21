@@ -1,14 +1,20 @@
 {% set name = "FenicsXConcrete" %}
-{% set pyproject = load_file_data('../pyproject.toml', from_recipe_dir=true) %}
-# Use pyproject as single source for version variable
+{% set pyproject = load_file_data("../pyproject.toml", from_recipe_dir=true) %}
+{% set version = pyproject.get('project').get('version') %}
+# For setting the version, set the desired value in pyproject.toml
+# This should also work for pre-releases like 0.0.1a1
+# Next, create/draft a new release with a tag equal to version (prefixed with v)
+# and choose the correct branch as target.
+# Example: version = "0.0.5a1" in pyproject.toml
+# tag --> v0.0.5a1
+# See https://peps.python.org/pep-0440/#version-scheme
 
 package:
   name: {{ name|lower }}
-  version: {{ pyproject.get('version') }}
+  version: {{ version }}
 
 source:
-  git_url: https://github.com/BAMresearch/FenicsXConcrete
-  git_tag: 26-update-github-actions-to-build-conda-package
+  url: https://github.com/BAMresearch/FenicsXConcrete/archive/refs/tags/v{{ version }}.tar.gz
 
 build:
   skip: True  # [win or osx]
@@ -22,10 +28,12 @@ requirements:
     - setuptools
 
   run:
-    - python
-    - pint
     - fenics-dolfinx
-    - loguru
+    - matplotlib
+    - meshio
+    - pint
+    - python
+    - python-gmsh
 
 test:
   imports:

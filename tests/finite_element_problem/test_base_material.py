@@ -3,34 +3,24 @@ import pytest
 from fenicsxconcrete.experimental_setup.cantilever_beam import CantileverBeam
 from fenicsxconcrete.finite_element_problem.linear_elasticity import LinearElasticity
 from fenicsxconcrete.sensor_definition.displacement_sensor import DisplacementSensor
-from fenicsxconcrete.unit_registry import ureg
 
 
-@pytest.mark.parametrize(
-    "log_level",
-    [
-        ["DEBUG", False],
-        ["INFO", False],
-        ["ERROR", False],
-        ["WARNING", False],
-        ["CRITICAL", False],
-        ["some_string_that is_not_implemented", True],
-    ],
-)
-def test_log_levels(log_level: list[str | bool]) -> None:
-    """This function tests all implemented log level in the base material init"""
-
-    log_str = log_level[0]
-    error_flag = log_level[1]
+def test_sensor_dict() -> None:
+    """This function tests the sensor dict"""
 
     default_experiment, fem_parameters = LinearElasticity.default_parameters()
-    fem_parameters["log_level"] = log_str * ureg("")
+    problem = LinearElasticity(default_experiment, fem_parameters)
 
-    if not error_flag:
-        LinearElasticity(default_experiment, fem_parameters)
-    else:
-        with pytest.raises(ValueError):
-            LinearElasticity(default_experiment, fem_parameters)
+    sensor_location = [0.0, 0.0, 0.0]
+    sensor = DisplacementSensor([sensor_location])
+
+    # testing the renaming of multiple sensors
+    problem.add_sensor(sensor)
+    problem.add_sensor(sensor)
+    assert "DisplacementSensor2" in problem.sensors.keys()
+
+    # accessing as attribute
+    assert problem.sensors.DisplacementSensor2
 
 
 def test_sensor_error() -> None:
@@ -51,7 +41,7 @@ def test_sensor_options() -> None:
     default_setup, fem_parameters = LinearElasticity.default_parameters()
 
     sensor_location = [setup_parameters["length"].magnitude, 0.0, 0.0]
-    sensor = DisplacementSensor([sensor_location])
+    sensor = DisplacementSensor(sensor_location)
 
     # setting up the problem
     experiment = CantileverBeam(setup_parameters)  # Specifies the domain, discretises it and apply Dirichlet BCs

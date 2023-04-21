@@ -9,6 +9,7 @@ import ufl
 from dolfinx.io import gmshio
 from mpi4py import MPI
 
+from fenicsxconcrete import _GMSH_VERBOSITY
 from fenicsxconcrete.boundary_conditions.bcs import BoundaryConditions
 from fenicsxconcrete.boundary_conditions.boundary import plane_at, point_at
 from fenicsxconcrete.experimental_setup.base_experiment import Experiment
@@ -19,21 +20,20 @@ from fenicsxconcrete.unit_registry import ureg
 def generate_cylinder_mesh(radius: float, height: float, mesh_density: float, element_degree: int = 2) -> df.mesh.Mesh:
     """Uses gmsh to generate a cylinder mesh for fenics
 
-    Paramters
-    ---------
-    radius : radius of the cylinder
-    height : height of the cylinder
-    mesh_density : defines the size of the elements and the minimum number of element edges in the height of the cylinder
-    element_degree: degree of the discretization elements, quadratic geometry by default
+    Args:
+        radius: radius of the cylinder
+        height: height of the cylinder
+        mesh_density: defines the size of the elements and the minimum number of element edges in the height of the cylinder
+        element_degree: degree of the discretization elements, quadratic geometry by default
 
-    Returns
-    -------
-    mesh : cylinder mesh for dolfin
+    Returns:
+        cylinder mesh for dolfin
+
     """
 
     # start gmsh
     gmsh.initialize()
-    gmsh.option.setNumber("General.Verbosity", 3)  # only print warnings etc
+    gmsh.option.setNumber("General.Verbosity", _GMSH_VERBOSITY)  # only print warnings etc
     gmsh.model.add("cylinder_mesh")  # give the model a name
 
     # generate cylinder geometry with origin in (0,0,0)
@@ -72,18 +72,25 @@ def generate_cylinder_mesh(radius: float, height: float, mesh_density: float, el
 
 
 class CompressionCylinder(Experiment):
-    """A cylinder mesh for a uni-axial displacement load"""
+    """A cylinder mesh for a uni-axial displacement load
+
+    Attributes:
+        parameters : parameter dictionary with units
+        p : parameter dictionary without units
+
+    """
 
     def __init__(self, parameters: dict[str, pint.Quantity] | None = None) -> None:
-        """initializes the object
+        """initializes the object, for the rest, see base class
 
         Standard parameters are set
         setup function called
 
-        Parameters
-        ----------
-        parameters : dictionary with parameters that can override the default values
+         Args:
+            parameters: dictionary with parameters that can override the default values
+
         """
+
         # initialize a set of default parameters
         p = Parameters()
 
@@ -98,6 +105,10 @@ class CompressionCylinder(Experiment):
         """Generates the mesh based on parameters
 
         This function is called during __init__
+
+        Raises:
+            ValueError: if dimension (self.p["dim"]) is not 2 or 3
+
         """
 
         if self.p["dim"] == 2:
@@ -151,7 +162,12 @@ class CompressionCylinder(Experiment):
 
     @staticmethod
     def default_parameters() -> dict[str, pint.Quantity]:
-        """returns a dictionary with required parameters and a set of working values as example"""
+        """sets up a working set of parameter values as example
+
+        Returns:
+            dictionary with a working set of the required parameter
+
+        """
 
         default_parameters = {}
 
@@ -176,13 +192,12 @@ class CompressionCylinder(Experiment):
     def create_displacement_boundary(self, V: df.fem.FunctionSpace) -> list[df.fem.bcs.DirichletBCMetaClass]:
         """Defines the displacement boundary conditions
 
-        Parameters
-        ----------
-            V : Function space of the structure
+        Args:
+            V: Function space of the structure
 
-        Returns
-        -------
-            displ_bc : A list of DirichletBC objects, defining the boundary conditions
+        Returns:
+            list of DirichletBC objects, defining the boundary conditions
+
         """
 
         # define boundary conditions generator
@@ -239,21 +254,9 @@ class CompressionCylinder(Experiment):
     def apply_displ_load(self, top_displacement: pint.Quantity | float) -> None:
         """Updates the applied displacement load
 
-        Parameters
-        ----------
-        top_displacement : Displacement of the top boundary in mm, > 0 ; tension, < 0 ; compression
+        Args:
+            top_displacement: Displacement of the top boundary in mm, > 0 ; tension, < 0 ; compression
+
         """
 
         self.top_displacement.value = top_displacement.magnitude
-
-    def boundary_top(self) -> Callable:
-        if self.p["dim"] == 2:
-            return plane_at(self.p["height"], 1)
-        elif self.p["dim"] == 3:
-            return plane_at(self.p["height"], 2)
-
-    def boundary_bottom(self) -> Callable:
-        if self.p["dim"] == 2:
-            return plane_at(0.0, 1)
-        elif self.p["dim"] == 3:
-            return plane_at(0.0, 2)

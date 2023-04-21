@@ -1,3 +1,4 @@
+import pytest
 from pint import UnitRegistry
 
 from fenicsxconcrete.helper import Parameters
@@ -29,3 +30,19 @@ def test_parameter_dic_functions() -> None:
     # testing if adding None to dictionary works
     new = parameters + None
     assert new is parameters
+
+
+def test_parameter_dic_update() -> None:
+    parameters = Parameters()
+
+    # testing that update still requires a pint object
+    p_wo_pint = {"length": 0.006}
+    with pytest.raises(AssertionError):
+        parameters.update(p_wo_pint)
+
+    # testing that conversion to base units works with update
+    length = 6000
+    p_with_pint = {"length": length * ureg("mm")}
+    parameters.update(p_with_pint)
+
+    assert parameters["length"].magnitude == length / 1000

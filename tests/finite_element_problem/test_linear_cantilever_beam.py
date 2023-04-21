@@ -46,7 +46,7 @@ def test_linear_cantilever_beam(dimension: int, results: list[float]) -> None:
     # Defining sensor positions
     # TODO: why do I need the third coordinate for a 2D problem?!?
     sensor_location = [setup_parameters["length"].magnitude, 0.0, 0.0]
-    sensor = DisplacementSensor([sensor_location])
+    sensor = DisplacementSensor(sensor_location)
 
     # setting up the problem
     experiment = CantileverBeam(setup_parameters)  # Specifies the domain, discretises it and apply Dirichlet BCs
@@ -63,7 +63,7 @@ def test_linear_cantilever_beam(dimension: int, results: list[float]) -> None:
         assert file.is_file()
 
     # check sensor output
-    displacement_data = problem.sensors["DisplacementSensor"].data[-1]
+    displacement_data = problem.sensors["DisplacementSensor"].get_last_entry()
     assert displacement_data.magnitude == pytest.approx(results)
 
     # Second test
@@ -73,6 +73,6 @@ def test_linear_cantilever_beam(dimension: int, results: list[float]) -> None:
     problem2 = LinearElasticity(experiment, fem_parameters)
     problem2.add_sensor(sensor)
     problem2.solve()
-    displacement_data2 = problem2.sensors["DisplacementSensor"].data[-1]
+    displacement_data2 = problem2.sensors["DisplacementSensor"].get_last_entry()
 
     assert displacement_data2.magnitude * increase == pytest.approx(displacement_data.magnitude)
