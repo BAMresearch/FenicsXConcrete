@@ -6,8 +6,7 @@ This is the documentation of FEniCSxConcrete.
 ```{toctree}
 ---
 hidden:
-maxdepth: 2
 ---
-examples/3_point_bending
+auto_examples/index
 api/modules
 ```

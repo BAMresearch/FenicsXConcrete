@@ -1,10 +1,14 @@
-### Compression cylinder setup with a linear elastic constitutive model
+""" 
+Compression cylinder setup with a linear elastic constitutive model
+===================================================================
 
-# This experiment setup models a cylinder under compression with two options for the boundary conditions: free and fixed.
-# The material model used is a linear elastic constitutive model.
+This experiment setup models a cylinder under compression with two options for the boundary conditions: free and fixed.
+The material model used is a linear elastic constitutive model.
+"""
 
-## Parameters
-
+# %%
+# Parameters
+# ----------
 # The following parameters can be defined for this setup:
 #
 # * `E` (Young's modulus)
@@ -17,13 +21,12 @@
 # * `mesh_density` (mesh density) in 1/m
 #
 # The parameters must be defined as `pint` objects
-
-## Example code
-
+#
+# Example code
+# ------------
 # In this example, we define the parameters for the compression cylinder setup, set the displacement and sensor, and then create the experiment and the problem using `fenicxconcrete`.
 # Finally, we solve the problem and get the measured reaction force at the bottom of the cylinder.
 
-# %%
 from fenicsxconcrete.experimental_setup.compression_cylinder import CompressionCylinder
 from fenicsxconcrete.finite_element_problem.linear_elasticity import LinearElasticity
 from fenicsxconcrete.sensor_definition.other_sensor import ReactionForceSensorBottom

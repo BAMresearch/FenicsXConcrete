@@ -1,7 +1,9 @@
 """
 Three point bending experiment with a linear elastic constitutive model
-================================
-This example demonstrates how to set up a three-point bending beam and access the displacement data of a specific point using a linear elastic constitutive model.
+=======================================================================
+
+This example demonstrates how to set up a three-point bending beam and access
+the displacement data of a specific point using a linear elastic constitutive model.
 """
 # %%
 # To run this example, the following functions need to be imported:
@@ -12,7 +14,8 @@ from fenicsxconcrete.sensor_definition.displacement_sensor import DisplacementSe
 from fenicsxconcrete.unit_registry import ureg
 
 # %%
-## Setting up the Beam
+# Setting up the Beam
+# -------------------
 # First, initialize the setup for the simply supported beam with a distributed load.
 # Define the geometry, the mesh, and the load.
 # Note, all parameters must be pint objects:
@@ -30,7 +33,8 @@ parameters["load"] = 200 * ureg("kN/m^2")
 beam_setup = SimpleBeam(parameters)
 
 # %%
-## Initializing the Linear Elasticity Problem
+# Initializing the Linear Elasticity Problem
+# ------------------------------------------
 # Second, initialize the linear elastic problem using the setup object and further material parameters:
 
 parameters["rho"] = 7750 * ureg("kg/m^3")
@@ -40,7 +44,8 @@ parameters["nu"] = 0.28 * ureg("")
 problem = LinearElasticity(beam_setup, parameters)
 
 # %%
-## Setting Up the Sensor
+# Setting Up the Sensor
+# ---------------------
 # Third, set up a sensor and add it to the problem to access results of the FEM simulation:
 
 sensor_location = [parameters["length"].magnitude / 2, parameters["width"].magnitude / 2, 0.0]
@@ -49,7 +54,8 @@ sensor = DisplacementSensor([sensor_location])
 problem.add_sensor(sensor)
 
 # %%
-## Solving the Problem and Accessing the Results
+# Solving the Problem and Accessing the Results
+# ---------------------------------------------
 # Finally, solve the problem and access the sensor data:
 problem.solve()
 
