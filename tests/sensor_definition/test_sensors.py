@@ -23,13 +23,13 @@ def test_base_sensor() -> None:
     u_sensor = fem_problem.sensors.DisplacementSensor
 
     # testing get data list
-    assert u_sensor.get_data_list().units == u_sensor.units
+    assert u_sensor.get_data_list().units == pytest.approx(u_sensor.units)
     # testing get time list
-    assert (u_sensor.get_time_list().magnitude == [0.5, 1]).all()
+    assert u_sensor.get_time_list().magnitude == pytest.approx([0.5, 1])
     # testing get last data point
-    assert (u_sensor.get_data_list()[-1] == u_sensor.get_last_entry()).all()
+    assert u_sensor.get_data_list()[-1] == pytest.approx(u_sensor.get_last_entry())
     # testing get data at time x
-    assert (u_sensor.get_data_list()[1] == u_sensor.get_data_at_time(t=1)).all()
+    assert u_sensor.get_data_list()[1] == pytest.approx(u_sensor.get_data_at_time(t=1))
     # testing value error for wrong time
     with pytest.raises(ValueError):
         u_sensor.get_data_at_time(t=42)
