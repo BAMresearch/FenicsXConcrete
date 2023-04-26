@@ -27,9 +27,9 @@ def test_base_sensor() -> None:
     # testing get time list
     assert u_sensor.get_time_list().magnitude == pytest.approx([0.5, 1])
     # testing get last data point
-    assert u_sensor.get_data_list()[-1] == pytest.approx(u_sensor.get_last_entry())
+    assert u_sensor.get_data_list()[-1].magnitude == pytest.approx(u_sensor.get_last_entry().magnitude)
     # testing get data at time x
-    assert u_sensor.get_data_list()[1] == pytest.approx(u_sensor.get_data_at_time(t=1))
+    assert u_sensor.get_data_list()[1].magnitude == pytest.approx(u_sensor.get_data_at_time(t=1).magnitude)
     # testing value error for wrong time
     with pytest.raises(ValueError):
         u_sensor.get_data_at_time(t=42)
@@ -40,7 +40,7 @@ def test_base_sensor() -> None:
     # check units
     assert u_sensor.get_last_entry().units == ureg.millimeter
     # check magnitude
-    assert (m_data.magnitude == mm_data.magnitude / 1000).all()
+    assert m_data.magnitude == pytest.approx(mm_data.magnitude / 1000)
 
 
 @pytest.mark.parametrize("sensor", [DisplacementSensor, ReactionForceSensor, StressSensor, StrainSensor])
