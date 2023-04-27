@@ -7,8 +7,8 @@ from fenicsxconcrete.experimental_setup.base_experiment import Experiment
 from fenicsxconcrete.experimental_setup.cantilever_beam import CantileverBeam
 from fenicsxconcrete.experimental_setup.compression_cylinder import CompressionCylinder
 from fenicsxconcrete.experimental_setup.simple_beam import SimpleBeam
-from fenicsxconcrete.experimental_setup.tensile_beam import TensileBeam
 from fenicsxconcrete.experimental_setup.simple_cube import SimpleCube
+from fenicsxconcrete.experimental_setup.tensile_beam import TensileBeam
 from fenicsxconcrete.finite_element_problem.linear_elasticity import LinearElasticity
 from fenicsxconcrete.unit_registry import ureg
 
