@@ -4,7 +4,7 @@ from pathlib import Path
 import numpy as np
 import pytest
 
-from fenicsxconcrete.experimental_setup.uniaxial_cube import UniaxialCubeExperiment
+from fenicsxconcrete.experimental_setup.simple_cube import SimpleCube
 from fenicsxconcrete.finite_element_problem.linear_elasticity import LinearElasticity
 from fenicsxconcrete.sensor_definition.displacement_sensor import DisplacementSensor
 from fenicsxconcrete.sensor_definition.strain_sensor import StrainSensor
@@ -48,7 +48,7 @@ def test_disp(dim: int) -> None:
         parameters["stress_state"] = "plane_stress" * ureg("")
 
     # setting up the problem
-    experiment = UniaxialCubeExperiment(parameters)
+    experiment = SimpleCube(parameters)
     problem = LinearElasticity(experiment, parameters, pv_name=file_name, pv_path=data_path)
 
     if dim == 2:
@@ -105,10 +105,10 @@ def test_disp(dim: int) -> None:
 
 @pytest.mark.parametrize("dim", [2, 3])
 def test_strain_state_error(dim: int) -> None:
-    setup_parameters = UniaxialCubeExperiment.default_parameters()
+    setup_parameters = SimpleCube.default_parameters()
     setup_parameters["dim"] = dim * ureg("")
     setup_parameters["strain_state"] = "wrong" * ureg("")
-    setup = UniaxialCubeExperiment(setup_parameters)
+    setup = SimpleCube(setup_parameters)
     default_setup, fem_parameters = LinearElasticity.default_parameters()
     with pytest.raises(ValueError):
         fem_problem = LinearElasticity(setup, fem_parameters)
@@ -117,11 +117,11 @@ def test_strain_state_error(dim: int) -> None:
 @pytest.mark.parametrize("dim", [2, 3])
 @pytest.mark.parametrize("degree", [1, 2])
 def test_multiaxial_strain(dim: int, degree: int) -> None:
-    setup_parameters = UniaxialCubeExperiment.default_parameters()
+    setup_parameters = SimpleCube.default_parameters()
     setup_parameters["dim"] = dim * ureg("")
     setup_parameters["degree"] = degree * ureg("")
     setup_parameters["strain_state"] = "multiaxial" * ureg("")
-    setup = UniaxialCubeExperiment(setup_parameters)
+    setup = SimpleCube(setup_parameters)
     default_setup, fem_parameters = LinearElasticity.default_parameters()
     fem_problem = LinearElasticity(setup, fem_parameters)
 

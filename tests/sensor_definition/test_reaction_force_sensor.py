@@ -1,7 +1,7 @@
 import pytest
 
 from fenicsxconcrete.experimental_setup.compression_cylinder import CompressionCylinder
-from fenicsxconcrete.experimental_setup.uniaxial_cube import UniaxialCubeExperiment
+from fenicsxconcrete.experimental_setup.simple_cube import SimpleCube
 from fenicsxconcrete.finite_element_problem.linear_elasticity import LinearElasticity
 from fenicsxconcrete.sensor_definition.reaction_force_sensor import ReactionForceSensor
 from fenicsxconcrete.sensor_definition.stress_sensor import StressSensor
@@ -40,11 +40,11 @@ def test_reaction_force_sensor() -> None:
 @pytest.mark.parametrize("dim", [2, 3])
 @pytest.mark.parametrize("degree", [1])  # TODO: WHY DOES THIS FAIL FOR degree = 2 ??? !!!
 def test_full_boundary_reaction(dim: int, degree: int) -> None:
-    setup_parameters = UniaxialCubeExperiment.default_parameters()
+    setup_parameters = SimpleCube.default_parameters()
     setup_parameters["dim"] = dim * ureg("")
     setup_parameters["degree"] = degree * ureg("")
     setup_parameters["strain_state"] = "multiaxial" * ureg("")
-    cube = UniaxialCubeExperiment(setup_parameters)
+    cube = SimpleCube(setup_parameters)
     default_setup, fem_parameters = LinearElasticity.default_parameters()
     fem_parameters["nu"] = 0.2 * ureg("")
     fem_problem = LinearElasticity(cube, fem_parameters)

@@ -11,7 +11,7 @@ from fenicsxconcrete.helper import Parameters
 from fenicsxconcrete.unit_registry import ureg
 
 
-class UniaxialCubeExperiment(Experiment):
+class SimpleCube(Experiment):
     """sets up an uniaxial cube structure with displacement load
 
     2D unit square or 3D unit cube with uniaxial boundary conditions
