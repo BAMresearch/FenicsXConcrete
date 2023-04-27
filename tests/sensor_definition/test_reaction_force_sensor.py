@@ -38,7 +38,7 @@ def test_reaction_force_sensor() -> None:
 
 
 @pytest.mark.parametrize("dim", [2, 3])
-@pytest.mark.parametrize("degree", [1])  # TODO: WHY DOES THIS FAIL FOR degree = 2 ??? !!!
+@pytest.mark.parametrize("degree", [1, 2])
 def test_full_boundary_reaction(dim: int, degree: int) -> None:
     setup_parameters = SimpleCube.default_parameters()
     setup_parameters["dim"] = dim * ureg("")
@@ -89,7 +89,7 @@ def test_full_boundary_reaction(dim: int, degree: int) -> None:
 
 
 @pytest.mark.parametrize("dim", [2, 3])
-@pytest.mark.parametrize("degree", [1, 2])  # TODO: WHY DOES THIS FAIL FOR degree = 2 ??? !!!
+@pytest.mark.parametrize("degree", [1, 2])
 def test_full_boundary_stress(dim: int, degree: int) -> None:
     setup_parameters = SimpleCube.default_parameters()
     setup_parameters["dim"] = dim * ureg("")
