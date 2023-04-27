@@ -128,14 +128,26 @@ def test_multiaxial_strain(dim: int) -> None:
 
     if dim == 2:
         target = np.array([displ, displ])
-        sensor_location = [fem_problem.p["length"], fem_problem.p["height"], 0.0]
+        sensor_location_corner = [fem_problem.p["length"], fem_problem.p["height"], 0.0]
+        sensor_location_center = [fem_problem.p["length"] / 2, fem_problem.p["height"] / 2, 0.0]
     elif dim == 3:
         target = np.array([displ, displ, displ])
-        sensor_location = [fem_problem.p["length"], fem_problem.p["width"], fem_problem.p["height"]]
+        sensor_location_corner = [fem_problem.p["length"], fem_problem.p["width"], fem_problem.p["height"]]
+        sensor_location_center = [
+            fem_problem.p["length"] / 2,
+            fem_problem.p["height"] / 2,
+            fem_problem.p["height"] / 2,
+        ]
 
-    sensor = DisplacementSensor(sensor_location)
+    sensor_corner = DisplacementSensor(where=sensor_location_corner, name="displacement_corner")
+    sensor_center = DisplacementSensor(where=sensor_location_center, name="displacement_center")
 
-    fem_problem.add_sensor(sensor)
+    fem_problem.add_sensor(sensor_corner)
+    fem_problem.add_sensor(sensor_center)
+
     fem_problem.solve()
-    result = fem_problem.sensors.DisplacementSensor.get_last_entry().magnitude
-    assert result == pytest.approx(target)
+    result_corner = fem_problem.sensors.displacement_corner.get_last_entry().magnitude
+    result_center = fem_problem.sensors.displacement_center.get_last_entry().magnitude
+
+    assert result_corner == pytest.approx(target)
+    assert result_center == pytest.approx(target / 2)
