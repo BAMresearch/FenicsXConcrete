@@ -115,9 +115,11 @@ def test_strain_state_error(dim: int) -> None:
 
 
 @pytest.mark.parametrize("dim", [2, 3])
-def test_multiaxial_strain(dim: int) -> None:
+@pytest.mark.parametrize("degree", [1, 2])
+def test_multiaxial_strain(dim: int, degree: int) -> None:
     setup_parameters = UniaxialCubeExperiment.default_parameters()
     setup_parameters["dim"] = dim * ureg("")
+    setup_parameters["degree"] = degree * ureg("")
     setup_parameters["strain_state"] = "multiaxial" * ureg("")
     setup = UniaxialCubeExperiment(setup_parameters)
     default_setup, fem_parameters = LinearElasticity.default_parameters()

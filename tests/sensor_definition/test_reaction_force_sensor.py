@@ -38,10 +38,11 @@ def test_reaction_force_sensor() -> None:
 
 
 @pytest.mark.parametrize("dim", [2, 3])
-def test_full_boundary_reaction(dim: int) -> None:
+@pytest.mark.parametrize("degree", [1])  # TODO: WHY DOES THIS FAIL FOR degree = 2 ??? !!!
+def test_full_boundary_reaction(dim: int, degree: int) -> None:
     setup_parameters = UniaxialCubeExperiment.default_parameters()
     setup_parameters["dim"] = dim * ureg("")
-    setup_parameters["degree"] = 1 * ureg("")  # TODO: WHY DOES THIS FAIL FOR degree = 2 ??? !!!
+    setup_parameters["degree"] = degree * ureg("")
     setup_parameters["strain_state"] = "multiaxial" * ureg("")
     cube = UniaxialCubeExperiment(setup_parameters)
     default_setup, fem_parameters = LinearElasticity.default_parameters()
