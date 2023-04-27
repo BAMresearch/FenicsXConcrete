@@ -118,7 +118,7 @@ class UniaxialCubeExperiment(Experiment):
                 np.float64(0.0), boundary=self.boundary_bottom(), sub=1, method="geometrical", entity_dim=1
             )
             bc_generator.add_dirichlet_bc(
-                np.float64(0.0), boundary=self.boundary_left(), sub=0, method="geometrical", entity_dim=0
+                np.float64(0.0), boundary=self.boundary_left(), sub=0, method="geometrical", entity_dim=1
             )
 
             if self.p["strain_state"] == "uniaxial":
@@ -132,7 +132,7 @@ class UniaxialCubeExperiment(Experiment):
                     self.top_displacement, boundary=self.boundary_top(), sub=1, method="geometrical", entity_dim=1
                 )
                 bc_generator.add_dirichlet_bc(
-                    self.top_displacement, boundary=self.boundary_right(), sub=0, method="geometrical", entity_dim=0
+                    self.top_displacement, boundary=self.boundary_right(), sub=0, method="geometrical", entity_dim=1
                 )
             else:
                 raise ValueError(f'Strain_state value: {self.p["strain_state"]} is not implemented in 2D.')
@@ -143,10 +143,10 @@ class UniaxialCubeExperiment(Experiment):
                 np.float64(0.0), boundary=self.boundary_bottom(), sub=2, method="geometrical", entity_dim=2
             )
             bc_generator.add_dirichlet_bc(
-                np.float64(0.0), boundary=self.boundary_left(), sub=0, method="geometrical", entity_dim=0
+                np.float64(0.0), boundary=self.boundary_left(), sub=0, method="geometrical", entity_dim=2
             )
             bc_generator.add_dirichlet_bc(
-                np.float64(0.0), boundary=self.boundary_front(), sub=1, method="geometrical", entity_dim=1
+                np.float64(0.0), boundary=self.boundary_front(), sub=1, method="geometrical", entity_dim=2
             )
 
             # displacement controlled
@@ -159,10 +159,10 @@ class UniaxialCubeExperiment(Experiment):
                     self.top_displacement, boundary=self.boundary_top(), sub=2, method="geometrical", entity_dim=2
                 )
                 bc_generator.add_dirichlet_bc(
-                    self.top_displacement, boundary=self.boundary_right(), sub=0, method="geometrical", entity_dim=0
+                    self.top_displacement, boundary=self.boundary_right(), sub=0, method="geometrical", entity_dim=2
                 )
                 bc_generator.add_dirichlet_bc(
-                    self.top_displacement, boundary=self.boundary_back(), sub=1, method="geometrical", entity_dim=1
+                    self.top_displacement, boundary=self.boundary_back(), sub=1, method="geometrical", entity_dim=2
                 )
             else:
                 raise ValueError(f'Strain_state value: {self.p["strain_state"]} is not implemented in 3D.')
