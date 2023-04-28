@@ -4,9 +4,6 @@ from pathlib import Path, PosixPath
 import pint
 
 from fenicsxconcrete.experimental_setup.base_experiment import Experiment
-from fenicsxconcrete.experimental_setup.cantilever_beam import CantileverBeam
-from fenicsxconcrete.experimental_setup.compression_cylinder import CompressionCylinder
-from fenicsxconcrete.experimental_setup.tensile_beam import TensileBeam
 from fenicsxconcrete.helper import LogMixin, Parameters
 from fenicsxconcrete.sensor_definition.base_sensor import BaseSensor
 from fenicsxconcrete.unit_registry import ureg
@@ -15,7 +12,7 @@ from fenicsxconcrete.unit_registry import ureg
 class MaterialProblem(ABC, LogMixin):
     def __init__(
         self,
-        experiment: CompressionCylinder | CantileverBeam | TensileBeam,
+        experiment: Experiment,
         parameters: dict[str, pint.Quantity],
         pv_name: str = "pv_output_full",
         pv_path: PosixPath | None = None,
