@@ -258,5 +258,5 @@ class CompressionCylinder(Experiment):
             top_displacement: Displacement of the top boundary in mm, > 0 ; tension, < 0 ; compression
 
         """
-
+        top_displacement.ito_base_units()
         self.top_displacement.value = top_displacement.magnitude
