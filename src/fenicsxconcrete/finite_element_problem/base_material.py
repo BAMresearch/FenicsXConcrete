@@ -4,18 +4,15 @@ from pathlib import Path, PosixPath
 import pint
 
 from fenicsxconcrete.experimental_setup.base_experiment import Experiment
-from fenicsxconcrete.experimental_setup.cantilever_beam import CantileverBeam
-from fenicsxconcrete.experimental_setup.compression_cylinder import CompressionCylinder
-from fenicsxconcrete.experimental_setup.tensile_beam import TensileBeam
 from fenicsxconcrete.helper import LogMixin, Parameters
-from fenicsxconcrete.sensor_definition.base_sensor import Sensor, Sensors
+from fenicsxconcrete.sensor_definition.base_sensor import BaseSensor
 from fenicsxconcrete.unit_registry import ureg
 
 
 class MaterialProblem(ABC, LogMixin):
     def __init__(
         self,
-        experiment: CompressionCylinder | CantileverBeam | TensileBeam,
+        experiment: Experiment,
         parameters: dict[str, pint.Quantity],
         pv_name: str = "pv_output_full",
         pv_path: PosixPath | None = None,
@@ -49,7 +46,7 @@ class MaterialProblem(ABC, LogMixin):
         self.p = self.parameters.to_magnitude()
         self.experiment.p = self.p  # update experimental parameter list for use in e.g. boundary definition
 
-        self.sensors = Sensors()  # list to hold attached sensors
+        self.sensors = self.SensorDict()  # list to hold attached sensors
 
         # settin gup path for paraview output
         if not pv_path:
@@ -88,8 +85,8 @@ class MaterialProblem(ABC, LogMixin):
         # define what to do, to compute the residuals. Called in solve
         """Implemented in child if needed"""
 
-    def add_sensor(self, sensor: Sensor) -> None:
-        if isinstance(sensor, Sensor):
+    def add_sensor(self, sensor: BaseSensor) -> None:
+        if isinstance(sensor, BaseSensor):
             self.sensors[sensor.name] = sensor
         else:
             raise ValueError("The sensor must be of the class Sensor")
@@ -100,4 +97,28 @@ class MaterialProblem(ABC, LogMixin):
 
     def delete_sensor(self) -> None:
         del self.sensors
-        self.sensors = Sensors()
+        self.sensors = self.SensorDict()
+
+    class SensorDict(dict):
+        """
+        Dict that also allows to access the parameter p["parameter"] via the matching attribute p.parameter
+        to make access shorter
+
+        When to sensors with the same name are defined, the next one gets a number added to the name
+        """
+
+        def __getattr__(self, key):
+            return self[key]
+
+        def __setitem__(self, initial_key: str, value: BaseSensor) -> None:
+            # check if key exists, if so, add a number to the name
+            i = 2
+            key = initial_key
+            if key in self:
+                while key in self:
+                    key = initial_key + str(i)
+                    i += 1
+                # rename the sensor object
+                value.name = key
+
+            super().__setitem__(key, value)

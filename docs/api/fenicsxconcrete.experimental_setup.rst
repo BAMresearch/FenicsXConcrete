@@ -4,6 +4,14 @@ fenicsxconcrete.experimental\_setup package
 Submodules
 ----------
 
+fenicsxconcrete.experimental\_setup.am\_multiple\_layers module
+---------------------------------------------------------------
+
+.. automodule:: fenicsxconcrete.experimental_setup.am_multiple_layers
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 fenicsxconcrete.experimental\_setup.base\_experiment module
 -----------------------------------------------------------
 
@@ -40,6 +48,14 @@ fenicsxconcrete.experimental\_setup.tensile\_beam module
 --------------------------------------------------------
 
 .. automodule:: fenicsxconcrete.experimental_setup.tensile_beam
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+fenicsxconcrete.experimental\_setup.uniaxial\_cube module
+---------------------------------------------------------
+
+.. automodule:: fenicsxconcrete.experimental_setup.uniaxial_cube
    :members:
    :undoc-members:
    :show-inheritance:

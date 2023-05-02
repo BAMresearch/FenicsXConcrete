@@ -19,6 +19,7 @@ extensions = [  # ["myst_parser", "autodoc2", 'sphinx.ext.napoleon']
     "sphinx.ext.napoleon",
     "sphinx.ext.viewcode",
     "sphinx_rtd_theme",
+    "sphinx_gallery.gen_gallery",
 ]
 napoleon_google_docstring = True
 napoleon_numpy_docstring = True
@@ -29,6 +30,15 @@ add_module_names = False
 templates_path = ["_templates"]
 exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
 
+sphinx_gallery_conf = {
+    "examples_dirs": "examples",  # path to examples for the gallery
+    "gallery_dirs": "auto_examples",  # path to where to save gallery generated output
+    "download_all_examples": False,
+    "show_signature": False,
+    "remove_config_comments": True,
+    "filename_pattern": "/",
+    "ignore_pattern": r"__init__\.py",
+}
 
 # -- Options for HTML output -------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output

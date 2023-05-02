@@ -15,6 +15,7 @@ dependencies:
   - toml
   # docs
   - sphinx
+  - sphinx-gallery
   - myst-parser
   - sphinx_rtd_theme
   # formatting

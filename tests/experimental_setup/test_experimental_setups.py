@@ -8,13 +8,14 @@ from fenicsxconcrete.experimental_setup.cantilever_beam import CantileverBeam
 from fenicsxconcrete.experimental_setup.compression_cylinder import CompressionCylinder
 from fenicsxconcrete.experimental_setup.minimal_cube import MinimalCubeExperiment
 from fenicsxconcrete.experimental_setup.simple_beam import SimpleBeam
+from fenicsxconcrete.experimental_setup.simple_cube import SimpleCube
 from fenicsxconcrete.experimental_setup.tensile_beam import TensileBeam
 from fenicsxconcrete.finite_element_problem.linear_elasticity import LinearElasticity
 from fenicsxconcrete.unit_registry import ureg
 
 
 @pytest.mark.parametrize(
-    "setup", [CantileverBeam, TensileBeam, SimpleBeam, CompressionCylinder, AmMultipleLayers, MinimalCubeExperiment]
+    "setup", [CantileverBeam, TensileBeam, SimpleBeam, CompressionCylinder, AmMultipleLayers, SimpleCube, MinimalCubeExperiment]
 )
 def test_default_parameters(setup: Experiment) -> None:
     """This function creates experimental setups with the respective default dictionaries
@@ -39,7 +40,7 @@ def test_default_parameters(setup: Experiment) -> None:
 
 # to imporve coverage, I want to test the error messages
 @pytest.mark.parametrize(
-    "setup", [CantileverBeam, TensileBeam, SimpleBeam, CompressionCylinder, AmMultipleLayers, MinimalCubeExperiment]
+    "setup", [CantileverBeam, TensileBeam, SimpleBeam, CompressionCylinder, AmMultipleLayers, SimpleCube, MinimalCubeExperiment]
 )
 def test_default_parameters(setup: Experiment) -> None:
     setup_parameters = setup.default_parameters()
