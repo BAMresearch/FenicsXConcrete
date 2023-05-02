@@ -47,7 +47,7 @@ def test_linear_simple_beam(dimension: int, results: list[float]) -> None:
 
     # Defining sensor positions
     sensor_location = [setup_parameters["length"].magnitude / 2, 0.0, 0.0]
-    sensor = DisplacementSensor([sensor_location])
+    sensor = DisplacementSensor(sensor_location)
 
     # setting up the problem
     experiment = SimpleBeam(setup_parameters)  # Specifies the domain, discretises it and apply Dirichlet BCs
@@ -63,5 +63,5 @@ def test_linear_simple_beam(dimension: int, results: list[float]) -> None:
         assert file.is_file()
 
     # check sensor output
-    displacement_data = problem.sensors["DisplacementSensor"].data[-1]
+    displacement_data = problem.sensors["DisplacementSensor"].get_last_entry()
     assert displacement_data.magnitude == pytest.approx(results, 1e-5)

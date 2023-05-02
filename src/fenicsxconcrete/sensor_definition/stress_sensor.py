@@ -1,12 +1,14 @@
 import dolfinx as df
+import ufl
 
 from fenicsxconcrete.finite_element_problem.base_material import MaterialProblem
+from fenicsxconcrete.helper import project
 from fenicsxconcrete.sensor_definition.base_sensor import PointSensor
 from fenicsxconcrete.unit_registry import ureg
 
 
-class DisplacementSensor(PointSensor):
-    """A sensor that measures displacement at a specific point
+class StressSensor(PointSensor):
+    """A sensor that measures stress at a specific point
 
     Attributes:
         data: list of measured values
@@ -18,14 +20,27 @@ class DisplacementSensor(PointSensor):
 
     def measure(self, problem: MaterialProblem, t: float = 1.0) -> None:
         """
-        The displacement value at the defined point is added to the data list,
+        The stress value at the defined point is added to the data list,
         as well as the time t to the time list
 
         Arguments:
             problem : FEM problem object
             t : time of measurement for time dependent problems, default is 1
         """
-        # get displacements
+        # project stress onto visualization space
+        if not hasattr(problem, "stress"):
+            self.logger.debug("strain not defined in problem - needs to compute stress first")
+            stress = project(
+                problem.sigma(problem.displacement),  # stress fct from problem
+                df.fem.TensorFunctionSpace(problem.experiment.mesh, ("Lagrange", 1)),  # tensor space
+                ufl.dx,
+            )
+        else:
+            # TODO: I cannot test this lines, yet (comment: Annika)
+            #       why is it implemented??? how do you know it works? (comment: Erik)
+            stress = project(problem.stress, problem.visu_space_T, problem.rule.dx)
+
+        # finding the cells corresponding to the point
         bb_tree = df.geometry.BoundingBoxTree(problem.experiment.mesh, problem.experiment.mesh.topology.dim)
         cells = []
 
@@ -34,15 +49,13 @@ class DisplacementSensor(PointSensor):
 
         # Choose one of the cells that contains the point
         colliding_cells = df.geometry.compute_colliding_cells(problem.experiment.mesh, cell_candidates, [self.where])
-
-        # for i, point in enumerate(self.where):
         if len(colliding_cells.links(0)) > 0:
             cells.append(colliding_cells.links(0)[0])
 
-        # adding correct units to displacement
-        displacement_data = problem.displacement.eval([self.where], cells)
+        # adding correct units to stress
+        stress_data = stress.eval([self.where], cells)
 
-        self.data.append(displacement_data)
+        self.data.append(stress_data)
         self.time.append(t)
 
     @staticmethod
@@ -52,4 +65,4 @@ class DisplacementSensor(PointSensor):
         Returns:
             the base unit as pint unit object
         """
-        return ureg.meter
+        return ureg("N/m^2")

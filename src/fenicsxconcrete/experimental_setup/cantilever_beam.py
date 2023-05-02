@@ -14,11 +14,19 @@ class CantileverBeam(Experiment):
     """Sets up a cantilever beam, clamped on one side and loaded with gravity
 
     Attributes:
-        see base class
+        parameters : parameter dictionary with units
+        p : parameter dictionary without units
+
     """
 
     def __init__(self, parameters: dict[str, pint.Quantity] | None = None):
-        """defines default parameters, for the rest, see base class"""
+        """initializes the object, for the rest, see base class
+
+        Args:
+            parameters: dictionary containing the required parameters for the experiment set-up
+                        see default_parameters for a first guess
+
+        """
 
         # initialize default parameters for the setup
         default_p = Parameters()
@@ -30,7 +38,11 @@ class CantileverBeam(Experiment):
         super().__init__(default_p)
 
     def setup(self) -> None:
-        """defines the mesh for 2D or 3D"""
+        """defines the mesh for 2D or 3D
+
+        Raises:
+            ValueError: if dimension (self.p["dim"]) is not 2 or 3
+        """
 
         if self.p["dim"] == 2:
             self.mesh = df.mesh.create_rectangle(
@@ -58,8 +70,12 @@ class CantileverBeam(Experiment):
 
     @staticmethod
     def default_parameters() -> dict[str, pint.Quantity]:
-        """returns a dictionary with required parameters and a set of working values as example"""
-        # this must de defined in each setup class
+        """sets up a working set of parameter values as example
+
+        Returns:
+            dictionary with a working set of the required parameter
+
+        """
 
         setup_parameters = {}
         setup_parameters["length"] = 1 * ureg("m")
@@ -73,7 +89,15 @@ class CantileverBeam(Experiment):
         return setup_parameters
 
     def create_displacement_boundary(self, V) -> list:
-        # define displacement boundary
+        """defines displacement boundary as fixed at bottom
+
+        Args:
+            V: function space
+
+        Returns:
+            list of dirichlet boundary conditions
+
+        """
 
         # fenics will individually call this function for every node and will note the true or false value.
         def clamped_boundary(x):
@@ -93,6 +117,16 @@ class CantileverBeam(Experiment):
         return displacement_bcs
 
     def create_body_force(self, v: ufl.argument.Argument) -> ufl.form.Form:
+        """defines body force
+
+        Args:
+            v: test function
+
+        Returns:
+            form for body force
+
+        """
+
         force_vector = np.zeros(self.p["dim"])
         force_vector[-1] = -self.p["rho"] * self.p["g"]  # works for 2D and 3D
 

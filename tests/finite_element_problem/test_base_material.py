@@ -5,6 +5,24 @@ from fenicsxconcrete.finite_element_problem.linear_elasticity import LinearElast
 from fenicsxconcrete.sensor_definition.displacement_sensor import DisplacementSensor
 
 
+def test_sensor_dict() -> None:
+    """This function tests the sensor dict"""
+
+    default_experiment, fem_parameters = LinearElasticity.default_parameters()
+    problem = LinearElasticity(default_experiment, fem_parameters)
+
+    sensor_location = [0.0, 0.0, 0.0]
+    sensor = DisplacementSensor([sensor_location])
+
+    # testing the renaming of multiple sensors
+    problem.add_sensor(sensor)
+    problem.add_sensor(sensor)
+    assert "DisplacementSensor2" in problem.sensors.keys()
+
+    # accessing as attribute
+    assert problem.sensors.DisplacementSensor2
+
+
 def test_sensor_error() -> None:
     """This function tests the add sensor function"""
 
@@ -23,7 +41,7 @@ def test_sensor_options() -> None:
     default_setup, fem_parameters = LinearElasticity.default_parameters()
 
     sensor_location = [setup_parameters["length"].magnitude, 0.0, 0.0]
-    sensor = DisplacementSensor([sensor_location])
+    sensor = DisplacementSensor(sensor_location)
 
     # setting up the problem
     experiment = CantileverBeam(setup_parameters)  # Specifies the domain, discretises it and apply Dirichlet BCs

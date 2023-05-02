@@ -20,10 +20,20 @@ class AmMultipleLayers(Experiment):
     all layers of the same height are on top of each other, the boundary on the bottom is fixed
     the mesh includes all (activation via pseudo-density)
 
+    Attributes:
+        parameters : parameter dictionary with units
+        p : parameter dictionary without units
+
     """
 
     def __init__(self, parameters: dict[str, pint.Quantity]):
-        """defines default parameters, for the rest, see base class"""
+        """initializes the object, for the rest, see base class
+
+        Args:
+            parameters: dictionary containing the required parameters for the experiment set-up
+                        see default_parameters for a first guess
+
+        """
 
         # initialize default parameters for the setup
         default_p = Parameters()
@@ -35,12 +45,12 @@ class AmMultipleLayers(Experiment):
 
     @staticmethod
     def default_parameters() -> dict[str, pint.Quantity]:
-        '''set up a set of working values as example"""
+        """sets up a working set of parameter values as example
 
-        Returns: dictionary with required parameter
+        Returns:
+            dictionary with a working set of the required parameter
 
-        '''
-        # this must de defined in each setup class
+        """
 
         setup_parameters = {}
         # geometry
@@ -57,13 +67,15 @@ class AmMultipleLayers(Experiment):
         # only relevant for 3D case
         setup_parameters["num_elements_layer_width"] = 2 * ureg("")
 
-        # only relevant for 2D case
-        # setup_parameters["stress_case"] = "plane_strain" # not yet implemented
-
         return setup_parameters
 
     def setup(self) -> None:
-        """define the mesh for 2D and 3D"""
+        """defines the mesh for 2D and 3D
+
+        Raises:
+            ValueError: if dimension (self.p["dim"]) is not 2 or 3
+        """
+
         self.logger.debug("setup mesh for %s", self.p["dim"])
         print(self.p["dim"])
 
@@ -92,15 +104,16 @@ class AmMultipleLayers(Experiment):
             raise ValueError(f'wrong dimension: {self.p["dim"]} is not implemented for problem setup')
 
     def create_displacement_boundary(self, V: df.fem.FunctionSpace) -> list[df.fem.bcs.DirichletBCMetaClass]:
-        """define displacement boundary as fixed at bottom
+        """defines displacement boundary as fixed at bottom
 
         Args:
             V: function space
 
-        Returns: list of dirichlet boundary conditions
+        Returns:
+            list of dirichlet boundary conditions
 
         """
-        #
+
         bc_generator = BoundaryConditions(self.mesh, V)
 
         if self.p["dim"] == 2:
@@ -122,14 +135,16 @@ class AmMultipleLayers(Experiment):
         return bc_generator.bcs
 
     def create_body_force(self, v: ufl.argument.Argument) -> ufl.form.Form:
-        """apply body force
+        """defines body force
 
         Args:
             v: test function
 
-        Returns: form for body load
+        Returns:
+            form for body force
 
         """
+
         force_vector = np.zeros(self.p["dim"])
         force_vector[-1] = -self.p["rho"] * self.p["g"]
 
@@ -137,14 +152,3 @@ class AmMultipleLayers(Experiment):
         L = ufl.dot(f, v) * ufl.dx
 
         return L
-
-    def boundary_bottom(self) -> Callable:
-        """specify boundary: plane at bottom
-
-        Returns: fct defining if dof is at boundary
-
-        """
-        if self.p["dim"] == 2:
-            return plane_at(0.0, "y")
-        elif self.p["dim"] == 3:
-            return plane_at(0.0, "z")
