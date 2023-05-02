@@ -4,6 +4,7 @@ channels:
 dependencies:
   # runtime
   - fenics-dolfinx
+  - scipy
   - pint
   - matplotlib
   - python-gmsh
