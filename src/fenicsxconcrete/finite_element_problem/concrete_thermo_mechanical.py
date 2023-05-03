@@ -88,9 +88,9 @@ class ConcreteThermoMechanical(MaterialProblem):
         default_parameters = {
             "igc": 8.3145 * ureg("J/K/mol"),
             "rho": 2350.0 * ureg("kg/m^3"),
-            "themal_cond": 2.0 * ureg("W/(m*K)"),
+            "thermal_cond": 2.0 * ureg("W/(m*K)"),
             "vol_heat_cap": 2.4e6 * ureg("J/(m^3 * K)"),
-            "Q_pot": 500e3 * ureg("J/kg"),
+            # "Q_pot": 500e3 * ureg("J/kg"), only needed for postprocessing
             "Q_inf": 144000000 * ureg("J/m^3"),
             "B1": 2.916e-4 * ureg("1/s"),
             "B2": 0.0024229 * ureg(""),
@@ -98,7 +98,7 @@ class ConcreteThermoMechanical(MaterialProblem):
             "alpha_max": 0.875 * ureg(""),
             "T_ref": ureg.Quantity(25, ureg.degC),
             "temp_adjust_law": "exponential" * ureg(""),
-            "degree": 2 * ureg(""),
+            # "degree": 2 * ureg(""), defined in Experiment
             "q_degree": 2 * ureg(""),
             "E_28": 15 * ureg("MPa"),
             "nu": 0.2 * ureg(""),
@@ -118,9 +118,10 @@ class ConcreteThermoMechanical(MaterialProblem):
         pass
 
     def setup(self) -> None:
+        print(self.p["degree"])
         self.rule = QuadratureRule(cell_type=self.mesh.ufl_cell(), degree=self.p["q_degree"])
-        self.displacement_space = df.fem.VectorFunctionSpace(self.experiment.mesh, ("CG", self.p["degree"]))
-        self.temperature_space = df.fem.FunctionSpace(self.experiment.mesh, ("CG", self.p["degree"]))
+        self.displacement_space = df.fem.VectorFunctionSpace(self.experiment.mesh, ("P", self.p["degree"]))
+        self.temperature_space = df.fem.FunctionSpace(self.experiment.mesh, ("P", self.p["degree"]))
 
         self.displacement = df.fem.Function(self.displacement_space)
         self.temperature = df.fem.Function(self.temperature_space)
@@ -166,14 +167,15 @@ class ConcreteThermoMechanical(MaterialProblem):
                 self.mesh, ("DG", 0), dim=self.mechanics_problem.stress_strain_dim
             )
         else:
-            self.plot_space = df.fem.FunctionSpace(self.mesh, ("CG", 1))
+            self.plot_space = df.fem.FunctionSpace(self.mesh, ("P", 1))
             self.plot_space_stress = df.fem.VectorFunctionSpace(
                 self.mesh, ("DG", 1), dim=self.mechanics_problem.stress_strain_dim
             )
 
     def solve(self, t=1.0) -> None:
-
-        self.temperature_solver.solve(self.temperature_problem.T)
+        # from dolfinx import log
+        # log.set_log_level(log.LogLevel.INFO)
+        n, converged = self.temperature_solver.solve(self.temperature)
 
         # set current DOH for computation of Young's modulus
         self.mechanics_problem.q_array_alpha[:] = self.temperature_problem.q_alpha.vector.array
@@ -181,20 +183,22 @@ class ConcreteThermoMechanical(MaterialProblem):
 
         # mechanics paroblem is not required for temperature, could crash in frist time steps but then be useful
         try:
-            self.mechanics_solver.solve(self.mechanics_problem.u)
-        except:
-            print("AAAAAAAAAAHHHHHHHHHH!!!!!")
+            n, converged = self.mechanics_solver.solve(self.displacement)
+        except RuntimeError as e:
+            print(
+                f"An error occured during the mechanics solve. This can happen in the first few solves. Error message{e}"
+            )
 
         # history update
         self.temperature_problem.update_history()
 
         self.degree_of_hydration = project(
-            self.temperature_problem.q_alpha, self.temperature_problem.visu_space, self.temperature_problem.rule.dx
+            self.temperature_problem.q_alpha, self.plot_space, self.temperature_problem.rule.dx
         )
 
         self.q_degree_of_hydration = self.temperature_problem.q_alpha
         self.q_yield = self.mechanics_problem.q_yield
-        self.stress = self.mechanics_problem.sigma_ufl
+        # self.stress = self.mechanics_problem.sigma_ufl
 
         # get sensor data
         for sensor_name in self.sensors:
@@ -307,7 +311,7 @@ class ConcreteTemperatureHydrationModel(df.fem.petsc.NonlinearProblem):
 
         # normal form
         R_ufl = self.p["vol_heat_cap"] * self.T * vT * self.rule.dx
-        R_ufl += self.dt_form * ufl.dot(self.p["themal_cond"] * ufl.grad(self.T), ufl.grad(vT)) * self.rule.dx
+        R_ufl += self.dt_form * ufl.dot(self.p["thermal_cond"] * ufl.grad(self.T), ufl.grad(vT)) * self.rule.dx
         R_ufl += -self.p["vol_heat_cap"] * self.T_n * vT * self.rule.dx
         # quadrature point part
 
@@ -321,6 +325,9 @@ class ConcreteTemperatureHydrationModel(df.fem.petsc.NonlinearProblem):
 
         # setup projector to project continuous funtionspace to quadrature
         self.temperature_evaluator = QuadratureEvaluator(self.T, self.mesh, self.rule)
+
+        self.set_initial_T(self.p["T_ref"])
+
         super().__init__(self.R, self.T, self.bcs, self.dR)
 
     def delta_alpha_fkt(self, delta_alpha: np.ndarray, alpha_n: np.ndarray, T: np.ndarray) -> np.ndarray:
@@ -487,13 +494,13 @@ class ConcreteTemperatureHydrationModel(df.fem.petsc.NonlinearProblem):
         self.dt = dt
         self.dt_form.value = dt
 
-    def set_initial_T(self, T: float):
+    def set_initial_T(self, T: float) -> None:
         # set initial temperature, in kelvin
         # T0 = df.Expression("t_zero", t_zero=T + self.p.zero_C, degree=0)
         self.T_n.x.array[:] = T
-        self.T.x.array[:]
+        self.T.x.array[:] = T
 
-    def _set_bcs(self, bcs):
+    def _set_bcs(self, bcs) -> None:
         # not actually needed
         self.bcs = bcs
 
@@ -615,7 +622,7 @@ class ConcreteMechanicsModel(df.fem.petsc.NonlinearProblem):
         dR_ufl = ufl.derivative(R_ufl, u)
         # quadrature part
         self.dR = dR_ufl
-        self.x_sigma_evaluator = QuadratureEvaluator(self.sigma_voigt(self._x_sigma(u)), self.mesh, self.rule)
+        self.sigma_evaluator = QuadratureEvaluator(self.sigma_voigt(self.sigma(u)), self.mesh, self.rule)
         super().__init__(self.R, u, bcs, self.dR)
 
     def _x_sigma(self, v: ufl.core.expr.Expr) -> ufl.core.expr.Expr:
@@ -708,14 +715,15 @@ class ConcreteMechanicsModel(df.fem.petsc.NonlinearProblem):
             self.q_ft.vector.array[:] = np.full_like(self.q_array_alpha, self.p["ft_inf"])
         self.q_ft.x.scatter_forward()
 
-        self.x_sigma_evaluator.evaluate(self.q_array_sigma)
-        self.q_array_sigma *= self.q_E.vector.array
+        self.sigma_evaluator.evaluate(self.q_array_sigma)
+        # print(self.q_E.vector.array.shape, self.q_array_sigma.shape)
+        # self.q_array_sigma *= self.q_E.vector.array
 
         self.q_yield.vector.array[:] = self.yield_surface(
             self.q_array_sigma.reshape(-1, self.stress_strain_dim), self.q_ft.vector.array, self.q_fc.vector.array
         )
 
-    def principal_stress(stresses: np.ndarray) -> np.ndarray:
+    def principal_stress(self, stresses: np.ndarray) -> np.ndarray:
         # checking type of problem
         n = stresses.shape[1]  # number of stress components in stress vector
         # finding eigenvalues of symmetric stress tensor
@@ -741,7 +749,7 @@ class ConcreteMechanicsModel(df.fem.petsc.NonlinearProblem):
 
             # principal_stress = np.array([ev1p,ev2p])
         elif n == 6:
-            principal_stresses = np.empty([len(stresses), 3])
+            principal_stresses = np.zeros([len(stresses), 3])
             # currently slow solution with loop over all stresses and subsequent numpy function call:
             for i, stress in enumerate(stresses):
                 # convert voigt to tensor, (00,11,22,12,02,01)
@@ -752,10 +760,13 @@ class ConcreteMechanicsModel(df.fem.petsc.NonlinearProblem):
                         [stress[4], stress[3], stress[2]],
                     ]
                 )
-                # TODO: remove the sorting
-                principal_stress = np.linalg.eigvalsh(stress_tensor)
-                # sort principal stress from lagest to smallest!!!
-                principal_stresses[i] = np.flip(principal_stress)
+                try:
+                    # TODO: remove the sorting
+                    principal_stress = np.linalg.eigvalsh(stress_tensor)
+                    # sort principal stress from lagest to smallest!!!
+                    principal_stresses[i] = np.flip(principal_stress)
+                except np.linalg.LinAlgError as e:
+                    pass
 
         return principal_stresses
 

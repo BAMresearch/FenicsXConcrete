@@ -21,8 +21,10 @@ def test_default_dictionaries(material_model: MaterialProblem) -> None:
     # test that each parameter is truly required
     # a loop over all default parameters removes each on in turn and expects a key error from the initialized problem
     for key in default_parameters:
-        with pytest.raises(KeyError):
+        with pytest.raises(KeyError) as ex:
             less_parameters = copy.deepcopy(default_parameters)
             less_parameters.pop(key)
             fem_problem = material_model(default_setup, less_parameters)
             fem_problem.solve()
+            print(key, "seems to be an unneccessary key in the default dictionary")
+        print(ex)
