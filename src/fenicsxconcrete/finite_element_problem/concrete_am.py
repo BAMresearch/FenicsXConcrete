@@ -49,7 +49,7 @@ class ConcreteAM(MaterialProblem):
 
         # adding default material parameter, will be overridden by outside input
         default_p = Parameters()
-        default_p["stress_state"] = "plane_strain"  # default stress state for 2D optional "plane_stress"
+        default_p["stress_state"] = "plane_strain" * ureg("")  # default stress state for 2D optional "plane_stress"
 
         # updating parameters, overriding defaults
         default_p.update(parameters)
@@ -75,6 +75,7 @@ class ConcreteAM(MaterialProblem):
             "t_f": "Reflocculation time (switch point)",
             "age_0": "Start age of concrete",
             "degree": "Polynomial degree for the FEM model",
+            "q_degree": "Polynomial degree for which the quadrature rule integrates correctly",
             "load_time": "load applied in 1 s",
         }
 
@@ -105,6 +106,7 @@ class ConcreteAM(MaterialProblem):
             "age_0": 0 * ureg("s"),  # start age of concrete
             # other model parameters
             "degree": 2 * ureg(""),  # polynomial degree
+            "q_degree": 2 * ureg(""),  # quadrature rule
             "load_time": 1 * ureg("s"),  # load applied in 1 s
         }
 
@@ -113,23 +115,24 @@ class ConcreteAM(MaterialProblem):
     def setup(self) -> None:
         """set up problem"""
 
-        self.displacement = df.fem.VectorFunctionSpace(self.experiment.mesh, ("CG", self.p["degree"]))
-        self.pseudo_density = df.fem.FunctionSpace(self.experiment.mesh, ("DG", 0))
+        self.rule = QuadratureRule(cell_type=self.mesh.ufl_cell(), degree=self.p["q_degree"])
+        self.displacement_space = df.fem.VectorFunctionSpace(self.experiment.mesh, ("CG", self.p["degree"]))
 
-        bcs = self.experiment.create_displacement_boundary(self.displacement)
-        body_forces = self.experiment.create_body_force(
-            ufl.TestFunction(self.displacement)
-        )  # TODO add pseudo density/ add increments
+        self.displacement = df.fem.Function(self.displacement_space)
+        bcs = self.experiment.create_displacement_boundary(self.displacement_space)
+        body_forces = self.experiment.create_body_force(ufl.TestFunction(self.displacement_space))
+
+        # TODO add pseudo density/ add increments
 
         try:
             self.mechanics_problem = self.nonlinear_problem(
-                self.experiment.mesh, self.p, self.displacement, self.pseudo_density, bcs, body_forces
+                self.experiment.mesh, self.p, self.rule, self.displacement, bcs, body_forces
             )
         except:
             raise ValueError(f"nonlinear problem {self.nonlinear_problem} not yet implemented")
 
-        # set default initial path to 0
-        self.set_initial_path(None)
+        # set initial path
+        # self.set_initial_path(None)
 
         # setting up the solver
         self.mechanics_solver = df.nls.petsc.NewtonSolver(MPI.COMM_WORLD, self.mechanics_problem)
@@ -137,6 +140,13 @@ class ConcreteAM(MaterialProblem):
         self.mechanics_solver.atol = 1e-9
         self.mechanics_solver.rtol = 1e-8
         self.mechanics_solver.report = True
+
+        if self.p["degree"] == 1:
+            self.plot_space = df.fem.FunctionSpace(self.mesh, ("DG", 0))
+            self.plot_space_stress = df.fem.TensorFunctionSpace(self.mesh, ("DG", 0))
+        else:
+            self.plot_space = df.fem.FunctionSpace(self.mesh, ("CG", 1))
+            self.plot_space_stress = df.fem.TensorFunctionSpace(self.mesh, ("DG", 1))
 
     def solve(self, t: float = 1.0) -> None:
         """define what to do, to solve this problem
@@ -148,8 +158,8 @@ class ConcreteAM(MaterialProblem):
         #
         self.logger.info(f"solve for t:{t}")
 
-        # CHANGED FOR INCREMENTAL SET UP from u to du!!!
-        self.mechanics_solver.solve(self.mechanics_problem.du)
+        # how to do incremental stuff here instead of in nonlinear problem?
+        self.mechanics_solver.solve(self.mechanics_problem.u)
 
         # save fields to global problem for sensor output
         self.displacement = self.mechanics_problem.u
@@ -163,7 +173,7 @@ class ConcreteAM(MaterialProblem):
         self.compute_residuals()  # for residual sensor
         for sensor_name in self.sensors:
             # go through all sensors and measure
-            self.sensors[sensor_name].measure(self, t)
+            self.sensors[sensor_name].measure(self, self.wrapper, t)
 
         # update age & path before next step!
         self.mechanics_problem.update_history()
@@ -173,29 +183,46 @@ class ConcreteAM(MaterialProblem):
 
         self.residual = ufl.action(self.mechanics_problem.R, self.displacement)
 
-    def set_initial_path(self, path: df.fem.Function | None):
-        """set initial path for problem as (DG, 0) space
+    def set_timestep(self, dt: float) -> None:
+        self.mechanics_problem.set_timestep(dt)
 
-        Args:
-            path: function describing the negative time when an element will be reached on space (DG, 0)
+    # def set_initial_path(self, path: df.fem.Function | None):
+    #     """set initial path for problem as (DG, 0) space
+    #
+    #     Args:
+    #         path: function describing the negative time when an element will be reached on space (DG, 0)
+    #
+    #     """
+    #     if path:
+    #         # interpolate given path function onto quadrature space
+    #
+    #         self.mechanics_problem.path.interpolate(path)
+    #     else:
+    #         # default path
+    #         self.mechanics_problem.path = np.zeros_like(self.mechanics_problem.path[:])
+    #         self.mechanics_problem.path.x.scatter_forward()
 
-        """
-        if path:
-            # interpolate given path function onto quadrature space
+    def _pv_plot_mechanics(self, t=0) -> None:
+        with df.io.XDMFFile(self.mesh.comm, self.pv_path + self.pv_name) as f:
+            # mechanics
+            f.write_function(self.displacement, t)
 
-            self.mechanics_problem.path.interpolate(path)
-        else:
-            # default path
-            self.mechanics_problem.path = np.zeros_like(self.mechanics_problem.path[:])
-            self.mechanics_problem.path.x.scatter_forward()
+            sigma_plot = project(self.mechanics_problem.sigma(self.displacement), self.plot_space_stress, self.rule.dx)
+            E_plot = project(self.mechanics_problem.q_E, self.plot_space, self.rule.dx)
+
+            E_plot.name = "Young's_Modulus"
+            sigma_plot.name = "Stress"
+
+            f.write_function(sigma_plot, t)
+            f.write_function(E_plot, t)
 
 
 class ConcreteThixElasticModel(df.fem.petsc.NonlinearProblem):
-    """time incremental linear elastic thixotropy concrete model
+    """linear elastic thixotropy concrete model
 
         linear elasticity law with age dependent Youngs modulus modelling the thixotropy
         tensor format!!
-        incremental formulated u = u_old + du solve for du with given load increment df (using function q_fd) and material evaluation for dsigma/depsilon
+        ????incremental formulated u = u_old + du solve for du with given load increment df (using function q_fd) and material evaluation for dsigma/depsilon ???
 
 
     Args:
@@ -212,60 +239,60 @@ class ConcreteThixElasticModel(df.fem.petsc.NonlinearProblem):
         parameters: dict[str, int | float | str | bool],
         rule: QuadratureRule,
         u: df.fem.Function,
-        pd: df.fem.Function,
         bc: list[df.fem.DirichletBCMetaClass],
         body_force: ufl.form.Form | None,
     ):
 
         self.p = parameters
         self.rule = rule
+        self.mesh = mesh
+        dim_to_stress_dim = {1: 1, 2: 4, 3: 9}  # Tensor formulation!
+        self.stress_strain_dim = dim_to_stress_dim[self.p["dim"]]
 
-        if self.p["degree"] == 1:
-            self.visu_space = df.fem.FunctionSpace(mesh, ("DG", 0))
-            self.visu_space_T = df.fem.TensorFunctionSpace(mesh, ("DG", 0))
-        else:
-            self.visu_space = df.fem.FunctionSpace(mesh, ("CG", 1))
-            self.visu_space_T = df.fem.TensorFunctionSpace(mesh, ("CG", 1))
+        # generic quadrature function space
+        q_V = self.rule.create_quadrature_space(self.mesh)
+
+        # quadrature functions
+        self.q_E = df.fem.Function(q_V, name="youngs_modulus")
+        # self.pd = df.fem.Function(q_V, name="pseudo density")
+
+        # path variable fixing to 0
+        self.q_array_path = self.rule.create_quadrature_array(self.mesh, shape=1)
+        self.q_array_path[:] = 0.0
+        # pseudo density
+        self.q_array_pd = self.rule.create_quadrature_array(self.mesh, shape=1)
+
+        self.q_array_sigma = self.rule.create_quadrature_array(self.mesh, shape=self.stress_strain_dim)
+        self.q_array_eps = self.rule.create_quadrature_array(self.mesh, shape=self.stress_strain_dim)
 
         # standard space
         self.V = u.function_space()
-        self.V_T = df.fem.TensorFunctionSpace(mesh, ("CG", self.p["degree"]))
-
-        # Young's modulus functions same space (DG,0) as path and pseudo density
-        self.E = pd.function_space()  # Young's modulus
-        self.path = pd.function_space()  # path time
-        self.pd = pd  # pseudo density
-
-        self.eps = df.fem.TensorFunctionSpace(self.V, name="strain")
-        self.sig = df.fem.TensorFunctionSpace(self.V, name="stress")
-        self.dsig = df.fem.TensorFunctionSpace(self.V, name="stress")
-        self.sig_old = np.zeros_like(self.dsig.vector.array)
-        self.u_old = np.zeros_like(u.vector.array)
 
         # Define variational problem
-        self.du = df.fem.Function(self.V, name="delta displacements")
         v = ufl.TestFunction(self.V)
 
         # build up form
         # multiplication with activated elements / current Young's modulus
-        R_ufl = self.E * ufl.inner(self.x_sigma(self.du), self.epsilon(v)) * ufl.dx
+        R_ufl = ufl.inner(self.sigma(u), self.epsilon(v)) * self.rule.dx
 
         if body_force:
-            R_ufl -= body_force  # TODO activation?
+            R_ufl -= body_force  # TODO where activation?
 
         # quadrature point part
         self.R = R_ufl
 
         # derivative
         # normal form
-        dR_ufl = ufl.derivative(R_ufl, self.du)
+        dR_ufl = ufl.derivative(R_ufl, u)
 
         # quadrature part
         self.dR = dR_ufl
+        self.sigma_evaluator = QuadratureEvaluator(self.sigma(u), self.mesh, self.rule)
+        self.eps_evaluator = QuadratureEvaluator(self.eps(u), self.mesh, self.rule)
 
-        super().__init__(self.R, self.du, bc, self.dR)
+        super().__init__(self.R, u, bc, self.dR)
 
-    def x_sigma(self, v: ufl.argument.Argument) -> None:
+    def x_sigma(self, v: ufl.core.expr.Expr) -> ufl.core.expr.Expr:
         """compute stresses for Young's modulus == 1
 
         Args:
@@ -280,7 +307,10 @@ class ConcreteThixElasticModel(df.fem.petsc.NonlinearProblem):
 
         return 2.0 * x_mu * self.epsilon(v) + x_lambda * ufl.nabla_div(v) * ufl.Identity(self.p["dim"])
 
-    def epsilon(self, v: ufl.argument.Argument) -> ufl.tensoralgebra.Sym:
+    def sigma(self, v: ufl.core.expr.Expr) -> ufl.core.expr.Expr:
+        return self.q_E * self.x_sigma(v)
+
+    def epsilon(self, v: ufl.core.expr.Expr) -> ufl.core.expr.Expr:
         return ufl.tensoralgebra.Sym(ufl.grad(v))
 
     def E_fkt(self, pd: float, path_time: float, parameters: dict) -> float:
@@ -322,39 +352,30 @@ class ConcreteThixElasticModel(df.fem.petsc.NonlinearProblem):
         super().form(x)
 
     def evaluate_material(self) -> None:
-        # convert quadrature spaces to numpy vector
-        pd_list = self.pd.vector.array
-        path_list = self.path.vector.array
 
+        # defining required parameters as sub dict
         param_E = {}
         param_E["t_f"] = self.p["t_f"]
         param_E["E_0"] = self.p["E_0"]
         param_E["R_E"] = self.p["R_E"]
         param_E["A_E"] = self.p["A_E"]
         param_E["age_0"] = self.p["age_0"]
+
         # vectorize the function for speed up
         E_fkt_vectorized = np.vectorize(self.E_fkt)
-        E_array = E_fkt_vectorized(pd_list, path_list, param_E)
-        self.E.vector.array[:] = E_array
-        self.E.x.scatter_forward()
+        E_array = E_fkt_vectorized(self.q_array_pd, self.q_array_path, param_E)
+        self.q_E.vector.array[:] = E_array
+        self.q_E.x.scatter_forward()
 
-        # displacement update for stress and strain computation (for visualization)
-        # for total strain computation
-        self.u.vector.array[:] = self.u_old[:] + self.du.vector.array[:]
-        self.u.x.scatter_forward()
-        # get current total strains full tensor (split in old and delta not required)
-        self.eps = project(self.epsilon(self.u), self.V_T, ufl.dx)
-        self.dsig = project(self.E * self.x_sigma(self.du), self.V_T, ufl.dx)
-
-        self.sig.vector.array[:] = self.sig_old[:] + self.dsig[:]
-        self.sig.x.scatter_forward()
+        # postprocessing
+        self.sigma_evaluator.evaluate(self.q_array_sigma)
+        self.eps_evaluator.evaluate(self.q_array_eps)
 
     def update_history(self):
 
         # no history field currently
         # update path
-        self.q_path += self.dt * np.ones_like(self.q_path)
+        self.q_array_path += self.dt * np.ones_like(self.q_array_path)
 
-        # update old displacement state
-        self.u_old[:] = np.copy(self.u.vector.array[:])
-        self.q_sig_old[:] = np.copy(self.q_sig.vector.array[:])
+    def set_timestep(self, dt):
+        self.dt = dt

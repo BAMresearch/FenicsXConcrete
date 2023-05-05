@@ -3,7 +3,9 @@ from __future__ import annotations
 import logging
 from collections import UserDict  # because: https://realpython.com/inherit-python-dict/
 
+import basix
 import dolfinx as df
+import numpy as np
 import pint
 import ufl
 

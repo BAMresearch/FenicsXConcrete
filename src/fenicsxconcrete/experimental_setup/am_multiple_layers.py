@@ -82,8 +82,8 @@ class AmMultipleLayers(Experiment):
         if self.p["dim"] == 2:
             self.mesh = df.mesh.create_rectangle(
                 comm=MPI.COMM_WORLD,
-                points=[(0.0, 0.0), (self.p["layer_length"], self.p["num_layer"] * self.p["layer_height"])],
-                n=(self.p["num_elements_layer_length"], self.p["num_layer"] * self.p["num_elements_layer_height"]),
+                points=[(0.0, 0.0), (self.p["layer_length"], self.p["num_layers"] * self.p["layer_height"])],
+                n=(self.p["num_elements_layer_length"], self.p["num_layers"] * self.p["num_elements_layer_height"]),
                 cell_type=df.mesh.CellType.quadrilateral,
             )
         elif self.p["dim"] == 3:
@@ -91,12 +91,12 @@ class AmMultipleLayers(Experiment):
                 comm=MPI.COMM_WORLD,
                 points=[
                     (0.0, 0.0, 0.0),
-                    (self.p["layer_length"], self.p["layer_width"], self.p["num_layer"] * self.p["layer_height"]),
+                    (self.p["layer_length"], self.p["layer_width"], self.p["num_layers"] * self.p["layer_height"]),
                 ],
                 n=[
                     self.p["num_elements_layer_length"],
                     self.p["num_elements_layer_width"],
-                    self.p["num_layer"] * self.p["num_elements_layer_height"],
+                    self.p["num_layers"] * self.p["num_elements_layer_height"],
                 ],
                 cell_type=df.mesh.CellType.hexahedron,
             )
@@ -122,6 +122,7 @@ class AmMultipleLayers(Experiment):
                 np.array([0.0, 0.0], dtype=ScalarType),
                 boundary=self.boundary_bottom(),
                 method="geometrical",
+                entity_dim=self.mesh.topology.dim - 1,  # line
             )
 
         elif self.p["dim"] == 3:
@@ -130,6 +131,7 @@ class AmMultipleLayers(Experiment):
                 np.array([0.0, 0.0, 0.0], dtype=ScalarType),
                 boundary=self.boundary_bottom(),
                 method="geometrical",
+                entity_dim=self.mesh.topology.dim - 1,  # surface
             )
 
         return bc_generator.bcs

@@ -5,7 +5,7 @@ import numpy as np
 import pint
 import pytest
 
-from fenicsxconcrete.experimental_setup.uniaxial_cube import UniaxialCubeExperiment
+from fenicsxconcrete.experimental_setup.simple_cube import SimpleCube
 from fenicsxconcrete.finite_element_problem.concrete_am import ConcreteAM, ConcreteThixElasticModel
 from fenicsxconcrete.finite_element_problem.linear_elasticity import LinearElasticity
 from fenicsxconcrete.sensor_definition.strain_sensor import StrainSensor
@@ -53,6 +53,7 @@ def test_disp(dim):
     parameters["num_elements_length"] = 2 * ureg("")
     parameters["num_elements_height"] = 2 * ureg("")
     parameters["num_elements_width"] = 2 * ureg("")
+    parameters["strain_state"] = "uniaxial" * ureg("")
 
     displacement = disp_over_time
 
@@ -65,21 +66,25 @@ def test_disp(dim):
     solve_parameters["dt"] = 10 * 60 * ureg("s")
 
     # setting up the problem
-    experiment = UniaxialCubeExperiment(parameters)
-    # linear elastic case
+    experiment = SimpleCube(parameters)
+    # # linear elastic case
+    # _, default_params = LinearElasticity.default_parameters()
+    # print(default_params)
+    # parameters.update(default_params)
     # problem = LinearElasticity(experiment, parameters, pv_name=file_name, pv_path=data_path)
 
     # default parameters
-    parameters.update(ConcreteAM.default_parameters())
+    _, default_params = ConcreteAM.default_parameters()
+    parameters.update(default_params)
     problem = ConcreteAM(experiment, parameters, ConcreteThixElasticModel, pv_name=file_name, pv_path=data_path)
 
     # add sensors
     if dim == 2:
-        problem.add_sensor(StressSensor([[0.5, 0.5, 0.0]]))
-        problem.add_sensor(StrainSensor([[0.5, 0.5, 0.0]]))
+        problem.add_sensor(StressSensor([0.5, 0.5, 0.0]))
+        problem.add_sensor(StrainSensor([0.5, 0.5, 0.0]))
     elif dim == 3:
-        problem.add_sensor(StressSensor([[0.5, 0.5, 0.5]]))
-        problem.add_sensor(StrainSensor([[0.5, 0.5, 0.5]]))
+        problem.add_sensor(StressSensor([0.5, 0.5, 0.5]))
+        problem.add_sensor(StrainSensor([0.5, 0.5, 0.5]))
 
     t = 0 * ureg("s")
     while t <= solve_parameters["time"]:
@@ -109,7 +114,7 @@ def test_disp(dim):
         )
         assert problem.sensors["StrainSensor"].data[-1][1] == pytest.approx(0.0)
         # stress in yy direction
-        assert problem.sensors["StressSensor"].data[-1][-1].magnitude == pytest.approx(
+        assert problem.sensors["StressSensor"].data[-1][-1] == pytest.approx(
             (analytic_eps * problem.parameters["E"]).magnitude
         )
     elif dim == 3:
@@ -121,17 +126,17 @@ def test_disp(dim):
         assert problem.sensors["StrainSensor"].data[-1][0] == pytest.approx(-problem.parameters["nu"] * analytic_eps)
         # shear strains
         sum_mixed_strains = (
-            problem.sensors["StrainSensor"].data[-1][1].magnitude  # xy
-            - problem.sensors["StrainSensor"].data[-1][3].magnitude  # yx
-            - problem.sensors["StrainSensor"].data[-1][2].magnitude  # xz
-            - problem.sensors["StrainSensor"].data[-1][6].magnitude  # zx
-            - problem.sensors["StrainSensor"].data[-1][5].magnitude  # yz
-            - problem.sensors["StrainSensor"].data[-1][7].magnitude  # zy
+            problem.sensors["StrainSensor"].data[-1][1]  # xy
+            - problem.sensors["StrainSensor"].data[-1][3]  # yx
+            - problem.sensors["StrainSensor"].data[-1][2]  # xz
+            - problem.sensors["StrainSensor"].data[-1][6]  # zx
+            - problem.sensors["StrainSensor"].data[-1][5]  # yz
+            - problem.sensors["StrainSensor"].data[-1][7]  # zy
         )
         assert sum_mixed_strains == pytest.approx(0.0)
 
         # stress in zz direction
-        assert problem.sensors["StressSensor"].data[-1][-1].magnitude == pytest.approx(
+        assert problem.sensors["StressSensor"].data[-1][-1] == pytest.approx(
             (analytic_eps * problem.parameters["E"]).magnitude
         )
 
