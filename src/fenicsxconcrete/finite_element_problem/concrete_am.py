@@ -124,12 +124,9 @@ class ConcreteAM(MaterialProblem):
 
         # TODO add pseudo density/ add increments
 
-        try:
-            self.mechanics_problem = self.nonlinear_problem(
-                self.experiment.mesh, self.p, self.rule, self.displacement, bcs, body_forces
-            )
-        except:
-            raise ValueError(f"nonlinear problem {self.nonlinear_problem} not yet implemented")
+        self.mechanics_problem = self.nonlinear_problem(
+            self.experiment.mesh, self.p, self.rule, self.displacement, bcs, body_forces
+        )
 
         # set initial path
         # self.set_initial_path(None)
@@ -159,21 +156,17 @@ class ConcreteAM(MaterialProblem):
         self.logger.info(f"solve for t:{t}")
 
         # how to do incremental stuff here instead of in nonlinear problem?
-        self.mechanics_solver.solve(self.mechanics_problem.u)
+        self.mechanics_solver.solve(self.displacement)
 
         # save fields to global problem for sensor output
-        self.displacement = self.mechanics_problem.u
         self.stress = self.mechanics_problem.q_sig
         self.strain = self.mechanics_problem.q_eps
-
-        # stress strain visualization space for sensors
-        self.visu_space_T = self.mechanics_problem.visu_space_T
 
         # get sensor data
         self.compute_residuals()  # for residual sensor
         for sensor_name in self.sensors:
             # go through all sensors and measure
-            self.sensors[sensor_name].measure(self, self.wrapper, t)
+            self.sensors[sensor_name].measure(self, t)
 
         # update age & path before next step!
         self.mechanics_problem.update_history()
@@ -202,19 +195,20 @@ class ConcreteAM(MaterialProblem):
     #         self.mechanics_problem.path = np.zeros_like(self.mechanics_problem.path[:])
     #         self.mechanics_problem.path.x.scatter_forward()
 
-    def _pv_plot_mechanics(self, t=0) -> None:
-        with df.io.XDMFFile(self.mesh.comm, self.pv_path + self.pv_name) as f:
-            # mechanics
-            f.write_function(self.displacement, t)
+    def pv_plot(self, t=0) -> None:
 
-            sigma_plot = project(self.mechanics_problem.sigma(self.displacement), self.plot_space_stress, self.rule.dx)
-            E_plot = project(self.mechanics_problem.q_E, self.plot_space, self.rule.dx)
+        xdmf_file = df.io.XDMFFile(self.mesh.comm, self.pv_output_file, "w")
+        xdmf_file.write_mesh(self.mesh)
+        xdmf_file.write_function(self.displacement, t)
 
-            E_plot.name = "Young's_Modulus"
-            sigma_plot.name = "Stress"
+        sigma_plot = project(self.mechanics_problem.sigma(self.displacement), self.plot_space_stress, self.rule.dx)
+        E_plot = project(self.mechanics_problem.q_E, self.plot_space, self.rule.dx)
 
-            f.write_function(sigma_plot, t)
-            f.write_function(E_plot, t)
+        E_plot.name = "Young's_Modulus"
+        sigma_plot.name = "Stress"
+
+        # xdmf_file.write_function(sigma_plot, t)
+        # xdmf_file.write_function(E_plot, t)
 
 
 class ConcreteThixElasticModel(df.fem.petsc.NonlinearProblem):
@@ -251,6 +245,7 @@ class ConcreteThixElasticModel(df.fem.petsc.NonlinearProblem):
 
         # generic quadrature function space
         q_V = self.rule.create_quadrature_space(self.mesh)
+        q_VT = self.rule.create_quadrature_tensor_space(self.mesh, (self.p["dim"], self.p["dim"]))
 
         # quadrature functions
         self.q_E = df.fem.Function(q_V, name="youngs_modulus")
@@ -262,11 +257,13 @@ class ConcreteThixElasticModel(df.fem.petsc.NonlinearProblem):
         # pseudo density
         self.q_array_pd = self.rule.create_quadrature_array(self.mesh, shape=1)
 
-        self.q_array_sigma = self.rule.create_quadrature_array(self.mesh, shape=self.stress_strain_dim)
-        self.q_array_eps = self.rule.create_quadrature_array(self.mesh, shape=self.stress_strain_dim)
+        self.q_sig = df.fem.Function(q_VT, name="stress")
+        self.q_eps = df.fem.Function(q_VT, name="strain")
+        # self.q_array_sigma = self.rule.create_quadrature_array(self.mesh, shape=self.stress_strain_dim)
+        # self.q_array_eps = self.rule.create_quadrature_array(self.mesh, shape=self.stress_strain_dim)
 
         # standard space
-        self.V = u.function_space()
+        self.V = u.function_space
 
         # Define variational problem
         v = ufl.TestFunction(self.V)
@@ -288,7 +285,7 @@ class ConcreteThixElasticModel(df.fem.petsc.NonlinearProblem):
         # quadrature part
         self.dR = dR_ufl
         self.sigma_evaluator = QuadratureEvaluator(self.sigma(u), self.mesh, self.rule)
-        self.eps_evaluator = QuadratureEvaluator(self.eps(u), self.mesh, self.rule)
+        self.eps_evaluator = QuadratureEvaluator(self.epsilon(u), self.mesh, self.rule)
 
         super().__init__(self.R, u, bc, self.dR)
 
@@ -300,8 +297,8 @@ class ConcreteThixElasticModel(df.fem.petsc.NonlinearProblem):
 
         """
         x_mu = df.fem.Constant(self.mesh, 1.0 / (2.0 * (1.0 + self.p["nu"])))
-        x_lambda = df.fem.Constant(self.mesh, 1.0 * self.p.nu / ((1.0 + self.p["nu"]) * (1.0 - 2.0 * self.p["nu"])))
-        if self.p["dim"] == 2 and self.p["stress_case"] == "plane_stress":
+        x_lambda = df.fem.Constant(self.mesh, 1.0 * self.p["nu"] / ((1.0 + self.p["nu"]) * (1.0 - 2.0 * self.p["nu"])))
+        if self.p["dim"] == 2 and self.p["stress_state"] == "plane_stress":
             # see https://comet-fenics.readthedocs.io/en/latest/demo/elasticity/2D_elasticity.py.html
             x_lambda = df.fem.Constant(self.mesh, 2 * x_mu.value * x_lambda.value / (x_lambda.value + 2 * x_mu.value))
 
@@ -368,8 +365,8 @@ class ConcreteThixElasticModel(df.fem.petsc.NonlinearProblem):
         self.q_E.x.scatter_forward()
 
         # postprocessing
-        self.sigma_evaluator.evaluate(self.q_array_sigma)
-        self.eps_evaluator.evaluate(self.q_array_eps)
+        self.sigma_evaluator.evaluate(self.q_sig)
+        self.eps_evaluator.evaluate(self.q_eps)
 
     def update_history(self):
 

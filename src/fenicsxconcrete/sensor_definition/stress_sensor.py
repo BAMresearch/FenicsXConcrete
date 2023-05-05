@@ -38,7 +38,7 @@ class StressSensor(PointSensor):
         else:
             # TODO: I cannot test this lines, yet (comment: Annika)
             #       why is it implemented??? how do you know it works? (comment: Erik)
-            stress = project(problem.stress, problem.visu_space_T, problem.rule.dx)
+            stress = project(problem.stress, problem.plot_space_stress, problem.rule.dx)
 
         # finding the cells corresponding to the point
         bb_tree = df.geometry.BoundingBoxTree(problem.experiment.mesh, problem.experiment.mesh.topology.dim)

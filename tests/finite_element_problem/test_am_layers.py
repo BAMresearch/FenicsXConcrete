@@ -23,7 +23,7 @@ def set_test_parameters(dim: int) -> Parameters:
 
     setup_parameters["dim"] = dim * ureg("")
     # setup_parameters["stress_state"] = "plane_strain"
-    setup_parameters["num_layer"] = 5 * ureg("")  # changed in single layer test!!
+    setup_parameters["num_layers"] = 5 * ureg("")  # changed in single layer test!!
     setup_parameters["layer_height"] = 1 / 100 * ureg("m")
     setup_parameters["layer_length"] = 50 / 100 * ureg("m")
     setup_parameters["layer_width"] = 5 / 100 * ureg("m")
@@ -65,7 +65,7 @@ def test_am_single_layer(dimension: int) -> None:
         problem.parameters["g"]
         * problem.parameters["rho"]
         * problem.parameters["layer_length"]
-        * problem.parameters["num_layer"]
+        * problem.parameters["num_layers"]
         * problem.parameters["layer_height"]
     )
     if dimension == 2:
