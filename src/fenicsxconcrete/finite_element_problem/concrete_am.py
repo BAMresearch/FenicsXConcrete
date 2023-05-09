@@ -200,9 +200,9 @@ class ConcreteAM(MaterialProblem):
             # go through all sensors and measure
             self.sensors[sensor_name].measure(self, t)
 
-        # update path before next step!
-        self.update_path()
+        # update path & internal variables before next step!
         self.mechanics_problem.update_history()  # if required
+        self.update_path()
 
     def compute_residuals(self) -> None:
         """defines what to do, to compute the residuals. Called in solve"""
@@ -226,21 +226,14 @@ class ConcreteAM(MaterialProblem):
         # self.mechanics_problem.q_array_path = self.q_array_path
         self.mechanics_problem.q_array_path += self.dt * np.ones_like(self.mechanics_problem.q_array_path)
 
-    # def set_initial_path(self, path: df.fem.Function | None):
-    #     """set initial path for problem as (DG, 0) space
-    #
-    #     Args:
-    #         path: function describing the negative time when an element will be reached on space (DG, 0)
-    #
-    #     """
-    #     if path:
-    #         # interpolate given path function onto quadrature space
-    #
-    #         self.mechanics_problem.path.interpolate(path)
-    #     else:
-    #         # default path
-    #         self.mechanics_problem.path = np.zeros_like(self.mechanics_problem.path[:])
-    #         self.mechanics_problem.path.x.scatter_forward()
+    def set_initial_path(self, path: list[float]):
+        """set initial path for problem
+
+        Args:
+            path: array describing the negative time when an element will be reached on quadrature space
+
+        """
+        self.mechanics_problem.q_array_path = path
 
     def pv_plot(self, t: pint.Quantity | float = 1) -> None:
         """creates paraview output at given time step
@@ -329,7 +322,6 @@ class ConcreteThixElasticModel(df.fem.petsc.NonlinearProblem):
 
         # apply body force
         body_force = body_force_fct(v, self.q_fd, self.rule)
-        print(body_force)
         if body_force:
             R_ufl -= body_force
 
@@ -449,6 +441,7 @@ class ConcreteThixElasticModel(df.fem.petsc.NonlinearProblem):
             array of incremental weigths for body force
         """
         fd = np.zeros_like(pd)
+        print("in fd_fkt", self.dt, self.p["load_time"])
 
         active_idx = np.where(pd > 0)[0]  # only active elements
         load_idx = np.where(path_time[active_idx] < self.p["load_time"])
@@ -498,7 +491,7 @@ class ConcreteThixElasticModel(df.fem.petsc.NonlinearProblem):
 
         # postprocessing
         self.sigma_evaluator.evaluate(self.q_sig)
-        self.eps_evaluator.evaluate(self.q_eps)  # -> TODO globally in concreteAM ?
+        self.eps_evaluator.evaluate(self.q_eps)  # -> globally in concreteAM not possible why?
 
     def update_history(self) -> None:
         """nothing here"""
