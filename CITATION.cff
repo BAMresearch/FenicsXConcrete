@@ -8,6 +8,7 @@ type: software
 authors:
   - given-names: Daniel
     family-names: Andrés Arcones
+    orcid: 'https://orcid.org/0009-0003-2522-2179'
   - given-names: Philipp
     family-names: Diercks
   - given-names: Annika
