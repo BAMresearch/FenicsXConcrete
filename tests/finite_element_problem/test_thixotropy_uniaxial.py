@@ -28,9 +28,13 @@ def disp_over_time(current_time: pint.Quantity, switch_time: pint.Quantity) -> p
     return current_disp
 
 
-@pytest.mark.parametrize("dim", [2, 3])
+# @pytest.mark.parametrize("dim", [2, 3])
 def test_disp(dim: int):
-    """uniaxial tension test"""
+    """uniaxial test displacement controlled
+
+    Args:
+        dim: dimension of the test (2 or 3)
+    """
 
     # setup paths and directories
     data_dir = "data_files"
@@ -51,9 +55,6 @@ def test_disp(dim: int):
     parameters["num_elements_length"] = 2 * ureg("")
     parameters["num_elements_height"] = 2 * ureg("")
     parameters["num_elements_width"] = 2 * ureg("")
-    parameters["strain_state"] = "uniaxial" * ureg("")
-
-    displacement = disp_over_time
 
     if dim == 2:
         parameters["stress_state"] = "plane_stress" * ureg("")
@@ -66,11 +67,16 @@ def test_disp(dim: int):
     # setting up the problem
     experiment = SimpleCube(parameters)
 
-    # default parameters
+    # get default parameters and change accordingly to cases
     _, default_params = ConcreteAM.default_parameters()
     parameters.update(default_params)
     if dim == 3:
         parameters["q_degree"] = 4 * ureg("")
+
+    # displacement controlled uniaxial test with no body force
+    parameters["strain_state"] = "uniaxial" * ureg("")
+    displacement = disp_over_time
+    parameters["density"] = 0 * ureg("kg/m^3")  # no body force!!
 
     problem = ConcreteAM(experiment, parameters, ConcreteThixElasticModel, pv_name=file_name, pv_path=data_path)
     problem.set_timestep(solve_parameters["dt"])
@@ -109,11 +115,24 @@ def test_disp(dim: int):
     # print("time", problem.sensors["StrainSensor"].time)
     # print("E modul", E_o_time)
 
-    disp_at_end = displacement(problem.sensors["StrainSensor"].time[-1], 2 * solve_parameters["dt"]).to_base_units()
+    check_disp_case(problem, solve_parameters, E_o_time)
+
+
+def check_disp_case(problem: ConcreteAM, solve_parameters: dict, E_o_time: list[float]) -> None:
+    """checks for displacement controlled version
+
+    Args:
+        problem: concreteam problem instance
+        solve_parameters: solving parameters including "dt" and "time"
+        E_o_time: Youngs modulus values over time
+
+    """
+
+    disp_at_end = disp_over_time(problem.sensors["StrainSensor"].time[-1], 2 * solve_parameters["dt"]).to_base_units()
     analytic_eps = disp_at_end / (1.0 * ureg("m"))
-    disp_dt1 = displacement(problem.sensors["StrainSensor"].time[1], 2 * solve_parameters["dt"]).to_base_units()
+    disp_dt1 = disp_over_time(problem.sensors["StrainSensor"].time[1], 2 * solve_parameters["dt"]).to_base_units()
     analytic_eps_dt1 = disp_dt1 / (1.0 * ureg("m"))
-    if dim == 2:
+    if problem.p["dim"] == 2:
         # standard uniaxial checks for last time step
         # strain in yy direction
         assert problem.sensors["StrainSensor"].data[-1][-1] == pytest.approx(analytic_eps)
@@ -132,7 +151,7 @@ def test_disp(dim: int):
         assert problem.sensors["StressSensor"].data[-1][-1] - problem.sensors["StressSensor"].data[-2][
             -1
         ] == pytest.approx(0.0)
-    elif dim == 3:
+    elif problem.p["dim"] == 3:
         # standard uniaxial checks for last time step
         # strain in zz direction
         assert problem.sensors["StrainSensor"].data[-1][-1] == pytest.approx(analytic_eps)
@@ -171,8 +190,8 @@ def test_disp(dim: int):
     assert E_o_time[-1] == pytest.approx(E_end)
 
 
-# if __name__ == "__main__":
-#
-#     # test_disp(2)
-#
-#     test_disp(3)
+if __name__ == "__main__":
+
+    test_disp(2)
+
+    test_disp(3)

@@ -10,7 +10,7 @@ from petsc4py.PETSc import ScalarType
 from fenicsxconcrete.boundary_conditions.bcs import BoundaryConditions
 from fenicsxconcrete.boundary_conditions.boundary import plane_at
 from fenicsxconcrete.experimental_setup.base_experiment import Experiment
-from fenicsxconcrete.helper import Parameters
+from fenicsxconcrete.helper import Parameters, QuadratureRule
 from fenicsxconcrete.unit_registry import ureg
 
 
@@ -152,5 +152,29 @@ class AmMultipleLayers(Experiment):
 
         f = df.fem.Constant(self.mesh, ScalarType(force_vector))
         L = ufl.dot(f, v) * ufl.dx
+
+        return L
+
+    def create_body_force_am(
+        self, v: ufl.argument.Argument, q_fd: df.fem.Function, rule: QuadratureRule
+    ) -> ufl.form.Form:
+        """defines body force for am experiments
+
+        element activation via pseudo density and incremental loading via parameter ["load_time"] computed in class concrete_am
+
+        Args:
+            v: test function
+            q_fd: quadrature function given the loading increment where elements are active
+
+        Returns:
+            form for body force
+
+        """
+
+        force_vector = np.zeros(self.p["dim"])
+        force_vector[-1] = -self.p["rho"] * self.p["g"]  # works for 2D and 3D
+
+        f = df.fem.Constant(self.mesh, ScalarType(force_vector))
+        L = q_fd * ufl.dot(f, v) * rule.dx
 
         return L
