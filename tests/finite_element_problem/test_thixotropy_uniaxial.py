@@ -1,7 +1,6 @@
 import os
 from pathlib import Path
 
-import numpy as np
 import pint
 import pytest
 
@@ -30,7 +29,7 @@ def disp_over_time(current_time: pint.Quantity, switch_time: pint.Quantity) -> p
 
 
 @pytest.mark.parametrize("dim", [2, 3])
-def test_disp(dim):
+def test_disp(dim: int):
     """uniaxial tension test"""
 
     # setup paths and directories
@@ -70,6 +69,9 @@ def test_disp(dim):
     # default parameters
     _, default_params = ConcreteAM.default_parameters()
     parameters.update(default_params)
+    if dim == 3:
+        parameters["q_degree"] = 4 * ureg("")
+
     problem = ConcreteAM(experiment, parameters, ConcreteThixElasticModel, pv_name=file_name, pv_path=data_path)
     problem.set_timestep(solve_parameters["dt"])
 
@@ -102,13 +104,10 @@ def test_disp(dim):
 
         t += solve_parameters["dt"]
 
-    # get stresses and strains over time
-    print("Stress sensor", problem.sensors["StressSensor"].data)
-    print("strain sensor", problem.sensors["StrainSensor"].data)
-    print("time", problem.sensors["StrainSensor"].time)
-    print("E modul", E_o_time)
-
-    print()
+    # print("Stress sensor", problem.sensors["StressSensor"].data)
+    # print("strain sensor", problem.sensors["StrainSensor"].data)
+    # print("time", problem.sensors["StrainSensor"].time)
+    # print("E modul", E_o_time)
 
     disp_at_end = displacement(problem.sensors["StrainSensor"].time[-1], 2 * solve_parameters["dt"]).to_base_units()
     analytic_eps = disp_at_end / (1.0 * ureg("m"))
@@ -172,8 +171,8 @@ def test_disp(dim):
     assert E_o_time[-1] == pytest.approx(E_end)
 
 
-if __name__ == "__main__":
-
-    test_disp(2)
-
-    test_disp(3)
+# if __name__ == "__main__":
+#
+#     # test_disp(2)
+#
+#     test_disp(3)

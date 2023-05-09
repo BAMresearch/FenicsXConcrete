@@ -4,7 +4,6 @@ import pint
 import ufl
 from mpi4py import MPI
 from petsc4py import PETSc
-from petsc4py.PETSc import ScalarType
 
 from fenicsxconcrete.experimental_setup.am_multiple_layers import AmMultipleLayers
 from fenicsxconcrete.experimental_setup.base_experiment import Experiment
@@ -106,7 +105,7 @@ class ConcreteAM(MaterialProblem):
             "age_0": 0 * ureg("s"),  # start age of concrete
             # other model parameters
             "degree": 2 * ureg(""),  # polynomial degree
-            "q_degree": 4 * ureg(""),  # quadrature rule
+            "q_degree": 2 * ureg(""),  # quadrature rule
             "load_time": 1 * ureg("s"),  # load applied in 1 s
         }
 
@@ -116,6 +115,7 @@ class ConcreteAM(MaterialProblem):
         """set up problem"""
 
         self.rule = QuadratureRule(cell_type=self.experiment.mesh.ufl_cell(), degree=self.p["q_degree"])
+        print("num q", self.rule.number_of_points(mesh=self.experiment.mesh))
         self.displacement_space = df.fem.VectorFunctionSpace(self.experiment.mesh, ("CG", self.p["degree"]))
         self.strain_stress_space = self.rule.create_quadrature_tensor_space(
             self.experiment.mesh, (self.p["dim"], self.p["dim"])
@@ -167,8 +167,8 @@ class ConcreteAM(MaterialProblem):
         #     self.mechanics_problem.epsilon(self.displacement), self.experiment.mesh, self.rule
         # )
 
-    def solve(self, t: float = 1.0) -> None:
-        """time incremental solving
+    def solve(self, t: pint.Quantity | float = 1.0) -> None:
+        """time incremental solving !
 
         Args:
             t: time point to solve (default = 1)
@@ -210,7 +210,7 @@ class ConcreteAM(MaterialProblem):
 
         self.residual = ufl.action(self.mechanics_problem.R, self.displacement)
 
-    def set_timestep(self, dt: float) -> None:
+    def set_timestep(self, dt: pint.Quantity) -> None:
         self.mechanics_problem.set_timestep(dt.to_base_units().magnitude)
 
     # def set_initial_path(self, path: df.fem.Function | None):
@@ -229,11 +229,16 @@ class ConcreteAM(MaterialProblem):
     #         self.mechanics_problem.path = np.zeros_like(self.mechanics_problem.path[:])
     #         self.mechanics_problem.path.x.scatter_forward()
 
-    def pv_plot(self, t=0) -> None:
+    def pv_plot(self, t: pint.Quantity | float = 1) -> None:
+
+        try:
+            _t = t.magnitude
+        except:
+            _t = t
 
         xdmf_file = df.io.XDMFFile(self.mesh.comm, self.pv_output_file, "w")
         xdmf_file.write_mesh(self.mesh)
-        xdmf_file.write_function(self.displacement, t)
+        xdmf_file.write_function(self.displacement, _t)
 
         sigma_plot = project(self.mechanics_problem.sigma(self.displacement), self.plot_space_stress, self.rule.dx)
         E_plot = project(self.mechanics_problem.q_E, self.plot_space, self.rule.dx)
@@ -241,8 +246,8 @@ class ConcreteAM(MaterialProblem):
         E_plot.name = "Young's_Modulus"
         sigma_plot.name = "Stress"
 
-        # xdmf_file.write_function(sigma_plot, t)
-        # xdmf_file.write_function(E_plot, t)
+        # xdmf_file.write_function(sigma_plot, _t)
+        # xdmf_file.write_function(E_plot, _t)
 
 
 class ConcreteThixElasticModel(df.fem.petsc.NonlinearProblem):
@@ -408,11 +413,11 @@ class ConcreteThixElasticModel(df.fem.petsc.NonlinearProblem):
         self.sigma_evaluator.evaluate(self.q_sig)
         self.eps_evaluator.evaluate(self.q_eps)  # -> TODO globally in concreteAM ?
 
-    def update_history(self):
+    def update_history(self) -> None:
 
         # no history field currently
         # update path
         self.q_array_path += self.dt * np.ones_like(self.q_array_path)
 
-    def set_timestep(self, dt):
+    def set_timestep(self, dt: float) -> None:
         self.dt = dt
