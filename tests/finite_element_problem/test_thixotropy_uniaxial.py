@@ -192,6 +192,6 @@ def check_disp_case(problem: ConcreteAM, solve_parameters: dict, E_o_time: list[
 
 if __name__ == "__main__":
 
-    test_disp(2)
+    # test_disp(2)
 
     test_disp(3)

@@ -10,6 +10,7 @@ from fenicsxconcrete.finite_element_problem.concrete_am import ConcreteAM, Concr
 from fenicsxconcrete.finite_element_problem.linear_elasticity import LinearElasticity
 from fenicsxconcrete.helper import Parameters, QuadratureEvaluator
 from fenicsxconcrete.sensor_definition.reaction_force_sensor import ReactionForceSensor
+from fenicsxconcrete.sensor_definition.strain_sensor import StrainSensor
 from fenicsxconcrete.sensor_definition.stress_sensor import StressSensor
 from fenicsxconcrete.unit_registry import ureg
 
@@ -91,6 +92,7 @@ def test_am_single_layer(dimension: int, factor: int) -> None:
     problem = ConcreteAM(experiment, setup_parameters, ConcreteThixElasticModel, pv_name=file_name, pv_path=data_path)
     problem.add_sensor(ReactionForceSensor())
     problem.add_sensor(StressSensor([problem.p["layer_length"] / 2, 0, 0]))
+    problem.add_sensor(StrainSensor([problem.p["layer_length"] / 2, 0, 0]))
 
     problem.set_timestep(solve_parameters["dt"])
 
@@ -100,21 +102,14 @@ def test_am_single_layer(dimension: int, factor: int) -> None:
         print(f"solving for t={t}")
         problem.solve(t=t)
         problem.pv_plot()
-        print("computed disp", problem.displacement.x.array[:].max())
 
         # # store Young's modulus over time
         E_o_time.append(problem.youngsmodulus.vector.array[:].max())
 
         t += solve_parameters["dt"]
 
-    print("Stress sensor", problem.sensors["StressSensor"].data)
-    # print("time", problem.sensors["StressSensor"].time)
-    # print("E modul", E_o_time)
-
-    # check sensor output
-    # print(np.array(problem.sensors["ReactionForceSensor"].data)[:, -1])
-    # force_bottom = np.array(problem.sensors["ReactionForceSensor"].data)[:, -1]
-
+    # check reaction force
+    force_bottom_y = np.array(problem.sensors["ReactionForceSensor"].data)[:, -1]
     dead_load = (
         problem.p["g"]
         * problem.p["rho"]
@@ -128,8 +123,25 @@ def test_am_single_layer(dimension: int, factor: int) -> None:
         dead_load *= problem.p["layer_width"]
 
     # dead load of full structure
-    print("check", force_bottom, dead_load)
-    assert force_bottom[-1] == pytest.approx(-dead_load)
+    print("check", sum(force_bottom_y), dead_load)
+    assert sum(force_bottom_y) == pytest.approx(-dead_load)
+
+    # check stresses change according to Emodul change
+    sig_o_time = np.array(problem.sensors["StressSensor"].data)[:, -1]
+    eps_o_time = np.array(problem.sensors["StrainSensor"].data)[:, -1]
+    print("sig o time", sig_o_time)
+    print("eps o time", eps_o_time)
+    if factor == 1:
+        # instance loading -> no changes
+        assert sum(np.diff(sig_o_time)) == pytest.approx(0, abs=1e-8)
+        assert sum(np.diff(eps_o_time)) == pytest.approx(0, abs=1e-8)
+    elif factor == 2:
+        # ratio sig/eps t=0 to sig/eps t=0+dt
+        E_ratio_computed = (sig_o_time[0] / eps_o_time[0]) / (np.diff(sig_o_time)[0] / np.diff(eps_o_time)[0])
+        assert E_ratio_computed == pytest.approx(E_o_time[0] / E_o_time[1])
+        # after second time step nothing should change anymore
+        assert sum(np.diff(sig_o_time)[factor - 1 : :]) == pytest.approx(0, abs=1e-8)
+        assert sum(np.diff(eps_o_time)[factor - 1 : :]) == pytest.approx(0, abs=1e-8)
 
 
 @pytest.mark.parametrize("dimension", [2])
@@ -179,12 +191,14 @@ def test_am_multiple_layer(dimension: int, mat: str) -> None:
 
     problem.set_timestep(solve_parameters["dt"])
 
+    print("??????????????")
+
     # initial path function describing layer activation
     path_activation = define_path(
         problem, time_layer.magnitude, t_0=-(setup_parameters["num_layers"].magnitude - 1) * time_layer.magnitude
     )
     problem.set_initial_path(path_activation)
-
+    print("!!!!")
     # problem.add_sensor(ReactionForceSensor())
     problem.add_sensor(StressSensor([problem.p["layer_length"] / 2, 0, 0]))
 
@@ -218,7 +232,7 @@ def define_path(prob, t_diff, t_0=0):
     # q_V = prob.rule.create_quadrature_space(prob.experiment.mesh)
     # # print(prob.rule.points)
     # # print(prob.rule.weights)
-    # # print(q_V.tabulate_dof_coordinates())
+    # print(q_V.tabulate_dof_coordinates())
     # print(dir(q_V))
     # # print(dir(q_V.tabulate_dof_coordinates))
     # V = df.fem.VectorFunctionSpace(prob.experiment.mesh, ("CG", 2))
@@ -232,8 +246,8 @@ def define_path(prob, t_diff, t_0=0):
     #
     # input()
 
-    # standard CG function
-    V = df.fem.FunctionSpace(prob.experiment.mesh, ("CG", prob.p["degree"]))
+    # standard CG function and interpolate onto quadrature space afterwards
+    V = df.fem.FunctionSpace(prob.experiment.mesh, ("CG", 1))
     v_cg = df.fem.Function(V)
     # dof map for coordinates
     dof_map = V.tabulate_dof_coordinates()[:]
@@ -272,6 +286,6 @@ def define_path(prob, t_diff, t_0=0):
 
 if __name__ == "__main__":
 
-    test_am_single_layer(2, 2)
+    # test_am_single_layer(2, 2)
 
-    # test_am_multiple_layer(2, "thix")
+    test_am_multiple_layer(2, "thix")

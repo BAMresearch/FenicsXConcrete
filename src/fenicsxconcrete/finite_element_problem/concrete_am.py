@@ -117,7 +117,7 @@ class ConcreteAM(MaterialProblem):
         """set up problem"""
 
         self.rule = QuadratureRule(cell_type=self.experiment.mesh.ufl_cell(), degree=self.p["q_degree"])
-        print("num q", self.rule.number_of_points(mesh=self.experiment.mesh))
+        # print("num q", self.rule.number_of_points(mesh=self.experiment.mesh))
         # displacement space (name V required for sensors!)
         self.V = df.fem.VectorFunctionSpace(self.experiment.mesh, ("CG", self.p["degree"]))
         self.strain_stress_space = self.rule.create_quadrature_tensor_space(
@@ -146,6 +146,10 @@ class ConcreteAM(MaterialProblem):
             bcs,
             body_force_fct,
         )
+
+        # from dolfinx import log
+        #
+        # log.set_log_level(log.LogLevel.INFO)
 
         # setting up the solver
         self.mechanics_solver = df.nls.petsc.NewtonSolver(MPI.COMM_WORLD, self.mechanics_problem)
@@ -177,8 +181,6 @@ class ConcreteAM(MaterialProblem):
         self.logger.info(f"solve for t:{t}")
         self.logger.info(f"CHECK if external loads are applied as incremental loads e.g. delta_u(t)!!!")
 
-        print("loading increment!!")
-
         # solve problem for current time increment
         self.mechanics_solver.solve(self.d_disp)
 
@@ -205,9 +207,9 @@ class ConcreteAM(MaterialProblem):
         self.update_path()
 
     def compute_residuals(self) -> None:
-        """defines what to do, to compute the residuals. Called in solve"""
+        """defines what to do, to compute the residuals. Called in solve for sensors"""
 
-        self.residual = ufl.action(self.mechanics_problem.R, self.displacement)
+        self.residual = self.mechanics_problem.R
 
     def set_timestep(self, dt: pint.Quantity) -> None:
         """sets time step value here and in mechanics problems using base units
@@ -441,7 +443,6 @@ class ConcreteThixElasticModel(df.fem.petsc.NonlinearProblem):
             array of incremental weigths for body force
         """
         fd = np.zeros_like(pd)
-        print("in fd_fkt", self.dt, self.p["load_time"])
 
         active_idx = np.where(pd > 0)[0]  # only active elements
         load_idx = np.where(path_time[active_idx] < self.p["load_time"])
@@ -462,11 +463,11 @@ class ConcreteThixElasticModel(df.fem.petsc.NonlinearProblem):
 
     def evaluate_material(self) -> None:
         """evaluate material"""
-        print("path time", self.q_array_path)
+        # print("path time", self.q_array_path)
 
         # compute current element activation
         self.q_array_pd = self.pd_fkt(self.q_array_path)
-        print("pd", self.q_array_pd)
+        # print("pd", self.q_array_pd)
 
         # defining required parameters as sub dict
         param_E = {}
@@ -479,13 +480,13 @@ class ConcreteThixElasticModel(df.fem.petsc.NonlinearProblem):
         # vectorize the function for speed up
         E_fkt_vectorized = np.vectorize(self.E_fkt)
         E_array = E_fkt_vectorized(self.q_array_pd, self.q_array_path, param_E)
-        print("E", E_array)
+        # print("E", E_array)
         self.q_E.vector.array[:] = E_array
         self.q_E.x.scatter_forward()
 
         # compute loading factors for density load
         fd_array = self.fd_fkt(self.q_array_pd, self.q_array_path)
-        print("fd", fd_array)
+        # print("fd", fd_array)
         self.q_fd.vector.array[:] = fd_array
         self.q_fd.x.scatter_forward()
 

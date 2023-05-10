@@ -77,7 +77,6 @@ class AmMultipleLayers(Experiment):
         """
 
         self.logger.debug("setup mesh for %s", self.p["dim"])
-        print(self.p["dim"])
 
         if self.p["dim"] == 2:
             self.mesh = df.mesh.create_rectangle(
