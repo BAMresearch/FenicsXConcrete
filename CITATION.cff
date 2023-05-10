@@ -27,5 +27,8 @@ authors:
   - given-names: Jörg F.
     family-names: Unger
     orcid: 'https://orcid.org/0000-0003-0035-0951'
+identifiers:
+  - type: doi
+    value: 10.5281/zenodo.7780757
 repository-code: 'https://github.com/BAMresearch/FenicsXConcrete'
 license: MIT
