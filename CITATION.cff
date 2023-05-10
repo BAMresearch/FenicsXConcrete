@@ -2,7 +2,7 @@
 # Visit https://bit.ly/cffinit to generate yours today!
 
 cff-version: 1.2.0
-title: ' FenicsXConcrete '
+title: FenicsXConcrete
 message: Please cite this software using these metadata.
 type: software
 authors:
@@ -31,4 +31,7 @@ identifiers:
   - type: doi
     value: 10.5281/zenodo.7780757
 repository-code: 'https://github.com/BAMresearch/FenicsXConcrete'
+abstract: >-
+  This software uses FEniCSx for FEM simulations of
+  structural mechanics problems.
 license: MIT
