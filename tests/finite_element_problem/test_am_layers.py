@@ -89,7 +89,7 @@ def test_am_single_layer(dimension: int, factor: int) -> None:
 
     # problem = LinearElasticity(experiment, setup_parameters)
     problem = ConcreteAM(experiment, setup_parameters, ConcreteThixElasticModel, pv_name=file_name, pv_path=data_path)
-    # problem.add_sensor(ReactionForceSensor())
+    problem.add_sensor(ReactionForceSensor())
     problem.add_sensor(StressSensor([problem.p["layer_length"] / 2, 0, 0]))
 
     problem.set_timestep(solve_parameters["dt"])
@@ -214,8 +214,6 @@ def define_path(prob, t_diff, t_0=0):
                             (-end_time last layer if dynamic computation)
     """
 
-    new_path = np.zeros_like(prob.mechanics_problem.q_array_path)
-
     # # get quadrature function space
     # q_V = prob.rule.create_quadrature_space(prob.experiment.mesh)
     # # print(prob.rule.points)
@@ -238,10 +236,10 @@ def define_path(prob, t_diff, t_0=0):
     V = df.fem.FunctionSpace(prob.experiment.mesh, ("CG", prob.p["degree"]))
     v_cg = df.fem.Function(V)
     # dof map for coordinates
-    dof_map = v_cg.function_space.tabulate_dof_coordinates()[:]
+    dof_map = V.tabulate_dof_coordinates()[:]
     new_path = np.zeros(len(v_cg.vector.array[:]))
 
-    y_CO = np.array(dof_map)[:, -1]
+    y_CO = np.array(dof_map)[:, 1]
     h_min = np.arange(0, prob.p["num_layers"] * prob.p["layer_height"], prob.p["layer_height"])
     h_max = np.arange(
         prob.p["layer_height"],
@@ -258,19 +256,22 @@ def define_path(prob, t_diff, t_0=0):
         new_path[layer_index] = t_0 + (prob.p["num_layers"] - 1 - i) * t_diff
 
     print("new_path", new_path, new_path.min(), new_path.max())
+    print(len(new_path))
+
+    v_cg.vector.array[:] = new_path
+    v_cg.x.scatter_forward()
 
     # interpolate on quadrature space
-    v_cg.vector.array[:] = new_path
+    q_path = np.zeros_like(prob.mechanics_problem.q_array_path)
     quad_ev = QuadratureEvaluator(v_cg, prob.experiment.mesh, prob.rule)
-    quad_ev.evaluate(new_path)
-    print(new_path)
-    input()
+    quad_ev.evaluate(q_path)
+    print(q_path, len(q_path))
 
-    return new_path
+    return q_path
 
 
 if __name__ == "__main__":
 
-    # test_am_single_layer(2, 2)
+    test_am_single_layer(2, 2)
 
-    test_am_multiple_layer(2, "thix")
+    # test_am_multiple_layer(2, "thix")
