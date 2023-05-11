@@ -201,7 +201,6 @@ def test_am_multiple_layer(dimension: int, mat: str, plot: bool = False) -> None
     problem.add_sensor(StressSensor([problem.p["layer_length"] / 2, 0, 0]))
     problem.add_sensor(StrainSensor([problem.p["layer_length"] / 2, 0, 0]))
 
-    E_o_time = []
     t = 0.0 * ureg("s")
     while t <= solve_parameters["time"]:
         print(f"solving for t={t}")

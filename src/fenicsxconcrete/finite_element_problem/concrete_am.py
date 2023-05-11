@@ -1,3 +1,4 @@
+import copy
 from collections.abc import Callable
 
 import dolfinx as df
@@ -165,12 +166,9 @@ class ConcreteAM(MaterialProblem):
             self.plot_space = df.fem.FunctionSpace(self.mesh, ("CG", 1))
             self.plot_space_stress = df.fem.TensorFunctionSpace(self.mesh, ("DG", 1))
 
-        # general strain generator from mechanics_problem.epsilon using the total displacements
-        # self.eps_evaluator = QuadratureEvaluator(
-        #     self.mechanics_problem.epsilon(self.displacement), self.experiment.mesh, self.rule
-        # )
-
-        # self.xdmf_file = df.io.XDMFFile(self.mesh.comm, self.pv_output_file, "w")
+        # # set up xdmf file with mesh info
+        # with df.io.XDMFFile(self.mesh.comm, self.pv_output_file, "w") as f:
+        #     f.write_mesh(self.mesh)
 
     def solve(self, t: pint.Quantity | float = 1.0) -> None:
         """time incremental solving !
@@ -251,18 +249,20 @@ class ConcreteAM(MaterialProblem):
         except:
             _t = t
 
-        xdmf_file = df.io.XDMFFile(self.mesh.comm, self.pv_output_file, "w")
-        xdmf_file.write_mesh(self.mesh)
-        xdmf_file.write_function(self.displacement, _t)
+        # write displacement field into existing xdmf file f
+        self.displacement.name = "displacement"
 
+        # write further fields
         sigma_plot = project(self.mechanics_problem.sigma(self.displacement), self.plot_space_stress, self.rule.dx)
         E_plot = project(self.mechanics_problem.q_E, self.plot_space, self.rule.dx)
 
         E_plot.name = "Youngs_Modulus"
         sigma_plot.name = "Stress"
 
-        xdmf_file.write_function(sigma_plot, _t)
-        xdmf_file.write_function(E_plot, _t)
+        with df.io.XDMFFile(self.mesh.comm, self.pv_output_file, "a") as f:
+            f.write_function(self.displacement, _t)
+            f.write_function(sigma_plot, _t)
+            f.write_function(E_plot, _t)
 
 
 class ConcreteThixElasticModel(df.fem.petsc.NonlinearProblem):

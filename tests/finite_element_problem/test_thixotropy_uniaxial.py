@@ -28,7 +28,7 @@ def disp_over_time(current_time: pint.Quantity, switch_time: pint.Quantity) -> p
     return current_disp
 
 
-# @pytest.mark.parametrize("dim", [2, 3])
+@pytest.mark.parametrize("dim", [2, 3])
 def test_disp(dim: int):
     """uniaxial test displacement controlled
 
@@ -190,8 +190,8 @@ def check_disp_case(problem: ConcreteAM, solve_parameters: dict, E_o_time: list[
     assert E_o_time[-1] == pytest.approx(E_end)
 
 
-if __name__ == "__main__":
-
-    # test_disp(2)
-
-    test_disp(3)
+# if __name__ == "__main__":
+#
+#     test_disp(2)
+#
+#     test_disp(3)
