@@ -101,7 +101,7 @@ def test_am_single_layer(dimension: int, factor: int) -> None:
     while t <= solve_parameters["time"]:
         print(f"solving for t={t}")
         problem.solve(t=t)
-        problem.pv_plot()
+        problem.pv_plot(t=t)
 
         # # store Young's modulus over time
         E_o_time.append(problem.youngsmodulus.vector.array[:].max())
@@ -146,7 +146,7 @@ def test_am_single_layer(dimension: int, factor: int) -> None:
 
 @pytest.mark.parametrize("dimension", [2])
 @pytest.mark.parametrize("mat", ["thix"])
-def test_am_multiple_layer(dimension: int, mat: str) -> None:
+def test_am_multiple_layer(dimension: int, mat: str, plot: bool = False) -> None:
     """multiple layer test
 
     several layers building over time one layer at once
@@ -175,10 +175,10 @@ def test_am_multiple_layer(dimension: int, mat: str) -> None:
     solve_parameters = {}
     time_layer = 20 * ureg("s")  # time to build one layer
     solve_parameters["time"] = setup_parameters["num_layers"] * time_layer
-    solve_parameters["dt"] = time_layer / 2
+    solve_parameters["dt"] = time_layer / 4
 
     # defining different loading
-    setup_parameters["load_time"] = 1 * solve_parameters["dt"]  # interval where load is applied linear over time
+    setup_parameters["load_time"] = 2 * solve_parameters["dt"]  # interval where load is applied linear over time
 
     # setting up the problem
     experiment = AmMultipleLayers(setup_parameters)
@@ -191,29 +191,90 @@ def test_am_multiple_layer(dimension: int, mat: str) -> None:
 
     problem.set_timestep(solve_parameters["dt"])
 
-    print("??????????????")
-
     # initial path function describing layer activation
     path_activation = define_path(
         problem, time_layer.magnitude, t_0=-(setup_parameters["num_layers"].magnitude - 1) * time_layer.magnitude
     )
     problem.set_initial_path(path_activation)
-    print("!!!!")
-    # problem.add_sensor(ReactionForceSensor())
+
+    problem.add_sensor(ReactionForceSensor())
     problem.add_sensor(StressSensor([problem.p["layer_length"] / 2, 0, 0]))
+    problem.add_sensor(StrainSensor([problem.p["layer_length"] / 2, 0, 0]))
 
     E_o_time = []
     t = 0.0 * ureg("s")
     while t <= solve_parameters["time"]:
         print(f"solving for t={t}")
         problem.solve(t=t)
-        problem.pv_plot()
+        problem.pv_plot(t=t)
         print("computed disp", problem.displacement.x.array[:].max())
 
-        # # store Young's modulus over time
-        E_o_time.append(problem.youngsmodulus.vector.array[:].max())
-
         t += solve_parameters["dt"]
+
+    # check residual force bottom
+    force_bottom_y = np.array(problem.sensors["ReactionForceSensor"].data)[:, -1]
+    print("force", force_bottom_y)
+    dead_load = (
+        problem.p["g"]
+        * problem.p["rho"]
+        * problem.p["layer_length"]
+        * problem.p["num_layers"]
+        * problem.p["layer_height"]
+    )
+    if dimension == 2:
+        dead_load *= 1  # m
+    elif dimension == 3:
+        dead_load *= problem.p["layer_width"]
+
+    print("check", sum(force_bottom_y), dead_load)
+    assert sum(force_bottom_y) == pytest.approx(-dead_load)
+
+    # check E modulus evolution over structure (each layer different E)
+    if mat.lower() == "thix":
+        if solve_parameters["time"].magnitude >= problem.p["t_f"]:
+            E_bottom_layer = (
+                problem.p["E_0"]
+                + problem.p["R_E"] * problem.p["t_f"]
+                + problem.p["A_E"] * (solve_parameters["time"].magnitude + problem.p["age_0"])
+            )
+            E_upper_layer = (
+                problem.p["E_0"]
+                + problem.p["R_E"] * problem.p["t_f"]
+                + problem.p["A_E"]
+                * (
+                    solve_parameters["time"].magnitude
+                    - (problem.p["num_layers"] - 1) * time_layer.magnitude  # layers before
+                    + problem.p["age_0"]
+                )
+            )
+        else:
+            E_bottom_layer = problem.p["E_0"] + problem.p["R_E"] * (
+                solve_parameters["time"].magnitude + problem.p["age_0"]
+            )
+            E_upper_layer = problem.p["E_0"] + problem.p["R_E"] * (
+                solve_parameters["time"].magnitude
+                - (problem.p["num_layers"] - 1) * time_layer.magnitude  # layers before
+                + problem.p["age_0"]
+            )
+
+        print("E_bottom, E_upper", E_bottom_layer, E_upper_layer)
+        print(problem.youngsmodulus.vector.array[:].min(), problem.youngsmodulus.vector.array[:].max())
+        assert problem.youngsmodulus.vector.array[:].min() == pytest.approx(E_upper_layer)
+        assert problem.youngsmodulus.vector.array[:].max() == pytest.approx(E_bottom_layer)
+    #
+    if plot:
+        # example plotting
+        strain_yy = np.array(problem.sensors["StrainSensor"].data)[:, -1]
+        time = []
+        [time.append(ti.magnitude) for ti in problem.sensors["StrainSensor"].time]
+
+        import matplotlib.pylab as plt
+
+        plt.figure(1)
+        plt.plot(time, strain_yy, "*-r")
+        plt.xlabel("process time")
+        plt.ylabel("sensor bottom middle")
+        plt.show()
 
 
 def define_path(prob, t_diff, t_0=0):
@@ -228,31 +289,18 @@ def define_path(prob, t_diff, t_0=0):
                             (-end_time last layer if dynamic computation)
     """
 
-    # # get quadrature function space
-    # q_V = prob.rule.create_quadrature_space(prob.experiment.mesh)
-    # # print(prob.rule.points)
-    # # print(prob.rule.weights)
-    # print(q_V.tabulate_dof_coordinates())
-    # print(dir(q_V))
-    # # print(dir(q_V.tabulate_dof_coordinates))
-    # V = df.fem.VectorFunctionSpace(prob.experiment.mesh, ("CG", 2))
-    # # print(V.tabulate_dof_coordinates()[:])
-    # v_cg = df.fem.Function(V)
-    # v_cg.interpolate(lambda x: (x[0], x[1]))
-    # positions = QuadratureEvaluator(v_cg, prob.experiment.mesh, prob.rule)
-    # x = positions.evaluate()
-    # print(x)
-    # print(len(x))
-    #
-    # input()
+    # init path time array
+    q_path = prob.rule.create_quadrature_array(prob.mesh, shape=1)
 
-    # standard CG function and interpolate onto quadrature space afterwards
-    V = df.fem.FunctionSpace(prob.experiment.mesh, ("CG", 1))
+    # get quadrature coordinates with work around since tabulate_dof_coordinates()[:] not possible for quadrature spaces!
+    V = df.fem.VectorFunctionSpace(prob.mesh, ("CG", prob.p["degree"]))
     v_cg = df.fem.Function(V)
-    # dof map for coordinates
-    dof_map = V.tabulate_dof_coordinates()[:]
-    new_path = np.zeros(len(v_cg.vector.array[:]))
+    v_cg.interpolate(lambda x: (x[0], x[1]))
+    positions = QuadratureEvaluator(v_cg, prob.mesh, prob.rule)
+    x = positions.evaluate()
+    dof_map = np.reshape(x.flatten(), [len(q_path), 2])
 
+    # select layers only by layer height - y
     y_CO = np.array(dof_map)[:, 1]
     h_min = np.arange(0, prob.p["num_layers"] * prob.p["layer_height"], prob.p["layer_height"])
     h_max = np.arange(
@@ -260,26 +308,16 @@ def define_path(prob, t_diff, t_0=0):
         (prob.p["num_layers"] + 1) * prob.p["layer_height"],
         prob.p["layer_height"],
     )
-    print("y_CO", y_CO)
-    print("h_min", h_min)
-    print("h_max", h_max)
+    # print("y_CO", y_CO)
+    # print("h_min", h_min)
+    # print("h_max", h_max)
+    new_path = np.zeros_like(q_path)
     EPS = 1e-8
     for i in range(0, len(h_min)):
         layer_index = np.where((y_CO > h_min[i] - EPS) & (y_CO <= h_max[i] + EPS))
-        # print((parameters['layer_number']-i-1)*age_diff_layer)
         new_path[layer_index] = t_0 + (prob.p["num_layers"] - 1 - i) * t_diff
 
-    print("new_path", new_path, new_path.min(), new_path.max())
-    print(len(new_path))
-
-    v_cg.vector.array[:] = new_path
-    v_cg.x.scatter_forward()
-
-    # interpolate on quadrature space
-    q_path = np.zeros_like(prob.mechanics_problem.q_array_path)
-    quad_ev = QuadratureEvaluator(v_cg, prob.experiment.mesh, prob.rule)
-    quad_ev.evaluate(q_path)
-    print(q_path, len(q_path))
+    q_path = new_path
 
     return q_path
 
@@ -288,4 +326,4 @@ if __name__ == "__main__":
 
     # test_am_single_layer(2, 2)
 
-    test_am_multiple_layer(2, "thix")
+    test_am_multiple_layer(2, "thix", True)

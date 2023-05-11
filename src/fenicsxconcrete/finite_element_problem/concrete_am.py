@@ -170,6 +170,8 @@ class ConcreteAM(MaterialProblem):
         #     self.mechanics_problem.epsilon(self.displacement), self.experiment.mesh, self.rule
         # )
 
+        # self.xdmf_file = df.io.XDMFFile(self.mesh.comm, self.pv_output_file, "w")
+
     def solve(self, t: pint.Quantity | float = 1.0) -> None:
         """time incremental solving !
 
@@ -243,7 +245,7 @@ class ConcreteAM(MaterialProblem):
         Args:
             t: time point of output (default = 1)
         """
-
+        print("create pv plot for t", t)
         try:
             _t = t.magnitude
         except:
@@ -256,11 +258,11 @@ class ConcreteAM(MaterialProblem):
         sigma_plot = project(self.mechanics_problem.sigma(self.displacement), self.plot_space_stress, self.rule.dx)
         E_plot = project(self.mechanics_problem.q_E, self.plot_space, self.rule.dx)
 
-        E_plot.name = "Young's_Modulus"
+        E_plot.name = "Youngs_Modulus"
         sigma_plot.name = "Stress"
 
-        # xdmf_file.write_function(sigma_plot, _t)
-        # xdmf_file.write_function(E_plot, _t)
+        xdmf_file.write_function(sigma_plot, _t)
+        xdmf_file.write_function(E_plot, _t)
 
 
 class ConcreteThixElasticModel(df.fem.petsc.NonlinearProblem):
@@ -305,8 +307,8 @@ class ConcreteThixElasticModel(df.fem.petsc.NonlinearProblem):
 
         # path variable from AM Problem
         self.q_array_path = self.rule.create_quadrature_array(self.mesh, shape=1)
-        self.q_array_path[:] = 0.0
-        # # pseudo density for element activation
+        self.q_array_path[:] = 0.0  # default all active set by "set_initial_path(q_array_path)"
+        # pseudo density for element activation
         self.q_array_pd = self.rule.create_quadrature_array(self.mesh, shape=1)
 
         self.q_sig = df.fem.Function(q_VT, name="stress")
@@ -463,11 +465,11 @@ class ConcreteThixElasticModel(df.fem.petsc.NonlinearProblem):
 
     def evaluate_material(self) -> None:
         """evaluate material"""
-        # print("path time", self.q_array_path)
+        print("path time", self.q_array_path)
 
         # compute current element activation
         self.q_array_pd = self.pd_fkt(self.q_array_path)
-        # print("pd", self.q_array_pd)
+        print("pd", self.q_array_pd)
 
         # defining required parameters as sub dict
         param_E = {}
@@ -480,7 +482,7 @@ class ConcreteThixElasticModel(df.fem.petsc.NonlinearProblem):
         # vectorize the function for speed up
         E_fkt_vectorized = np.vectorize(self.E_fkt)
         E_array = E_fkt_vectorized(self.q_array_pd, self.q_array_path, param_E)
-        # print("E", E_array)
+        print("E", E_array)
         self.q_E.vector.array[:] = E_array
         self.q_E.x.scatter_forward()
 

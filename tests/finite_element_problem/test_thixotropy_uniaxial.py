@@ -102,7 +102,7 @@ def test_disp(dim: int):
         problem.experiment.apply_displ_load(delta_disp)
 
         problem.solve(t=t)
-        problem.pv_plot()
+        problem.pv_plot(t=t)
         print("computed disp", problem.displacement.x.array[:].max())
 
         # store Young's modulus over time
