@@ -29,11 +29,13 @@ def disp_over_time(current_time: pint.Quantity, switch_time: pint.Quantity) -> p
 
 
 @pytest.mark.parametrize("dim", [2, 3])
-def test_disp(dim: int):
+@pytest.mark.parametrize("degree", [1, 2])
+def test_disp(dim: int, degree: int):
     """uniaxial test displacement controlled
 
     Args:
         dim: dimension of the test (2 or 3)
+        degree: polynominal degree
     """
 
     # setup paths and directories
@@ -68,8 +70,12 @@ def test_disp(dim: int):
     experiment = SimpleCube(parameters)
 
     # get default parameters and change accordingly to cases
+    des = ConcreteAM.parameter_description()
+    print(des)
+
     _, default_params = ConcreteAM.default_parameters()
     parameters.update(default_params)
+    parameters["degree"] = degree * ureg("")
     if dim == 3:
         parameters["q_degree"] = 4 * ureg("")
 
@@ -129,54 +135,55 @@ def check_disp_case(problem: ConcreteAM, solve_parameters: dict, E_o_time: list[
     """
 
     disp_at_end = disp_over_time(problem.sensors["StrainSensor"].time[-1], 2 * solve_parameters["dt"]).to_base_units()
-    analytic_eps = disp_at_end / (1.0 * ureg("m"))
+    analytic_eps = (disp_at_end / (1.0 * ureg("m"))).magnitude
     disp_dt1 = disp_over_time(problem.sensors["StrainSensor"].time[1], 2 * solve_parameters["dt"]).to_base_units()
-    analytic_eps_dt1 = disp_dt1 / (1.0 * ureg("m"))
-    # if problem.p["dim"] == 2:
-    #     # standard uniaxial checks for last time step
-    #     # strain in yy direction
-    #     assert problem.sensors["StrainSensor"].data[-1][-1] == pytest.approx(analytic_eps)
-    #     # strain in xx direction
-    #     assert problem.sensors["StrainSensor"].data[-1][0] == pytest.approx(-problem.parameters["nu"] * analytic_eps)
-    #     # strain in xy and yx direction
-    #     assert problem.sensors["StrainSensor"].data[-1][1] == pytest.approx(
-    #         problem.sensors["StrainSensor"].data[-1][2]
-    #     )
-    #     assert problem.sensors["StrainSensor"].data[-1][1] == pytest.approx(0.0)
-    #
-    #     # thix related tests
-    #     # thix tests stress in yy first time step
-    #     assert problem.sensors["StressSensor"].data[1][-1] == pytest.approx((analytic_eps_dt1 * E_o_time[1]).magnitude)
-    #     # stress delta between last time steps
-    #     assert problem.sensors["StressSensor"].data[-1][-1] - problem.sensors["StressSensor"].data[-2][
-    #         -1
-    #     ] == pytest.approx(0.0)
-    # elif problem.p["dim"] == 3:
-    #     # standard uniaxial checks for last time step
-    #     # strain in zz direction
-    #     assert problem.sensors["StrainSensor"].data[-1][-1] == pytest.approx(analytic_eps)
-    #     # strain in yy direction
-    #     assert problem.sensors["StrainSensor"].data[-1][4] == pytest.approx(-problem.parameters["nu"] * analytic_eps)
-    #     # strain in xx direction
-    #     assert problem.sensors["StrainSensor"].data[-1][0] == pytest.approx(-problem.parameters["nu"] * analytic_eps)
-    #     # shear strains
-    #     sum_mixed_strains = (
-    #         problem.sensors["StrainSensor"].data[-1][1]  # xy
-    #         - problem.sensors["StrainSensor"].data[-1][3]  # yx
-    #         - problem.sensors["StrainSensor"].data[-1][2]  # xz
-    #         - problem.sensors["StrainSensor"].data[-1][6]  # zx
-    #         - problem.sensors["StrainSensor"].data[-1][5]  # yz
-    #         - problem.sensors["StrainSensor"].data[-1][7]  # zy
-    #     )
-    #     assert sum_mixed_strains == pytest.approx(0.0)
-    #
-    #     # thix related tests
-    #     # thix tests stress in zz direction first time step
-    #     assert problem.sensors["StressSensor"].data[1][-1] == pytest.approx((analytic_eps_dt1 * E_o_time[1]).magnitude)
-    #     # stress delta between last time steps
-    #     assert problem.sensors["StressSensor"].data[-1][-1] - problem.sensors["StressSensor"].data[-2][
-    #         -1
-    #     ] == pytest.approx(0.0)
+    analytic_eps_dt1 = (disp_dt1 / (1.0 * ureg("m"))).magnitude
+
+    if problem.p["dim"] == 2:
+        # standard uniaxial checks for last time step
+        # strain in yy direction
+        assert problem.sensors["StrainSensor"].data[-1][-1] == pytest.approx(analytic_eps)
+        # strain in xx direction
+        assert problem.sensors["StrainSensor"].data[-1][0] == pytest.approx(-problem.p["nu"] * analytic_eps)
+        # strain in xy and yx direction
+        assert problem.sensors["StrainSensor"].data[-1][1] == pytest.approx(
+            problem.sensors["StrainSensor"].data[-1][2]
+        )
+        assert problem.sensors["StrainSensor"].data[-1][1] == pytest.approx(0.0)
+
+        # thix related tests
+        # thix tests stress in yy first time step
+        assert problem.sensors["StressSensor"].data[1][-1] == pytest.approx((analytic_eps_dt1 * E_o_time[1]))
+        # stress delta between last time steps
+        assert problem.sensors["StressSensor"].data[-1][-1] - problem.sensors["StressSensor"].data[-2][
+            -1
+        ] == pytest.approx(0.0)
+    elif problem.p["dim"] == 3:
+        # standard uniaxial checks for last time step
+        # strain in zz direction
+        assert problem.sensors["StrainSensor"].data[-1][-1] == pytest.approx(analytic_eps)
+        # strain in yy direction
+        assert problem.sensors["StrainSensor"].data[-1][4] == pytest.approx(-problem.p["nu"] * analytic_eps)
+        # strain in xx direction
+        assert problem.sensors["StrainSensor"].data[-1][0] == pytest.approx(-problem.p["nu"] * analytic_eps)
+        # shear strains
+        sum_mixed_strains = (
+            problem.sensors["StrainSensor"].data[-1][1]  # xy
+            - problem.sensors["StrainSensor"].data[-1][3]  # yx
+            - problem.sensors["StrainSensor"].data[-1][2]  # xz
+            - problem.sensors["StrainSensor"].data[-1][6]  # zx
+            - problem.sensors["StrainSensor"].data[-1][5]  # yz
+            - problem.sensors["StrainSensor"].data[-1][7]  # zy
+        )
+        assert sum_mixed_strains == pytest.approx(0.0)
+
+        # thix related tests
+        # thix tests stress in zz direction first time step
+        assert problem.sensors["StressSensor"].data[1][-1] == pytest.approx(analytic_eps_dt1 * E_o_time[1])
+        # stress delta between last time steps
+        assert problem.sensors["StressSensor"].data[-1][-1] - problem.sensors["StressSensor"].data[-2][
+            -1
+        ] == pytest.approx(0.0)
 
     # check changing youngs modulus
     if solve_parameters["time"].magnitude < problem.p["t_f"]:
@@ -190,8 +197,9 @@ def check_disp_case(problem: ConcreteAM, solve_parameters: dict, E_o_time: list[
     assert E_o_time[-1] == pytest.approx(E_end)
 
 
-if __name__ == "__main__":
-
-    test_disp(2)
-
-    test_disp(3)
+#
+# if __name__ == "__main__":
+#
+#     # test_disp(2, 2)
+#
+#     test_disp(3, 2)

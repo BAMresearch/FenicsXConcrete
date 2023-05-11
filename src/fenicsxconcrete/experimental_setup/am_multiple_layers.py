@@ -135,25 +135,6 @@ class AmMultipleLayers(Experiment):
 
         return bc_generator.bcs
 
-    def create_body_force(self, v: ufl.argument.Argument) -> ufl.form.Form:
-        """defines body force
-
-        Args:
-            v: test function
-
-        Returns:
-            form for body force
-
-        """
-
-        force_vector = np.zeros(self.p["dim"])
-        force_vector[-1] = -self.p["rho"] * self.p["g"]
-
-        f = df.fem.Constant(self.mesh, ScalarType(force_vector))
-        L = ufl.dot(f, v) * ufl.dx
-
-        return L
-
     def create_body_force_am(
         self, v: ufl.argument.Argument, q_fd: df.fem.Function, rule: QuadratureRule
     ) -> ufl.form.Form:

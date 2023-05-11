@@ -465,11 +465,9 @@ class ConcreteThixElasticModel(df.fem.petsc.NonlinearProblem):
 
     def evaluate_material(self) -> None:
         """evaluate material"""
-        print("path time", self.q_array_path)
 
         # compute current element activation
         self.q_array_pd = self.pd_fkt(self.q_array_path)
-        print("pd", self.q_array_pd)
 
         # defining required parameters as sub dict
         param_E = {}
@@ -482,13 +480,11 @@ class ConcreteThixElasticModel(df.fem.petsc.NonlinearProblem):
         # vectorize the function for speed up
         E_fkt_vectorized = np.vectorize(self.E_fkt)
         E_array = E_fkt_vectorized(self.q_array_pd, self.q_array_path, param_E)
-        print("E", E_array)
         self.q_E.vector.array[:] = E_array
         self.q_E.x.scatter_forward()
 
         # compute loading factors for density load
         fd_array = self.fd_fkt(self.q_array_pd, self.q_array_path)
-        # print("fd", fd_array)
         self.q_fd.vector.array[:] = fd_array
         self.q_fd.x.scatter_forward()
 
@@ -502,7 +498,7 @@ class ConcreteThixElasticModel(df.fem.petsc.NonlinearProblem):
         pass
 
     def set_timestep(self, dt: float) -> None:
-        """set time step value
+        """set time step value not really needed for that material here
 
         Args:
             dt: value of time step
