@@ -89,7 +89,9 @@ def test_am_single_layer(dimension: int, factor: int) -> None:
     experiment = AmMultipleLayers(setup_parameters)
 
     # problem = LinearElasticity(experiment, setup_parameters)
-    problem = ConcreteAM(experiment, setup_parameters, ConcreteThixElasticModel, pv_name=file_name, pv_path=data_path)
+    problem = ConcreteAM(
+        experiment, setup_parameters, nonlinear_problem=ConcreteThixElasticModel, pv_name=file_name, pv_path=data_path
+    )
     problem.add_sensor(ReactionForceSensor())
     problem.add_sensor(StressSensor([problem.p["layer_length"] / 2, 0, 0]))
     problem.add_sensor(StrainSensor([problem.p["layer_length"] / 2, 0, 0]))
@@ -184,7 +186,11 @@ def test_am_multiple_layer(dimension: int, mat: str, plot: bool = False) -> None
     experiment = AmMultipleLayers(setup_parameters)
     if mat.lower() == "thix":
         problem = ConcreteAM(
-            experiment, setup_parameters, ConcreteThixElasticModel, pv_name=file_name, pv_path=data_path
+            experiment,
+            setup_parameters,
+            nonlinear_problem=ConcreteThixElasticModel,
+            pv_name=file_name,
+            pv_path=data_path,
         )
     else:
         print(f"nonlinear problem {mat} not yet implemented")

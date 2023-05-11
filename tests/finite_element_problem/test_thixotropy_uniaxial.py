@@ -84,7 +84,9 @@ def test_disp(dim: int, degree: int):
     displacement = disp_over_time
     parameters["density"] = 0 * ureg("kg/m^3")  # no body force!!
 
-    problem = ConcreteAM(experiment, parameters, ConcreteThixElasticModel, pv_name=file_name, pv_path=data_path)
+    problem = ConcreteAM(
+        experiment, parameters, nonlinear_problem=ConcreteThixElasticModel, pv_name=file_name, pv_path=data_path
+    )
     problem.set_timestep(solve_parameters["dt"])
 
     # add sensors

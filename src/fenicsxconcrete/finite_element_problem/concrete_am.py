@@ -34,7 +34,7 @@ class ConcreteAM(MaterialProblem):
         self,
         experiment: Experiment,
         parameters: dict[str, pint.Quantity],
-        nonlinear_problem: df.fem.petsc.NonlinearProblem,
+        nonlinear_problem: df.fem.petsc.NonlinearProblem | None = None,
         pv_name: str = "pv_output_full",
         pv_path: str | None = None,
     ) -> None:
@@ -56,7 +56,12 @@ class ConcreteAM(MaterialProblem):
         # updating parameters, overriding defaults
         default_p.update(parameters)
 
-        self.nonlinear_problem = nonlinear_problem
+        if nonlinear_problem:
+            self.nonlinear_problem = nonlinear_problem
+        else:
+            self.nonlinear_problem = ConcreteThixElasticModel  # default material
+
+        self.dt = 1  # default time step to be set via set_timestep()
 
         super().__init__(experiment, default_p, pv_name, pv_path)
 
@@ -341,6 +346,7 @@ class ConcreteThixElasticModel(df.fem.petsc.NonlinearProblem):
         self.sigma_evaluator = QuadratureEvaluator(self.sigma(u), self.mesh, self.rule)
         self.eps_evaluator = QuadratureEvaluator(self.epsilon(u), self.mesh, self.rule)
 
+        self.dt = 1  # default value set via set_timestep
         super().__init__(self.R, u, bc, self.dR)
 
     def x_sigma(self, v: ufl.core.expr.Expr) -> ufl.core.expr.Expr:
