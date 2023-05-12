@@ -1,12 +1,42 @@
 from abc import ABC, abstractmethod
+from dataclasses import dataclass
 from pathlib import Path, PosixPath
 
+import dolfinx as df
 import pint
+import ufl
 
 from fenicsxconcrete.experimental_setup.base_experiment import Experiment
 from fenicsxconcrete.helper import LogMixin, Parameters
 from fenicsxconcrete.sensor_definition.base_sensor import BaseSensor
 from fenicsxconcrete.unit_registry import ureg
+
+
+@dataclass
+class SolutionFields:
+    """Class to hold the solution fields of the problem"""
+
+    displacement: df.fem.Function | None = None
+    velocity: df.fem.Function | None = None
+    temperature: df.fem.Function | None = None
+    nonlocal_strain: df.fem.Function | None = None
+
+
+@dataclass
+class QuadratureFields:
+    """
+    Class to hold the quadrature fields of the problem,
+    at least those that we want to plot in paraview.
+    Additionally, the measure for the integration and
+    the type of function space is stored.
+    """
+
+    measure: ufl.Measure | None = None
+    plot_space_type: tuple[str, int] = ("DG", 0)
+    stress: ufl.expr.Expr | df.fem.Function | None = None
+    strain: ufl.expr.Expr | df.fem.Function | None = None
+    degree_of_hydration: ufl.expr.Expr | df.fem.Function | None = None
+    damage: ufl.expr.Expr | df.fem.Function | None = None
 
 
 class MaterialProblem(ABC, LogMixin):
@@ -54,6 +84,7 @@ class MaterialProblem(ABC, LogMixin):
         self.pv_output_file = Path(pv_path) / (pv_name + ".xdmf")
 
         # setup fields for sensor output, can be defined in model
+        self.fields = None
         self.displacement = None
         self.temperature = None
         self.degree_of_hydration = None
