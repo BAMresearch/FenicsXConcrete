@@ -40,7 +40,7 @@ class DisplacementSensor(PointSensor):
             cells.append(colliding_cells.links(0)[0])
 
         # adding correct units to displacement
-        displacement_data = problem.displacement.eval([self.where], cells)
+        displacement_data = problem.fields.displacement.eval([self.where], cells)
 
         self.data.append(displacement_data)
         self.time.append(t)

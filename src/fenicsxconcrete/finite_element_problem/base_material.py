@@ -33,10 +33,12 @@ class QuadratureFields:
 
     measure: ufl.Measure | None = None
     plot_space_type: tuple[str, int] = ("DG", 0)
-    stress: ufl.expr.Expr | df.fem.Function | None = None
-    strain: ufl.expr.Expr | df.fem.Function | None = None
-    degree_of_hydration: ufl.expr.Expr | df.fem.Function | None = None
-    damage: ufl.expr.Expr | df.fem.Function | None = None
+    mandel_stress: ufl.core.expr.Expr | df.fem.Function | None = None
+    mandel_strain: ufl.core.expr.Expr | df.fem.Function | None = None
+    stress: ufl.core.expr.Expr | df.fem.Function | None = None
+    strain: ufl.core.expr.Expr | df.fem.Function | None = None
+    degree_of_hydration: ufl.core.expr.Expr | df.fem.Function | None = None
+    damage: ufl.core.expr.Expr | df.fem.Function | None = None
 
 
 class MaterialProblem(ABC, LogMixin):
@@ -85,10 +87,10 @@ class MaterialProblem(ABC, LogMixin):
 
         # setup fields for sensor output, can be defined in model
         self.fields = None
-        self.displacement = None
-        self.temperature = None
-        self.degree_of_hydration = None
-        self.q_degree_of_hydration = None
+        # self.displacement = None
+        # self.temperature = None
+        # self.degree_of_hydration = None
+        # self.q_degree_of_hydration = None
 
         self.residual = None  # initialize residual
 
