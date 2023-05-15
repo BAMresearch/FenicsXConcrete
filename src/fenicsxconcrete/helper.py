@@ -165,17 +165,6 @@ class QuadratureRule:
         return np.zeros(n_points * n_local)
 
 
-def _basix_cell_type_to_ufl(cell_type: basix.CellType) -> ufl.Cell:
-    conversion = {
-        basix.CellType.interval: ufl.interval,
-        basix.CellType.triangle: ufl.triangle,
-        basix.CellType.tetrahedron: ufl.tetrahedron,
-        basix.CellType.quadrilateral: ufl.quadrilateral,
-        basix.CellType.hexahedron: ufl.hexahedron,
-    }
-    return conversion[cell_type]
-
-
 def _ufl_cell_type_to_basix(cell_type: ufl.Cell) -> basix.CellType:
     conversion = {
         ufl.interval: basix.CellType.interval,
