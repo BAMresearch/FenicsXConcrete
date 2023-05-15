@@ -44,18 +44,18 @@ fenicsxconcrete.experimental\_setup.simple\_beam module
    :undoc-members:
    :show-inheritance:
 
-fenicsxconcrete.experimental\_setup.tensile\_beam module
---------------------------------------------------------
+fenicsxconcrete.experimental\_setup.simple\_cube module
+-------------------------------------------------------
 
-.. automodule:: fenicsxconcrete.experimental_setup.tensile_beam
+.. automodule:: fenicsxconcrete.experimental_setup.simple_cube
    :members:
    :undoc-members:
    :show-inheritance:
 
-fenicsxconcrete.experimental\_setup.uniaxial\_cube module
----------------------------------------------------------
+fenicsxconcrete.experimental\_setup.tensile\_beam module
+--------------------------------------------------------
 
-.. automodule:: fenicsxconcrete.experimental_setup.uniaxial_cube
+.. automodule:: fenicsxconcrete.experimental_setup.tensile_beam
    :members:
    :undoc-members:
    :show-inheritance:
