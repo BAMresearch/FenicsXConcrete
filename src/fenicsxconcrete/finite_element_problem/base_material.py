@@ -25,8 +25,8 @@ class SolutionFields:
 @dataclass
 class QuadratureFields:
     """
-    Class to hold the quadrature fields of the problem,
-    at least those that we want to plot in paraview.
+    Class to hold the quadrature fields (or ufl expressions)
+    of the problem, at least those that we want to plot in paraview.
     Additionally, the measure for the integration and
     the type of function space is stored.
     """
