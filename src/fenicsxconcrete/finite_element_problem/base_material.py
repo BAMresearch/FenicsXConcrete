@@ -14,7 +14,17 @@ from fenicsxconcrete.unit_registry import ureg
 
 @dataclass
 class SolutionFields:
-    """Class to hold the solution fields of the problem"""
+    """
+    A dataclass to hold the solution fields of the problem.
+    The list of names should be extendend when needed.
+
+    Examples:
+        Since this is a dataclass, the __init__ method is automatically
+        generated and can be used to selectively set fields. All fields that
+        are not explicitely set are set to their default value (here None).
+
+        >>> fields = SolutionFields(displacement=some_function, temperature=some_other_function)
+    """
 
     displacement: df.fem.Function | None = None
     velocity: df.fem.Function | None = None
@@ -25,10 +35,17 @@ class SolutionFields:
 @dataclass
 class QuadratureFields:
     """
-    Class to hold the quadrature fields (or ufl expressions)
+    A dataclass to hold the quadrature fields (or ufl expressions)
     of the problem, at least those that we want to plot in paraview.
-    Additionally, the measure for the integration and
-    the type of function space is stored.
+    Additionally, the measure for the integration and the type of function
+    space is stored. The list of names should be extendend when needed.
+
+    Examples:
+        Since this is a dataclass, the __init__ method is automatically
+        generated and can be used to selectively set fields. All fields that
+        are not explicitely set are set to their default value (here None).
+
+        >>> q_fields = QuadratureFields(measure=rule.dx, plot_space_type=("Lagrange", 4), stress=some_function)
     """
 
     measure: ufl.Measure | None = None
@@ -87,10 +104,7 @@ class MaterialProblem(ABC, LogMixin):
 
         # setup fields for sensor output, can be defined in model
         self.fields = None
-        # self.displacement = None
-        # self.temperature = None
-        # self.degree_of_hydration = None
-        # self.q_degree_of_hydration = None
+        self.q_fields = None
 
         self.residual = None  # initialize residual
 
