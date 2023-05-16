@@ -80,7 +80,7 @@ class ConcreteAM(MaterialProblem):
                 "degree": "Polynomial degree for the FEM model",
                 "q_degree": "Polynomial degree for which the quadrature rule integrates correctly",
                 "load_time": "load applied in 1 s",
-                "stress_state": "for 2D plain stress or plane strain"
+                "stress_state": "for 2D plain stress or plane strain",
             },
             "ThixElasticModel": {
                 "E_0": "Youngs Modulus at age=0",
@@ -96,9 +96,7 @@ class ConcreteAM(MaterialProblem):
                 "R_P": "linear, visco and damper reflocculation rate as dict with keys 'E_0','E_1','eta' ",
                 "A_P": "linear, visco and damper structuration rate as dict with keys 'E_0','E_1','eta' ",
                 "t_fP": "linear, visco and damper reflocculation time as dict with keys 'E_0','E_1','eta' ",
-
             },
-
         }
 
         return description
@@ -118,7 +116,6 @@ class ConcreteAM(MaterialProblem):
             # Material parameter for concrete model with structural build-up
             "rho": 2070 * ureg("kg/m^3"),  # density of fresh concrete
             "nu": 0.3 * ureg(""),  # Poissons Ratio
-
             ### default parameters required for ThixElasticModel
             # Youngs modulus is changing over age (see E_fkt) following the bilinear approach Kruger et al 2019
             # (https://www.sciencedirect.com/science/article/pii/S0950061819317507) with two different rates
@@ -127,16 +124,14 @@ class ConcreteAM(MaterialProblem):
             "A_E": 30 * ureg("Pa/s"),  # Structuration (second) rate
             "t_f": 300 * ureg("s"),  # Reflocculation time (switch point)
             "age_0": 0 * ureg("s"),  # start age of concrete
-
             ### default parameters required for ViscoDevThixElasticModel
             "visco_case": "CKelvin",
             # Moduli [linear, visco and damper] and respectively rates and reflocculation times
-            "P0": {'E_0': 40000 * ureg("Pa"), 'E_1': 20000 * ureg("Pa"), 'eta': 1000 * ureg("Pa")},
-            "R_P": {'E_0': 0 * ureg("Pa/s"), 'E_1': 0 * ureg("Pa/s"), 'eta': 0 * ureg("Pa/s")},
-            "A_P": {'E_0': 0 * ureg("Pa/s"), 'E_1': 0 * ureg("Pa/s"), 'eta': 0 * ureg("Pa/s")},
-            "t_fP": {'E_0': 0 * ureg("s"), 'E_1': 0 * ureg("s"), 'eta': 0 * ureg("s")},
+            "P0": {"E_0": 40000 * ureg("Pa"), "E_1": 20000 * ureg("Pa"), "eta": 1000 * ureg("Pa")},
+            "R_P": {"E_0": 0 * ureg("Pa/s"), "E_1": 0 * ureg("Pa/s"), "eta": 0 * ureg("Pa/s")},
+            "A_P": {"E_0": 0 * ureg("Pa/s"), "E_1": 0 * ureg("Pa/s"), "eta": 0 * ureg("Pa/s")},
+            "t_fP": {"E_0": 0 * ureg("s"), "E_1": 0 * ureg("s"), "eta": 0 * ureg("s")},
             # "age_0": 0 * ureg("s"),  # start age of concrete
-
             # other model parameters
             "degree": 2 * ureg(""),  # polynomial degree
             "q_degree": 2 * ureg(""),  # quadrature rule
@@ -215,7 +210,6 @@ class ConcreteAM(MaterialProblem):
 
         # initial old solution
         # self.mechanics_problem
-
 
         # solve problem for current time increment
         self.mechanics_solver.solve(self.d_disp)
@@ -441,15 +435,14 @@ class ConcreteThixElasticModel(df.fem.petsc.NonlinearProblem):
                 E = parameters["E_0"] + parameters["R_E"] * age
             elif age >= parameters["t_f"]:
                 E = (
-                        parameters["E_0"]
-                        + parameters["R_E"] * parameters["t_f"]
-                        + parameters["A_E"] * (age - parameters["t_f"])
+                    parameters["E_0"]
+                    + parameters["R_E"] * parameters["t_f"]
+                    + parameters["A_E"] * (age - parameters["t_f"])
                 )
         else:
             E = 1e-4  # non-active
 
         return E
-
 
     def pd_fkt(self, path_time: list[float]) -> list[float]:
         """computes pseudo density array
@@ -516,12 +509,12 @@ class ConcreteThixElasticModel(df.fem.petsc.NonlinearProblem):
             self.q_array_pd,
             self.q_array_path,
             {
-                "E_0": self.p['E_0'],
-                "R_E": self.p['R_E'],
+                "E_0": self.p["E_0"],
+                "R_E": self.p["R_E"],
                 "A_E": self.p["A_E"],
                 "t_f": self.p["t_f"],
-                "age_0": self.p["age_0"]
-            }
+                "age_0": self.p["age_0"],
+            },
         )
         self.q_E.vector.array[:] = E_array
         self.q_E.x.scatter_forward()
@@ -548,6 +541,7 @@ class ConcreteThixElasticModel(df.fem.petsc.NonlinearProblem):
         """
 
         self.dt = dt
+
 
 class ConcreteViscoDevThixElasticModel(df.NonlinearProblem):
     """viscoelastic-thixotropy material model
@@ -614,7 +608,7 @@ class ConcreteViscoDevThixElasticModel(df.NonlinearProblem):
         self.q_sig = df.fem.Function(q_VT, name="stress")
         self.q_eps = df.fem.Function(q_VT, name="strain")
         self.q_epsv = df.fem.Function(q_VT, name="visco strain")
-        self.q_sig1_ten = df.fem.Function(q_VT) # required for visco strain computation
+        self.q_sig1_ten = df.fem.Function(q_VT)  # required for visco strain computation
 
         # standard space
         self.V = u.function_space
@@ -625,7 +619,7 @@ class ConcreteViscoDevThixElasticModel(df.NonlinearProblem):
         # build up form
         # multiplication with activated elements / current Young's modulus
         R_ufl = ufl.inner(self.sigma(u), self.epsilon(v)) * self.rule.dx
-        R_ufl += -ufl.inner(self.sigma_2(), self.epsilon(v)) * self.rule.dx # visco part
+        R_ufl += -ufl.inner(self.sigma_2(), self.epsilon(v)) * self.rule.dx  # visco part
 
         # apply body force
         body_force = body_force_fct(v, self.q_fd, self.rule)
@@ -643,20 +637,20 @@ class ConcreteViscoDevThixElasticModel(df.NonlinearProblem):
         self.dR = dR_ufl
         self.sigma_evaluator = QuadratureEvaluator(self.sigma(u) - self.sigma_2(), self.mesh, self.rule)
         self.eps_evaluator = QuadratureEvaluator(self.epsilon(u), self.mesh, self.rule)
-        self.sig1_ten = QuadratureEvaluator(self.sigma_1(u), self.mesh, self.rule) # for visco strain computation
+        self.sig1_ten = QuadratureEvaluator(self.sigma_1(u), self.mesh, self.rule)  # for visco strain computation
 
         self.dt = 1  # default value set via set_timestep
         super().__init__(self.R, u, bc, self.dR)
 
     def sigma(self, v: ufl.core.expr.Expr) -> ufl.core.expr.Expr:
-        ''' total stress without visco part
-        
+        """total stress without visco part
+
         Args:
             v: testfunction
 
         Returns:
             ufl expression for sigma
-        ''''
+        """
 
         mu_E0 = self.q_E / (2.0 * (1.0 + self.p["nu"]))
         lmb_E0 = self.q_E * self.p["nu"] / ((1.0 + self.p["nu"]) * (1.0 - 2.0 * self.p["nu"]))
@@ -673,9 +667,7 @@ class ConcreteViscoDevThixElasticModel(df.NonlinearProblem):
             )
         elif self.p["visco_case"].lower() == "ckelvin":
             # stress stiffness zero
-            sig = 2.0 * mu_E0 * self.epsilon(v) + lmb_E0 * ufl.nabla_div(v) * ufl.Identity(
-                self.p["dim"]
-            )
+            sig = 2.0 * mu_E0 * self.epsilon(v) + lmb_E0 * ufl.nabla_div(v) * ufl.Identity(self.p["dim"])
         else:
             sig = None
             raise ValueError("case not defined")
@@ -683,20 +675,18 @@ class ConcreteViscoDevThixElasticModel(df.NonlinearProblem):
         return sig
 
     def sigma_1(self, v: ufl.core.expr.Expr) -> ufl.core.expr.Expr:
-        ''' stress for visco strain computation
+        """stress for visco strain computation
 
         Args:
             v: testfunction
 
         Returns:
             ufl expression for sigma
-        ''''
+        """
 
         if self.p["visco_case"].lower() == "cmaxwell":
             mu_E1 = self.q_E1 / (2.0 * (1.0 + self.p["nu"]))
-            lmb_E1 = (
-                self.q_E1 * self.p["nu"] / ((1.0 + self.p["nu"]) * (1.0 - 2.0 * self.p["nu"]))
-            )
+            lmb_E1 = self.q_E1 * self.p["nu"] / ((1.0 + self.p["nu"]) * (1.0 - 2.0 * self.p["nu"]))
             if self.p["dim"] == 2 and self.p["stress_case"] == "plane_stress":
                 lmb_E1 = 2 * mu_E1 * lmb_E1 / (lmb_E1 + 2 * mu_E1)
 
@@ -709,15 +699,15 @@ class ConcreteViscoDevThixElasticModel(df.NonlinearProblem):
 
         return sig1
 
-    def sigma_2(self)-> ufl.core.expr.Expr:
-        ''' damper stress related to epsv
+    def sigma_2(self) -> ufl.core.expr.Expr:
+        """damper stress related to epsv
 
         Args:
             v: testfunction
 
         Returns:
             ufl expression for sigma
-        ''''
+        """
 
         if self.p["visco_case"].lower() == "cmaxwell":
             mu_E1 = self.q_E1 / (2.0 * (1.0 + self.p["nu"]))
@@ -740,7 +730,6 @@ class ConcreteViscoDevThixElasticModel(df.NonlinearProblem):
             ufl expression for strain
         """
         return ufl.tensoralgebra.Sym(ufl.grad(v))
-
 
     def E_fkt(self, pd: float, path_time: float, parameters: dict) -> float:
         """computes the Young's modulus at current quadrature point according to bilinear Kruger model
@@ -769,7 +758,6 @@ class ConcreteViscoDevThixElasticModel(df.NonlinearProblem):
 
         return E
 
-
     def pd_fkt(self, path_time: list[float]) -> list[float]:
         """computes pseudo density array
 
@@ -789,7 +777,6 @@ class ConcreteViscoDevThixElasticModel(df.NonlinearProblem):
         l_active[activ_idx] = 1.0  # active
 
         return l_active
-
 
     def fd_fkt(self, pd: list[float], path_time: list[float]) -> list[float]:
         """computes weighting fct for body force term in pde
@@ -812,7 +799,6 @@ class ConcreteViscoDevThixElasticModel(df.NonlinearProblem):
             fd[active_idx[load_idx]] = self.dt / self.p["load_time"]  # linear ramp
 
         return fd
-
 
     def form(self, x: PETSc.Vec) -> None:
         """This function is called before the residual or Jacobian is
@@ -838,11 +824,11 @@ class ConcreteViscoDevThixElasticModel(df.NonlinearProblem):
             self.q_array_pd,
             self.q_array_path,
             {
-                "P0": self.p['P0']['E_0'],
-                "R_P": self.p['R_P']['E_0'],
-                "A_P": self.p["A_P"]['E_0'],
-                "t_fP": self.p["t_fP"]["E_0"]
-            }
+                "P0": self.p["P0"]["E_0"],
+                "R_P": self.p["R_P"]["E_0"],
+                "A_P": self.p["A_P"]["E_0"],
+                "t_fP": self.p["t_fP"]["E_0"],
+            },
         )
         self.q_E.vector.array[:] = E_array
         self.q_E.x.scatter_forward()
@@ -851,11 +837,11 @@ class ConcreteViscoDevThixElasticModel(df.NonlinearProblem):
             self.q_array_pd,
             self.q_array_path,
             {
-                "P0": self.p['P0']['E_1'],
-                "R_P": self.p['R_P']['E_1'],
-                "A_P": self.p["A_P"]['E_1'],
-                "t_fP": self.p["t_fP"]["E_1"]
-            }
+                "P0": self.p["P0"]["E_1"],
+                "R_P": self.p["R_P"]["E_1"],
+                "A_P": self.p["A_P"]["E_1"],
+                "t_fP": self.p["t_fP"]["E_1"],
+            },
         )
         self.q_E1.vector.array[:] = E1_array
 
@@ -864,11 +850,11 @@ class ConcreteViscoDevThixElasticModel(df.NonlinearProblem):
             self.q_array_pd,
             self.q_array_path,
             {
-                "P0": self.p['P0']['eta'],
-                "R_P": self.p['R_P']['eta'],
-                "A_P": self.p["A_P"]['eta'],
-                "t_fP": self.p["t_fP"]["eta"]
-            }
+                "P0": self.p["P0"]["eta"],
+                "R_P": self.p["R_P"]["eta"],
+                "A_P": self.p["A_P"]["eta"],
+                "t_fP": self.p["t_fP"]["eta"],
+            },
         )
         self.q_eta.vector.array[:] = Eta_array
         self.q_eta.x.scatter_forward()
@@ -883,8 +869,8 @@ class ConcreteViscoDevThixElasticModel(df.NonlinearProblem):
         self.eps_evaluator.evaluate(self.q_eps)  # -> globally in concreteAM not possible why?
 
         self.sig1_ten.evaluate(self.q_sig1_ten)
-        epsv_old_list = None # WOHER? input zu nonlinear problem?
-        sig1_list = self.q_sig1_ten.vector.array[:] # directly only on quad ausrechnen?
+        epsv_old_list = None  # WOHER? input zu nonlinear problem?
+        sig1_list = self.q_sig1_ten.vector.array[:]  # directly only on quad ausrechnen?
         #
         # # compute visco strain from old epsv
         # self.new_epsv = np.zeros_like(epsv_old_list)
@@ -933,7 +919,6 @@ class ConcreteViscoDevThixElasticModel(df.NonlinearProblem):
         #     raise ValueError("visco case not defined")
         #
         # set_q(self.q_epsv, self.new_epsv)
-
 
     def update_history(self) -> None:
         """update history variables"""
