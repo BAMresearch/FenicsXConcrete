@@ -4,11 +4,9 @@ import pint
 import ufl
 from petsc4py.PETSc import ScalarType
 
-from fenicsxconcrete.experimental_setup.base_experiment import Experiment
-from fenicsxconcrete.experimental_setup.cantilever_beam import CantileverBeam
+from fenicsxconcrete.experimental_setup import CantileverBeam, Experiment
 from fenicsxconcrete.finite_element_problem.base_material import MaterialProblem, QuadratureFields, SolutionFields
-from fenicsxconcrete.helper import Parameters
-from fenicsxconcrete.unit_registry import ureg
+from fenicsxconcrete.util import Parameters, ureg
 
 
 class LinearElasticity(MaterialProblem):

@@ -2,7 +2,7 @@ import dolfinx as df
 
 from fenicsxconcrete.finite_element_problem.base_material import MaterialProblem
 from fenicsxconcrete.sensor_definition.base_sensor import PointSensor
-from fenicsxconcrete.unit_registry import ureg
+from fenicsxconcrete.util import ureg
 
 
 class DisplacementSensor(PointSensor):

@@ -6,7 +6,7 @@ import dolfinx
 import numpy as np
 import ufl
 
-from fenicsxconcrete.helper import LogMixin
+from fenicsxconcrete.util import LogMixin
 
 
 def get_boundary_dofs(V: dolfinx.fem.FunctionSpace, marker: Callable) -> np.ndarray:

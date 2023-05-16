@@ -5,7 +5,7 @@ import ufl
 from mpi4py import MPI
 from pint import UnitRegistry
 
-from fenicsxconcrete.helper import Parameters, QuadratureEvaluator, QuadratureRule, project
+from fenicsxconcrete.util import Parameters, QuadratureEvaluator, QuadratureRule, project
 
 ureg = UnitRegistry()
 

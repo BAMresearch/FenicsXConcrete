@@ -7,8 +7,7 @@ from mpi4py import MPI
 
 from fenicsxconcrete.boundary_conditions.bcs import BoundaryConditions
 from fenicsxconcrete.experimental_setup.base_experiment import Experiment
-from fenicsxconcrete.helper import Parameters
-from fenicsxconcrete.unit_registry import ureg
+from fenicsxconcrete.util import Parameters, ureg
 
 
 class SimpleCube(Experiment):

@@ -7,11 +7,12 @@ def project(
 ) -> None | df.fem.Function:
     """
     Calculates an approximation of `v` on the space `V`
+
     Args:
         v: The expression that we want to evaluate.
         V: The function space on which we want to evaluate.
-        dx: The measure that is used for the integration. This is important, if we want to evaluate
-        a Quadrature function on a _normal_ space.
+        dx: The measure that is used for the integration. This is important, if
+        either `V` is a quadrature space or `v` is a ufl expression containing a quadrature space.
         u: The output function.
 
     Returns:

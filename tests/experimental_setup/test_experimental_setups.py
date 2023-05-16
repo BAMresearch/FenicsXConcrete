@@ -10,7 +10,7 @@ from fenicsxconcrete.experimental_setup.simple_beam import SimpleBeam
 from fenicsxconcrete.experimental_setup.simple_cube import SimpleCube
 from fenicsxconcrete.experimental_setup.tensile_beam import TensileBeam
 from fenicsxconcrete.finite_element_problem.linear_elasticity import LinearElasticity
-from fenicsxconcrete.unit_registry import ureg
+from fenicsxconcrete.util import ureg
 
 
 @pytest.mark.parametrize(

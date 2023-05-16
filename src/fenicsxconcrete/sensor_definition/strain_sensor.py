@@ -2,9 +2,8 @@ import dolfinx as df
 import ufl
 
 from fenicsxconcrete.finite_element_problem.base_material import MaterialProblem
-from fenicsxconcrete.helper import project
 from fenicsxconcrete.sensor_definition.base_sensor import PointSensor
-from fenicsxconcrete.unit_registry import ureg
+from fenicsxconcrete.util import project, ureg
 
 
 class StrainSensor(PointSensor):
