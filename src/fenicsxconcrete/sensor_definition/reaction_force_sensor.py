@@ -44,7 +44,7 @@ class ReactionForceSensor(BaseSensor):
         if self.surface is None:
             self.surface = problem.experiment.boundary_bottom()
 
-        v_reac = df.fem.Function(problem.V)
+        v_reac = df.fem.Function(problem.fields.displacement.function_space)
 
         reaction_force_vector = []
 
