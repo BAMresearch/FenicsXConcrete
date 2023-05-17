@@ -13,17 +13,6 @@ Subpackages
    fenicsxconcrete.sensor_definition
    fenicsxconcrete.util
 
-Submodules
-----------
-
-fenicsxconcrete.unit\_registry module
--------------------------------------
-
-.. automodule:: fenicsxconcrete.unit_registry
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
 Module contents
 ---------------
 
