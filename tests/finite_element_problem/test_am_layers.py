@@ -5,9 +5,8 @@ import pytest
 
 from fenicsxconcrete.experimental_setup.am_multiple_layers import AmMultipleLayers
 from fenicsxconcrete.finite_element_problem.linear_elasticity import LinearElasticity
-from fenicsxconcrete.helper import Parameters
 from fenicsxconcrete.sensor_definition.reaction_force_sensor import ReactionForceSensor
-from fenicsxconcrete.unit_registry import ureg
+from fenicsxconcrete.util import Parameters, ureg
 
 
 def set_test_parameters(dim: int) -> Parameters:
@@ -19,7 +18,7 @@ def set_test_parameters(dim: int) -> Parameters:
     Returns: filled instance of Parameters
 
     """
-    setup_parameters = Parameters()
+    setup_parameters = {}
 
     setup_parameters["dim"] = dim * ureg("")
     # setup_parameters["stress_state"] = "plane_strain"

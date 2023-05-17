@@ -80,6 +80,14 @@ jobs:
           # removing all possible slashes in file names, they seem to appear during Pull Requests
           echo "BRANCH_NAME=$(echo $BRANCH_NAME | sed "s/\//_/g")" >> $GITHUB_ENV
 
+      - name: execute example scripts
+        shell: bash -l {0}
+        run: |
+          for file in docs/examples/*.py      
+            do
+              python $file
+            done
+
       - name: test docs
         shell: bash -l {0}
         run: |

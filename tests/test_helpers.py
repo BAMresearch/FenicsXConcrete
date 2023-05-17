@@ -5,7 +5,7 @@ import ufl
 from mpi4py import MPI
 from pint import UnitRegistry
 
-from fenicsxconcrete.helper import Parameters, QuadratureEvaluator, QuadratureRule, project
+from fenicsxconcrete.util import Parameters, QuadratureEvaluator, QuadratureRule, project
 
 ureg = UnitRegistry()
 
@@ -68,6 +68,14 @@ def test_quadrature_rule() -> None:
     rule = QuadratureRule()
     mesh = df.mesh.create_unit_square(MPI.COMM_SELF, 2, 2)
 
+    lagrange_space = df.fem.VectorFunctionSpace(mesh, ("Lagrange", 2))
+    v = df.fem.Function(lagrange_space)
+
+    v.interpolate(lambda x: (42.0 * x[0], 16.0 * x[1]))
+
+    strain_form = ufl.sym(ufl.grad(v))
+    strain_evaluator = QuadratureEvaluator(strain_form, mesh, rule)
+
     q_space = rule.create_quadrature_space(mesh)
     q_function = df.fem.Function(q_space)
     q_array = rule.create_quadrature_array(mesh, 1)
@@ -80,11 +88,20 @@ def test_quadrature_rule() -> None:
 
     assert q_vector_function.vector.array.shape == q_vector_array.shape
 
-    q_tensor_space = rule.create_quadrature_tensor_space(mesh, (3, 3))
+    q_tensor_space = rule.create_quadrature_tensor_space(mesh, (2, 2))
     q_tensor_function = df.fem.Function(q_tensor_space)
-    q_tensor_array = rule.create_quadrature_array(mesh, (3, 3))
+    q_tensor_array = rule.create_quadrature_array(mesh, (2, 2))
 
     assert q_tensor_function.vector.array.shape == q_tensor_array.shape
 
     assert 6 * q_function.vector.array.size == q_vector_function.vector.array.size
-    assert 9 * q_function.vector.array.size == q_tensor_function.vector.array.size
+    assert 4 * q_function.vector.array.size == q_tensor_function.vector.array.size
+
+    # check if project and QuadratureEvaluator give the same result
+    project(strain_form, q_tensor_space, rule.dx, q_tensor_function)
+
+    assert (
+        np.linalg.norm(q_tensor_function.vector.array - strain_evaluator.evaluate().flatten())
+        / np.linalg.norm(q_tensor_function.vector.array)
+        < 1e-12
+    )

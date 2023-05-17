@@ -1,21 +1,66 @@
 from abc import ABC, abstractmethod
+from dataclasses import dataclass
 from pathlib import Path, PosixPath
 
+import dolfinx as df
 import pint
+import ufl
 
 from fenicsxconcrete.experimental_setup.base_experiment import Experiment
-from fenicsxconcrete.experimental_setup.cantilever_beam import CantileverBeam
-from fenicsxconcrete.experimental_setup.compression_cylinder import CompressionCylinder
-from fenicsxconcrete.experimental_setup.tensile_beam import TensileBeam
-from fenicsxconcrete.helper import LogMixin, Parameters
 from fenicsxconcrete.sensor_definition.base_sensor import BaseSensor
-from fenicsxconcrete.unit_registry import ureg
+from fenicsxconcrete.util import LogMixin, Parameters, ureg
+
+
+@dataclass
+class SolutionFields:
+    """
+    A dataclass to hold the solution fields of the problem.
+    The list of names should be extendend when needed.
+
+    Examples:
+        Since this is a dataclass, the __init__ method is automatically
+        generated and can be used to selectively set fields. All fields that
+        are not explicitely set are set to their default value (here None).
+
+        >>> fields = SolutionFields(displacement=some_function, temperature=some_other_function)
+    """
+
+    displacement: df.fem.Function | None = None
+    velocity: df.fem.Function | None = None
+    temperature: df.fem.Function | None = None
+    nonlocal_strain: df.fem.Function | None = None
+
+
+@dataclass
+class QuadratureFields:
+    """
+    A dataclass to hold the quadrature fields (or ufl expressions)
+    of the problem, at least those that we want to plot in paraview.
+    Additionally, the measure for the integration and the type of function
+    space is stored. The list of names should be extendend when needed.
+
+    Examples:
+        Since this is a dataclass, the __init__ method is automatically
+        generated and can be used to selectively set fields. All fields that
+        are not explicitely set are set to their default value (here None).
+
+        >>> q_fields = QuadratureFields(measure=rule.dx, plot_space_type=("Lagrange", 4), stress=some_function)
+    """
+
+    measure: ufl.Measure | None = None
+    plot_space_type: tuple[str, int] = ("DG", 0)
+    mandel_stress: ufl.core.expr.Expr | df.fem.Function | None = None
+    mandel_strain: ufl.core.expr.Expr | df.fem.Function | None = None
+    stress: ufl.core.expr.Expr | df.fem.Function | None = None
+    strain: ufl.core.expr.Expr | df.fem.Function | None = None
+    degree_of_hydration: ufl.core.expr.Expr | df.fem.Function | None = None
+    damage: ufl.core.expr.Expr | df.fem.Function | None = None
 
 
 class MaterialProblem(ABC, LogMixin):
     def __init__(
         self,
-        experiment: CompressionCylinder | CantileverBeam | TensileBeam,
+        experiment: Experiment,
         parameters: dict[str, pint.Quantity],
         pv_name: str = "pv_output_full",
         pv_path: PosixPath | None = None,
@@ -57,10 +102,8 @@ class MaterialProblem(ABC, LogMixin):
         self.pv_output_file = Path(pv_path) / (pv_name + ".xdmf")
 
         # setup fields for sensor output, can be defined in model
-        self.displacement = None
-        self.temperature = None
-        self.degree_of_hydration = None
-        self.q_degree_of_hydration = None
+        self.fields = None
+        self.q_fields = None
 
         self.residual = None  # initialize residual
 

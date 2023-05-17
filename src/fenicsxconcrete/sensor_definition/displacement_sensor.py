@@ -2,7 +2,7 @@ import dolfinx as df
 
 from fenicsxconcrete.finite_element_problem.base_material import MaterialProblem
 from fenicsxconcrete.sensor_definition.base_sensor import PointSensor
-from fenicsxconcrete.unit_registry import ureg
+from fenicsxconcrete.util import ureg
 
 
 class DisplacementSensor(PointSensor):
@@ -40,7 +40,7 @@ class DisplacementSensor(PointSensor):
             cells.append(colliding_cells.links(0)[0])
 
         # adding correct units to displacement
-        displacement_data = problem.displacement.eval([self.where], cells)
+        displacement_data = problem.fields.displacement.eval([self.where], cells)
 
         self.data.append(displacement_data)
         self.time.append(t)

@@ -1,11 +1,11 @@
 import pytest
 
 from fenicsxconcrete.experimental_setup.compression_cylinder import CompressionCylinder
-from fenicsxconcrete.experimental_setup.uniaxial_cube import UniaxialCubeExperiment
+from fenicsxconcrete.experimental_setup.simple_cube import SimpleCube
 from fenicsxconcrete.finite_element_problem.linear_elasticity import LinearElasticity
 from fenicsxconcrete.sensor_definition.reaction_force_sensor import ReactionForceSensor
 from fenicsxconcrete.sensor_definition.stress_sensor import StressSensor
-from fenicsxconcrete.unit_registry import ureg
+from fenicsxconcrete.util import ureg
 
 
 def test_reaction_force_sensor() -> None:
@@ -38,23 +38,16 @@ def test_reaction_force_sensor() -> None:
 
 
 @pytest.mark.parametrize("dim", [2, 3])
-def test_full_boundary_reaction(dim: int) -> None:
-    setup_parameters = UniaxialCubeExperiment.default_parameters()
+@pytest.mark.parametrize("degree", [1, 2])
+def test_full_boundary_reaction(dim: int, degree: int) -> None:
+    setup_parameters = SimpleCube.default_parameters()
     setup_parameters["dim"] = dim * ureg("")
-    setup_parameters["degree"] = 1 * ureg("")  # TODO: WHY DOES THIS FAIL FOR degree = 2 ??? !!!
+    setup_parameters["degree"] = degree * ureg("")
     setup_parameters["strain_state"] = "multiaxial" * ureg("")
-    cube = UniaxialCubeExperiment(setup_parameters)
+    cube = SimpleCube(setup_parameters)
     default_setup, fem_parameters = LinearElasticity.default_parameters()
     fem_parameters["nu"] = 0.2 * ureg("")
     fem_problem = LinearElasticity(cube, fem_parameters)
-
-    # define stress sensor
-    if dim == 2:
-        sensor_location = [0.5, 0.5, 0.0]
-    elif dim == 3:
-        sensor_location = [0.5, 0.5, 0.5]
-    stress_sensor = StressSensor(sensor_location)
-    fem_problem.add_sensor(stress_sensor)
 
     # define reactionforce sensors
     sensor = ReactionForceSensor(surface=cube.boundary_left())
@@ -93,6 +86,30 @@ def test_full_boundary_reaction(dim: int) -> None:
         assert force_front == pytest.approx(-1 * force_back)
         # checking equal forces left-front
         assert force_left == pytest.approx(force_front)
+
+
+@pytest.mark.parametrize("dim", [2, 3])
+@pytest.mark.parametrize("degree", [1, 2])
+def test_full_boundary_stress(dim: int, degree: int) -> None:
+    setup_parameters = SimpleCube.default_parameters()
+    setup_parameters["dim"] = dim * ureg("")
+    setup_parameters["degree"] = degree * ureg("")
+    setup_parameters["strain_state"] = "multiaxial" * ureg("")
+    cube = SimpleCube(setup_parameters)
+    default_setup, fem_parameters = LinearElasticity.default_parameters()
+    fem_parameters["nu"] = 0.2 * ureg("")
+    fem_problem = LinearElasticity(cube, fem_parameters)
+
+    # define stress sensor
+    if dim == 2:
+        sensor_location = [0.5, 0.5, 0.0]
+    elif dim == 3:
+        sensor_location = [0.5, 0.5, 0.5]
+    stress_sensor = StressSensor(sensor_location)
+    fem_problem.add_sensor(stress_sensor)
+
+    fem_problem.experiment.apply_displ_load(0.002 * ureg("m"))
+    fem_problem.solve()
 
     # check homogeneous stress state
     stress = fem_problem.sensors.StressSensor.get_last_entry().magnitude

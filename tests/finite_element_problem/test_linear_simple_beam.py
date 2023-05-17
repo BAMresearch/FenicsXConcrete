@@ -5,9 +5,8 @@ import pytest
 
 from fenicsxconcrete.experimental_setup.simple_beam import SimpleBeam
 from fenicsxconcrete.finite_element_problem.linear_elasticity import LinearElasticity
-from fenicsxconcrete.helper import Parameters
 from fenicsxconcrete.sensor_definition.displacement_sensor import DisplacementSensor
-from fenicsxconcrete.unit_registry import ureg
+from fenicsxconcrete.util import Parameters, ureg
 
 
 @pytest.mark.parametrize(
@@ -30,7 +29,7 @@ def test_linear_simple_beam(dimension: int, results: list[float]) -> None:
         if file.is_file():
             os.remove(file)
 
-    setup_parameters = Parameters()
+    setup_parameters = {}
     setup_parameters["length"] = 10 * ureg("m")
     setup_parameters["height"] = 0.5 * ureg("m")
     setup_parameters["width"] = 0.3 * ureg("m")  # only relevant for 3D case
@@ -40,7 +39,7 @@ def test_linear_simple_beam(dimension: int, results: list[float]) -> None:
     setup_parameters["num_elements_width"] = 3 * ureg("")  # only relevant for 3D case
     setup_parameters["load"] = 200 * ureg("kN/m^2")
 
-    fem_parameters = Parameters()
+    fem_parameters = {}
     fem_parameters["rho"] = 7750 * ureg("kg/m^3")
     fem_parameters["E"] = 210e9 * ureg("N/m^2")
     fem_parameters["nu"] = 0.28 * ureg("")

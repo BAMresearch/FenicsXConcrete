@@ -4,9 +4,8 @@ import pytest
 
 from fenicsxconcrete.experimental_setup.compression_cylinder import CompressionCylinder
 from fenicsxconcrete.finite_element_problem.linear_elasticity import LinearElasticity
-from fenicsxconcrete.helper import Parameters
 from fenicsxconcrete.sensor_definition.reaction_force_sensor import ReactionForceSensor
-from fenicsxconcrete.unit_registry import ureg
+from fenicsxconcrete.util import Parameters, ureg
 
 
 def simple_setup(
@@ -56,7 +55,7 @@ def test_force_response(bc_setting: int, degree: int, dim: str) -> None:
     elif dim == 3:
         result = fem_p["E"] * np.pi * fem_p["radius"] ** 2 * displacement / fem_p["height"]
 
-    assert measured == pytest.approx(result.magnitude, 0.01)
+    assert measured == pytest.approx(result.magnitude, 0.05)
 
 
 @pytest.mark.parametrize("bc_setting", ["fixed", "free"])

@@ -1,37 +1,7 @@
-from __future__ import annotations
-
-import logging
-from collections import UserDict  # because: https://realpython.com/inherit-python-dict/
-
 import basix
 import dolfinx as df
 import numpy as np
-import pint
 import ufl
-
-
-class Parameters(UserDict):
-    """
-    A class that contains physical quantities for our model. Each new entry needs to be a pint quantity.
-    """
-
-    def __setitem__(self, key: str, value: pint.Quantity):
-        assert isinstance(value, pint.Quantity)
-        self.data[key] = value.to_base_units()
-
-    def __add__(self, other: Parameters | None) -> Parameters:
-        if other is None:
-            dic = self
-        else:
-            dic = Parameters({**self, **other})
-        return dic
-
-    def to_magnitude(self) -> dict[str, int | str | float]:
-        magnitude_dictionary = {}
-        for key in self.keys():
-            magnitude_dictionary[key] = self[key].magnitude
-
-        return magnitude_dictionary
 
 
 class QuadratureRule:
@@ -165,17 +135,6 @@ class QuadratureRule:
         return np.zeros(n_points * n_local)
 
 
-def _basix_cell_type_to_ufl(cell_type: basix.CellType) -> ufl.Cell:
-    conversion = {
-        basix.CellType.interval: ufl.interval,
-        basix.CellType.triangle: ufl.triangle,
-        basix.CellType.tetrahedron: ufl.tetrahedron,
-        basix.CellType.quadrilateral: ufl.quadrilateral,
-        basix.CellType.hexahedron: ufl.hexahedron,
-    }
-    return conversion[cell_type]
-
-
 def _ufl_cell_type_to_basix(cell_type: ufl.Cell) -> basix.CellType:
     conversion = {
         ufl.interval: basix.CellType.interval,
@@ -224,39 +183,3 @@ class QuadratureEvaluator:
         elif isinstance(q, df.fem.Function):
             self.expr.eval(self.cells, values=q.vector.array.reshape(self.num_cells, -1))
             q.x.scatter_forward()
-
-
-def project(
-    v: df.fem.Function | ufl.core.expr.Expr, V: df.fem.FunctionSpace, dx: ufl.Measure, u: df.fem.Function | None = None
-) -> None | df.fem.Function:
-    """
-    Calculates an approximation of `v` on the space `V`
-    Args:
-        v: The expression that we want to evaluate.
-        V: The function space on which we want to evaluate.
-        dx: The measure that is used for the integration. This is important, if we want to evaluate
-        a Quadrature function on a _normal_ space.
-        u: The output function.
-
-    Returns:
-        A function if `u` is None, otherwise `None`.
-
-    """
-    dv = ufl.TrialFunction(V)
-    v_ = ufl.TestFunction(V)
-    a_proj = ufl.inner(dv, v_) * dx
-    b_proj = ufl.inner(v, v_) * dx
-    if u is None:
-        solver = df.fem.petsc.LinearProblem(a_proj, b_proj)
-        uh = solver.solve()
-        return uh
-    else:
-        solver = df.fem.petsc.LinearProblem(a_proj, b_proj, u=u)
-        solver.solve()
-
-
-class LogMixin(object):
-    @property
-    def logger(self):
-        name = self.__class__.__module__
-        return logging.getLogger(name)

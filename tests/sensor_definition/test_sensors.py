@@ -5,7 +5,7 @@ from fenicsxconcrete.sensor_definition.displacement_sensor import DisplacementSe
 from fenicsxconcrete.sensor_definition.reaction_force_sensor import ReactionForceSensor
 from fenicsxconcrete.sensor_definition.strain_sensor import StrainSensor
 from fenicsxconcrete.sensor_definition.stress_sensor import StressSensor
-from fenicsxconcrete.unit_registry import ureg
+from fenicsxconcrete.util import ureg
 
 
 def test_base_sensor() -> None:
@@ -23,13 +23,13 @@ def test_base_sensor() -> None:
     u_sensor = fem_problem.sensors.DisplacementSensor
 
     # testing get data list
-    assert u_sensor.get_data_list().units == u_sensor.units
+    assert u_sensor.get_data_list().units == pytest.approx(u_sensor.units)
     # testing get time list
-    assert (u_sensor.get_time_list().magnitude == [0.5, 1]).all()
+    assert u_sensor.get_time_list().magnitude == pytest.approx([0.5, 1])
     # testing get last data point
-    assert (u_sensor.get_data_list()[-1] == u_sensor.get_last_entry()).all()
+    assert u_sensor.get_data_list()[-1].magnitude == pytest.approx(u_sensor.get_last_entry().magnitude)
     # testing get data at time x
-    assert (u_sensor.get_data_list()[1] == u_sensor.get_data_at_time(t=1)).all()
+    assert u_sensor.get_data_list()[1].magnitude == pytest.approx(u_sensor.get_data_at_time(t=1).magnitude)
     # testing value error for wrong time
     with pytest.raises(ValueError):
         u_sensor.get_data_at_time(t=42)
@@ -40,7 +40,7 @@ def test_base_sensor() -> None:
     # check units
     assert u_sensor.get_last_entry().units == ureg.millimeter
     # check magnitude
-    assert (m_data.magnitude == mm_data.magnitude / 1000).all()
+    assert m_data.magnitude == pytest.approx(mm_data.magnitude / 1000)
 
 
 @pytest.mark.parametrize("sensor", [DisplacementSensor, ReactionForceSensor, StressSensor, StrainSensor])

@@ -4,12 +4,12 @@ from pathlib import Path
 import numpy as np
 import pytest
 
-from fenicsxconcrete.experimental_setup.uniaxial_cube import UniaxialCubeExperiment
+from fenicsxconcrete.experimental_setup.simple_cube import SimpleCube
 from fenicsxconcrete.finite_element_problem.linear_elasticity import LinearElasticity
 from fenicsxconcrete.sensor_definition.displacement_sensor import DisplacementSensor
 from fenicsxconcrete.sensor_definition.strain_sensor import StrainSensor
 from fenicsxconcrete.sensor_definition.stress_sensor import StressSensor
-from fenicsxconcrete.unit_registry import ureg
+from fenicsxconcrete.util import ureg
 
 
 @pytest.mark.parametrize("dim", [2, 3])
@@ -48,7 +48,7 @@ def test_disp(dim: int) -> None:
         parameters["stress_state"] = "plane_stress" * ureg("")
 
     # setting up the problem
-    experiment = UniaxialCubeExperiment(parameters)
+    experiment = SimpleCube(parameters)
     problem = LinearElasticity(experiment, parameters, pv_name=file_name, pv_path=data_path)
 
     if dim == 2:
@@ -105,21 +105,23 @@ def test_disp(dim: int) -> None:
 
 @pytest.mark.parametrize("dim", [2, 3])
 def test_strain_state_error(dim: int) -> None:
-    setup_parameters = UniaxialCubeExperiment.default_parameters()
+    setup_parameters = SimpleCube.default_parameters()
     setup_parameters["dim"] = dim * ureg("")
     setup_parameters["strain_state"] = "wrong" * ureg("")
-    setup = UniaxialCubeExperiment(setup_parameters)
+    setup = SimpleCube(setup_parameters)
     default_setup, fem_parameters = LinearElasticity.default_parameters()
     with pytest.raises(ValueError):
         fem_problem = LinearElasticity(setup, fem_parameters)
 
 
 @pytest.mark.parametrize("dim", [2, 3])
-def test_multiaxial_strain(dim: int) -> None:
-    setup_parameters = UniaxialCubeExperiment.default_parameters()
+@pytest.mark.parametrize("degree", [1, 2])
+def test_multiaxial_strain(dim: int, degree: int) -> None:
+    setup_parameters = SimpleCube.default_parameters()
     setup_parameters["dim"] = dim * ureg("")
+    setup_parameters["degree"] = degree * ureg("")
     setup_parameters["strain_state"] = "multiaxial" * ureg("")
-    setup = UniaxialCubeExperiment(setup_parameters)
+    setup = SimpleCube(setup_parameters)
     default_setup, fem_parameters = LinearElasticity.default_parameters()
     fem_problem = LinearElasticity(setup, fem_parameters)
 
@@ -128,14 +130,26 @@ def test_multiaxial_strain(dim: int) -> None:
 
     if dim == 2:
         target = np.array([displ, displ])
-        sensor_location = [fem_problem.p["length"], fem_problem.p["height"], 0.0]
+        sensor_location_corner = [fem_problem.p["length"], fem_problem.p["height"], 0.0]
+        sensor_location_center = [fem_problem.p["length"] / 2, fem_problem.p["height"] / 2, 0.0]
     elif dim == 3:
         target = np.array([displ, displ, displ])
-        sensor_location = [fem_problem.p["length"], fem_problem.p["width"], fem_problem.p["height"]]
+        sensor_location_corner = [fem_problem.p["length"], fem_problem.p["width"], fem_problem.p["height"]]
+        sensor_location_center = [
+            fem_problem.p["length"] / 2,
+            fem_problem.p["height"] / 2,
+            fem_problem.p["height"] / 2,
+        ]
 
-    sensor = DisplacementSensor(sensor_location)
+    sensor_corner = DisplacementSensor(where=sensor_location_corner, name="displacement_corner")
+    sensor_center = DisplacementSensor(where=sensor_location_center, name="displacement_center")
 
-    fem_problem.add_sensor(sensor)
+    fem_problem.add_sensor(sensor_corner)
+    fem_problem.add_sensor(sensor_center)
+
     fem_problem.solve()
-    result = fem_problem.sensors.DisplacementSensor.get_last_entry().magnitude
-    assert result == pytest.approx(target)
+    result_corner = fem_problem.sensors.displacement_corner.get_last_entry().magnitude
+    result_center = fem_problem.sensors.displacement_center.get_last_entry().magnitude
+
+    assert result_corner == pytest.approx(target)
+    assert result_center == pytest.approx(target / 2)

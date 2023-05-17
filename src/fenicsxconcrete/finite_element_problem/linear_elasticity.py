@@ -4,11 +4,9 @@ import pint
 import ufl
 from petsc4py.PETSc import ScalarType
 
-from fenicsxconcrete.experimental_setup.base_experiment import Experiment
-from fenicsxconcrete.experimental_setup.cantilever_beam import CantileverBeam
-from fenicsxconcrete.finite_element_problem.base_material import MaterialProblem
-from fenicsxconcrete.helper import Parameters
-from fenicsxconcrete.unit_registry import ureg
+from fenicsxconcrete.experimental_setup import CantileverBeam, Experiment
+from fenicsxconcrete.finite_element_problem.base_material import MaterialProblem, QuadratureFields, SolutionFields
+from fenicsxconcrete.util import Parameters, ureg
 
 
 class LinearElasticity(MaterialProblem):
@@ -34,6 +32,7 @@ class LinearElasticity(MaterialProblem):
 
     def setup(self) -> None:
         # compute different set of elastic moduli
+
         self.lambda_ = df.fem.Constant(
             self.mesh,
             self.p["E"] * self.p["nu"] / ((1 + self.p["nu"]) * (1 - 2 * self.p["nu"])),
@@ -51,6 +50,14 @@ class LinearElasticity(MaterialProblem):
         # Define variational problem
         self.u_trial = ufl.TrialFunction(self.V)
         self.v = ufl.TestFunction(self.V)
+
+        self.fields = SolutionFields(displacement=df.fem.Function(self.V, name="displacement"))
+        self.q_fields = QuadratureFields(
+            measure=ufl.dx,
+            plot_space_type=("DG", self.p["degree"] - 1),
+            stress=self.sigma(self.fields.displacement),
+            strain=self.epsilon(self.fields.displacement),
+        )
 
         # initialize L field, not sure if this is the best way...
         zero_field = df.fem.Constant(self.mesh, ScalarType(np.zeros(self.p["dim"])))
@@ -73,6 +80,7 @@ class LinearElasticity(MaterialProblem):
             self.a,
             self.L,
             bcs=bcs,
+            u=self.fields.displacement,
             petsc_options={"ksp_type": "preonly", "pc_type": "lu"},
         )
 
@@ -97,7 +105,7 @@ class LinearElasticity(MaterialProblem):
         return self.lambda_ * ufl.nabla_div(u) * ufl.Identity(self.p["dim"]) + 2 * self.mu * self.epsilon(u)
 
     def solve(self, t: float = 1.0) -> None:
-        self.displacement = self.weak_form_problem.solve()
+        self.weak_form_problem.solve()
 
         # TODO Defined as abstractmethod. Should it depend on sensor instead of material?
         self.compute_residuals()
@@ -108,7 +116,7 @@ class LinearElasticity(MaterialProblem):
             self.sensors[sensor_name].measure(self, t)
 
     def compute_residuals(self) -> None:
-        self.residual = ufl.action(self.a, self.displacement) - self.L
+        self.residual = ufl.action(self.a, self.fields.displacement) - self.L
 
     # paraview output
     # TODO move this to sensor definition!?!?!
@@ -120,4 +128,4 @@ class LinearElasticity(MaterialProblem):
         # pv_output_file
         with df.io.XDMFFile(self.mesh.comm, self.pv_output_file, "w") as xdmf:
             xdmf.write_mesh(self.mesh)
-            xdmf.write_function(self.displacement)
+            xdmf.write_function(self.fields.displacement)

@@ -15,8 +15,11 @@ dependencies:
   - toml
   # docs
   - sphinx
+  - sphinx-gallery
   - myst-parser
   - sphinx_rtd_theme
+  # environment
+  - conda-ecosystem-user-package-isolation
   # formatting
   - black
   - isort

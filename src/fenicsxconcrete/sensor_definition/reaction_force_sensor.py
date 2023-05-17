@@ -6,7 +6,7 @@ import ufl
 from fenicsxconcrete.boundary_conditions.bcs import BoundaryConditions
 from fenicsxconcrete.finite_element_problem.base_material import MaterialProblem
 from fenicsxconcrete.sensor_definition.base_sensor import BaseSensor
-from fenicsxconcrete.unit_registry import ureg
+from fenicsxconcrete.util import ureg
 
 
 class ReactionForceSensor(BaseSensor):
@@ -44,18 +44,30 @@ class ReactionForceSensor(BaseSensor):
         if self.surface is None:
             self.surface = problem.experiment.boundary_bottom()
 
-        v_reac = df.fem.Function(problem.V)
+        v_reac = df.fem.Function(problem.fields.displacement.function_space)
 
         reaction_force_vector = []
 
         bc_generator_x = BoundaryConditions(problem.mesh, problem.V)
-        bc_generator_x.add_dirichlet_bc(df.fem.Constant(domain=problem.mesh, c=1.0), self.surface, 0, "geometrical", 0)
+        bc_generator_x.add_dirichlet_bc(
+            value=df.fem.Constant(domain=problem.mesh, c=1.0),
+            boundary=self.surface,
+            sub=0,
+            method="geometrical",
+            entity_dim=problem.mesh.topology.dim - 1,
+        )
         df.fem.set_bc(v_reac.vector, bc_generator_x.bcs)
         computed_force_x = -df.fem.assemble_scalar(df.fem.form(ufl.action(problem.residual, v_reac)))
         reaction_force_vector.append(computed_force_x)
 
         bc_generator_y = BoundaryConditions(problem.mesh, problem.V)
-        bc_generator_y.add_dirichlet_bc(df.fem.Constant(domain=problem.mesh, c=1.0), self.surface, 1, "geometrical", 1)
+        bc_generator_y.add_dirichlet_bc(
+            value=df.fem.Constant(domain=problem.mesh, c=1.0),
+            boundary=self.surface,
+            sub=1,
+            method="geometrical",
+            entity_dim=problem.mesh.topology.dim - 1,
+        )
         df.fem.set_bc(v_reac.vector, bc_generator_y.bcs)
         computed_force_y = -df.fem.assemble_scalar(df.fem.form(ufl.action(problem.residual, v_reac)))
         reaction_force_vector.append(computed_force_y)
@@ -63,7 +75,11 @@ class ReactionForceSensor(BaseSensor):
         if problem.p["dim"] == 3:
             bc_generator_z = BoundaryConditions(problem.mesh, problem.V)
             bc_generator_z.add_dirichlet_bc(
-                df.fem.Constant(domain=problem.mesh, c=1.0), self.surface, 2, "geometrical", 2
+                value=df.fem.Constant(domain=problem.mesh, c=1.0),
+                boundary=self.surface,
+                sub=2,
+                method="geometrical",
+                entity_dim=problem.mesh.topology.dim - 1,
             )
             df.fem.set_bc(v_reac.vector, bc_generator_z.bcs)
             computed_force_z = -df.fem.assemble_scalar(df.fem.form(ufl.action(problem.residual, v_reac)))

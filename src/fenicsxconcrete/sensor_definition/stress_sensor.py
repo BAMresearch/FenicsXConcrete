@@ -2,9 +2,8 @@ import dolfinx as df
 import ufl
 
 from fenicsxconcrete.finite_element_problem.base_material import MaterialProblem
-from fenicsxconcrete.helper import project
 from fenicsxconcrete.sensor_definition.base_sensor import PointSensor
-from fenicsxconcrete.unit_registry import ureg
+from fenicsxconcrete.util import project, ureg
 
 
 class StressSensor(PointSensor):
@@ -28,17 +27,17 @@ class StressSensor(PointSensor):
             t : time of measurement for time dependent problems, default is 1
         """
         # project stress onto visualization space
-        if not hasattr(problem, "stress"):
-            self.logger.debug("strain not defined in problem - needs to compute stress first")
-            stress = project(
-                problem.sigma(problem.displacement),  # stress fct from problem
-                df.fem.TensorFunctionSpace(problem.experiment.mesh, ("Lagrange", 1)),  # tensor space
-                ufl.dx,
-            )
-        else:
-            # TODO: I cannot test this lines, yet (comment: Annika)
-            #       why is it implemented??? how do you know it works? (comment: Erik)
-            stress = project(problem.stress, problem.visu_space_T, problem.rule.dx)
+        try:
+            stress = problem.q_fields.stress
+            assert stress is not None
+        except AssertionError:
+            raise Exception("Stress not defined in problem")
+
+        stress_function = project(
+            stress,  # stress fct from problem
+            df.fem.TensorFunctionSpace(problem.experiment.mesh, problem.q_fields.plot_space_type),  # tensor space
+            problem.q_fields.measure,
+        )
 
         # finding the cells corresponding to the point
         bb_tree = df.geometry.BoundingBoxTree(problem.experiment.mesh, problem.experiment.mesh.topology.dim)
@@ -53,7 +52,7 @@ class StressSensor(PointSensor):
             cells.append(colliding_cells.links(0)[0])
 
         # adding correct units to stress
-        stress_data = stress.eval([self.where], cells)
+        stress_data = stress_function.eval([self.where], cells)
 
         self.data.append(stress_data)
         self.time.append(t)

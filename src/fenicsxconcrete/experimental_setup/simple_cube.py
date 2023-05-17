@@ -7,11 +7,10 @@ from mpi4py import MPI
 
 from fenicsxconcrete.boundary_conditions.bcs import BoundaryConditions
 from fenicsxconcrete.experimental_setup.base_experiment import Experiment
-from fenicsxconcrete.helper import Parameters
-from fenicsxconcrete.unit_registry import ureg
+from fenicsxconcrete.util import Parameters, ureg
 
 
-class UniaxialCubeExperiment(Experiment):
+class SimpleCube(Experiment):
     """sets up an uniaxial cube structure with displacement load
 
     2D unit square or 3D unit cube with uniaxial boundary conditions
@@ -118,7 +117,7 @@ class UniaxialCubeExperiment(Experiment):
                 np.float64(0.0), boundary=self.boundary_bottom(), sub=1, method="geometrical", entity_dim=1
             )
             bc_generator.add_dirichlet_bc(
-                np.float64(0.0), boundary=self.boundary_left(), sub=0, method="geometrical", entity_dim=0
+                np.float64(0.0), boundary=self.boundary_left(), sub=0, method="geometrical", entity_dim=1
             )
 
             if self.p["strain_state"] == "uniaxial":
@@ -132,7 +131,7 @@ class UniaxialCubeExperiment(Experiment):
                     self.top_displacement, boundary=self.boundary_top(), sub=1, method="geometrical", entity_dim=1
                 )
                 bc_generator.add_dirichlet_bc(
-                    self.top_displacement, boundary=self.boundary_right(), sub=0, method="geometrical", entity_dim=0
+                    self.top_displacement, boundary=self.boundary_right(), sub=0, method="geometrical", entity_dim=1
                 )
             else:
                 raise ValueError(f'Strain_state value: {self.p["strain_state"]} is not implemented in 2D.')
@@ -143,10 +142,10 @@ class UniaxialCubeExperiment(Experiment):
                 np.float64(0.0), boundary=self.boundary_bottom(), sub=2, method="geometrical", entity_dim=2
             )
             bc_generator.add_dirichlet_bc(
-                np.float64(0.0), boundary=self.boundary_left(), sub=0, method="geometrical", entity_dim=0
+                np.float64(0.0), boundary=self.boundary_left(), sub=0, method="geometrical", entity_dim=2
             )
             bc_generator.add_dirichlet_bc(
-                np.float64(0.0), boundary=self.boundary_front(), sub=1, method="geometrical", entity_dim=1
+                np.float64(0.0), boundary=self.boundary_front(), sub=1, method="geometrical", entity_dim=2
             )
 
             # displacement controlled
@@ -159,10 +158,10 @@ class UniaxialCubeExperiment(Experiment):
                     self.top_displacement, boundary=self.boundary_top(), sub=2, method="geometrical", entity_dim=2
                 )
                 bc_generator.add_dirichlet_bc(
-                    self.top_displacement, boundary=self.boundary_right(), sub=0, method="geometrical", entity_dim=0
+                    self.top_displacement, boundary=self.boundary_right(), sub=0, method="geometrical", entity_dim=2
                 )
                 bc_generator.add_dirichlet_bc(
-                    self.top_displacement, boundary=self.boundary_back(), sub=1, method="geometrical", entity_dim=1
+                    self.top_displacement, boundary=self.boundary_back(), sub=1, method="geometrical", entity_dim=2
                 )
             else:
                 raise ValueError(f'Strain_state value: {self.p["strain_state"]} is not implemented in 3D.')
@@ -176,5 +175,5 @@ class UniaxialCubeExperiment(Experiment):
             top_displacement: Displacement of the top boundary in mm, > 0 ; tension, < 0 ; compression
 
         """
-
+        top_displacement.ito_base_units()
         self.top_displacement.value = top_displacement.magnitude
