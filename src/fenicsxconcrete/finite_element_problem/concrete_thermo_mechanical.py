@@ -7,11 +7,9 @@ import scipy
 import ufl
 from petsc4py import PETSc
 
-from fenicsxconcrete.experimental_setup.base_experiment import Experiment
-from fenicsxconcrete.experimental_setup.minimal_cube import MinimalCubeExperiment
-from fenicsxconcrete.finite_element_problem.base_material import MaterialProblem
-from fenicsxconcrete.helper import Parameters, QuadratureEvaluator, QuadratureRule, project
-from fenicsxconcrete.unit_registry import ureg
+from fenicsxconcrete.experimental_setup import Experiment, MinimalCubeExperiment
+from fenicsxconcrete.finite_element_problem import MaterialProblem
+from fenicsxconcrete.util import Parameters, QuadratureEvaluator, QuadratureRule, project, ureg
 
 
 class ConcreteThermoMechanical(MaterialProblem):
