@@ -13,8 +13,7 @@ from fenicsxconcrete import _GMSH_VERBOSITY
 from fenicsxconcrete.boundary_conditions.bcs import BoundaryConditions
 from fenicsxconcrete.boundary_conditions.boundary import plane_at, point_at
 from fenicsxconcrete.experimental_setup.base_experiment import Experiment
-from fenicsxconcrete.helper import Parameters
-from fenicsxconcrete.unit_registry import ureg
+from fenicsxconcrete.util import Parameters, ureg
 
 
 def generate_cylinder_mesh(radius: float, height: float, mesh_density: float, element_degree: int = 2) -> df.mesh.Mesh:

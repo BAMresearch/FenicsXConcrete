@@ -9,7 +9,7 @@ from fenicsxconcrete.finite_element_problem.linear_elasticity import LinearElast
 from fenicsxconcrete.sensor_definition.displacement_sensor import DisplacementSensor
 from fenicsxconcrete.sensor_definition.strain_sensor import StrainSensor
 from fenicsxconcrete.sensor_definition.stress_sensor import StressSensor
-from fenicsxconcrete.unit_registry import ureg
+from fenicsxconcrete.util import ureg
 
 
 @pytest.mark.parametrize("dim", [2, 3])

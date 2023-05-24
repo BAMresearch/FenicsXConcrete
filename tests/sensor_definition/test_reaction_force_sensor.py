@@ -5,7 +5,7 @@ from fenicsxconcrete.experimental_setup.simple_cube import SimpleCube
 from fenicsxconcrete.finite_element_problem.linear_elasticity import LinearElasticity
 from fenicsxconcrete.sensor_definition.reaction_force_sensor import ReactionForceSensor
 from fenicsxconcrete.sensor_definition.stress_sensor import StressSensor
-from fenicsxconcrete.unit_registry import ureg
+from fenicsxconcrete.util import ureg
 
 
 def test_reaction_force_sensor() -> None:

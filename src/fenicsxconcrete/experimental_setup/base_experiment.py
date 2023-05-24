@@ -6,8 +6,7 @@ import pint
 import ufl
 
 from fenicsxconcrete.boundary_conditions.boundary import plane_at, point_at
-from fenicsxconcrete.helper import LogMixin, Parameters
-from fenicsxconcrete.unit_registry import ureg
+from fenicsxconcrete.util import LogMixin, Parameters, ureg
 
 
 class Experiment(ABC, LogMixin):

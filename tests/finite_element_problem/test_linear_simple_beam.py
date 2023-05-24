@@ -5,9 +5,8 @@ import pytest
 
 from fenicsxconcrete.experimental_setup.simple_beam import SimpleBeam
 from fenicsxconcrete.finite_element_problem.linear_elasticity import LinearElasticity
-from fenicsxconcrete.helper import Parameters
 from fenicsxconcrete.sensor_definition.displacement_sensor import DisplacementSensor
-from fenicsxconcrete.unit_registry import ureg
+from fenicsxconcrete.util import Parameters, ureg
 
 
 @pytest.mark.parametrize(

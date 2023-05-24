@@ -10,8 +10,7 @@ from petsc4py.PETSc import ScalarType
 from fenicsxconcrete.boundary_conditions.bcs import BoundaryConditions
 from fenicsxconcrete.boundary_conditions.boundary import plane_at
 from fenicsxconcrete.experimental_setup.base_experiment import Experiment
-from fenicsxconcrete.helper import Parameters, QuadratureRule
-from fenicsxconcrete.unit_registry import ureg
+from fenicsxconcrete.util import Parameters, ureg
 
 
 class AmMultipleLayers(Experiment):
@@ -77,6 +76,7 @@ class AmMultipleLayers(Experiment):
         """
 
         self.logger.debug("setup mesh for %s", self.p["dim"])
+
 
         if self.p["dim"] == 2:
             self.mesh = df.mesh.create_rectangle(

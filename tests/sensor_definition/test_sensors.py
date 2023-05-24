@@ -5,7 +5,7 @@ from fenicsxconcrete.sensor_definition.displacement_sensor import DisplacementSe
 from fenicsxconcrete.sensor_definition.reaction_force_sensor import ReactionForceSensor
 from fenicsxconcrete.sensor_definition.strain_sensor import StrainSensor
 from fenicsxconcrete.sensor_definition.stress_sensor import StressSensor
-from fenicsxconcrete.unit_registry import ureg
+from fenicsxconcrete.util import ureg
 
 
 def test_base_sensor() -> None:
