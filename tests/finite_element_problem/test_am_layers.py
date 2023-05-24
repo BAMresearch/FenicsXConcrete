@@ -8,11 +8,10 @@ import pytest
 from fenicsxconcrete.experimental_setup.am_multiple_layers import AmMultipleLayers
 from fenicsxconcrete.finite_element_problem.concrete_am import ConcreteAM, ConcreteThixElasticModel
 from fenicsxconcrete.finite_element_problem.linear_elasticity import LinearElasticity
-from fenicsxconcrete.helper import Parameters, QuadratureEvaluator
 from fenicsxconcrete.sensor_definition.reaction_force_sensor import ReactionForceSensor
 from fenicsxconcrete.sensor_definition.strain_sensor import StrainSensor
 from fenicsxconcrete.sensor_definition.stress_sensor import StressSensor
-from fenicsxconcrete.unit_registry import ureg
+from fenicsxconcrete.util import Parameters, QuadratureEvaluator, ureg
 
 
 def set_test_parameters(dim: int) -> Parameters:

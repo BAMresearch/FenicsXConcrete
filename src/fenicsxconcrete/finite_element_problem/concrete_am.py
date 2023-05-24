@@ -11,8 +11,7 @@ from petsc4py import PETSc
 from fenicsxconcrete.experimental_setup.am_multiple_layers import AmMultipleLayers
 from fenicsxconcrete.experimental_setup.base_experiment import Experiment
 from fenicsxconcrete.finite_element_problem.base_material import MaterialProblem
-from fenicsxconcrete.helper import Parameters, QuadratureEvaluator, QuadratureRule, project
-from fenicsxconcrete.unit_registry import ureg
+from fenicsxconcrete.util import Parameters, QuadratureEvaluator, QuadratureRule, project, ureg
 
 
 class ConcreteAM(MaterialProblem):

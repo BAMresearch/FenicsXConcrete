@@ -8,7 +8,7 @@ from fenicsxconcrete.experimental_setup.simple_cube import SimpleCube
 from fenicsxconcrete.finite_element_problem.concrete_am import ConcreteAM, ConcreteThixElasticModel
 from fenicsxconcrete.sensor_definition.strain_sensor import StrainSensor
 from fenicsxconcrete.sensor_definition.stress_sensor import StressSensor
-from fenicsxconcrete.unit_registry import ureg
+from fenicsxconcrete.util import ureg
 
 
 def disp_over_time(current_time: pint.Quantity, switch_time: pint.Quantity) -> pint.Quantity:
