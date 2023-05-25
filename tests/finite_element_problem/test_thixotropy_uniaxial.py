@@ -4,8 +4,8 @@ from pathlib import Path
 import pint
 import pytest
 
-from fenicsxconcrete.experimental_setup.simple_cube import SimpleCube
-from fenicsxconcrete.finite_element_problem.concrete_am import ConcreteAM, ConcreteThixElasticModel
+from fenicsxconcrete.experimental_setup import SimpleCube
+from fenicsxconcrete.finite_element_problem import ConcreteAM, ConcreteThixElasticModel
 from fenicsxconcrete.sensor_definition.strain_sensor import StrainSensor
 from fenicsxconcrete.sensor_definition.stress_sensor import StressSensor
 from fenicsxconcrete.util import ureg
@@ -102,16 +102,15 @@ def test_disp(dim: int, degree: int):
     t = 0.0 * ureg("s")
 
     while t <= solve_parameters["time"]:
-        print(f"solving for t={t}")
+        # print(f"solving for t={t}")
         # apply increment displacements!!!
         disp_o_time.append(displacement(t, 2 * solve_parameters["dt"]).to_base_units())
         delta_disp = disp_o_time[-1] - disp_o_time[-2]
-        print(delta_disp)
         problem.experiment.apply_displ_load(delta_disp)
 
         problem.solve(t=t)
         problem.pv_plot(t=t)
-        print("computed disp", problem.displacement.x.array[:].max())
+        # print("computed disp", problem.fields.displacement.x.array[:].max())
 
         # store Young's modulus over time
         E_o_time.append(problem.youngsmodulus.vector.array[:].max())
@@ -202,6 +201,6 @@ def check_disp_case(problem: ConcreteAM, solve_parameters: dict, E_o_time: list[
 #
 # if __name__ == "__main__":
 #
-#     # test_disp(2, 2)
+#     test_disp(2, 2)
 #
-#     test_disp(3, 2)
+#     # test_disp(3, 2)

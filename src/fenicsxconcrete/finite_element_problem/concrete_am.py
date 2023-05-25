@@ -8,10 +8,15 @@ import ufl
 from mpi4py import MPI
 from petsc4py import PETSc
 
-from fenicsxconcrete.experimental_setup.am_multiple_layers import AmMultipleLayers
-from fenicsxconcrete.experimental_setup.base_experiment import Experiment
-from fenicsxconcrete.finite_element_problem.base_material import MaterialProblem
+from fenicsxconcrete.experimental_setup import AmMultipleLayers
+from fenicsxconcrete.experimental_setup import Experiment
+from fenicsxconcrete.finite_element_problem.base_material import MaterialProblem, QuadratureFields, SolutionFields
 from fenicsxconcrete.util import Parameters, QuadratureEvaluator, QuadratureRule, project, ureg
+
+# from fenicsxconcrete.experimental_setup.am_multiple_layers import AmMultipleLayers
+# from fenicsxconcrete.experimental_setup.base_experiment import Experiment
+# from fenicsxconcrete.finite_element_problem.base_material import MaterialProblem, QuadratureFields, SolutionFields
+# from fenicsxconcrete.util import Parameters, QuadratureEvaluator, QuadratureRule, project, ureg
 
 
 class ConcreteAM(MaterialProblem):
@@ -129,31 +134,37 @@ class ConcreteAM(MaterialProblem):
     def setup(self) -> None:
         """set up problem"""
 
-        self.rule = QuadratureRule(cell_type=self.experiment.mesh.ufl_cell(), degree=self.p["q_degree"])
+        self.rule = QuadratureRule(cell_type=self.mesh.ufl_cell(), degree=self.p["q_degree"])
         # print("num q", self.rule.number_of_points(mesh=self.experiment.mesh))
         # displacement space (name V required for sensors!)
-        self.V = df.fem.VectorFunctionSpace(self.experiment.mesh, ("CG", self.p["degree"]))
-        self.strain_stress_space = self.rule.create_quadrature_tensor_space(
-            self.experiment.mesh, (self.p["dim"], self.p["dim"])
-        )
+        self.V = df.fem.VectorFunctionSpace(self.mesh, ("CG", self.p["degree"]))
+        self.strain_stress_space = self.rule.create_quadrature_tensor_space(self.mesh, (self.p["dim"], self.p["dim"]))
 
         # global variables for all AM problems relevant
-        # total displacements
-        self.displacement = df.fem.Function(self.V)
+        self.fields = SolutionFields(displacement=df.fem.Function(self.V, name="displacement"))
+
+        self.q_fields = QuadratureFields(
+            measure=self.rule.dx,
+            plot_space_type=("DG", self.p["degree"] - 1),
+            strain=df.fem.Function(self.strain_stress_space, name="strain"),
+            stress=df.fem.Function(self.strain_stress_space, name="stress"),
+        )
+
+        # # total displacements
+        # self.displacement = df.fem.Function(self.V)
         # displacement increment
         self.d_disp = df.fem.Function(self.V)
 
-        # set total strain and stress fields
-        self.strain = df.fem.Function(self.strain_stress_space, name="strain")
-        self.stress = df.fem.Function(self.strain_stress_space, name="stress")
-        self.history_strain = df.fem.Function(self.strain_stress_space, name="hist strain")
+        # # set total strain and stress fields
+        # self.strain = df.fem.Function(self.strain_stress_space, name="strain")
+        # self.stress = df.fem.Function(self.strain_stress_space, name="stress")
 
         # boundaries
         bcs = self.experiment.create_displacement_boundary(self.V)
         body_force_fct = self.experiment.create_body_force_am
 
         self.mechanics_problem = self.nonlinear_problem(
-            self.experiment.mesh,
+            self.mesh,
             self.p,
             self.rule,
             self.d_disp,
@@ -161,23 +172,12 @@ class ConcreteAM(MaterialProblem):
             body_force_fct,
         )
 
-        # from dolfinx import log
-        #
-        # log.set_log_level(log.LogLevel.INFO)
-
         # setting up the solver
         self.mechanics_solver = df.nls.petsc.NewtonSolver(MPI.COMM_WORLD, self.mechanics_problem)
         self.mechanics_solver.convergence_criterion = "incremental"
         self.mechanics_solver.atol = 1e-9
         self.mechanics_solver.rtol = 1e-8
         self.mechanics_solver.report = True
-
-        if self.p["degree"] == 1:
-            self.plot_space = df.fem.FunctionSpace(self.mesh, ("DG", 0))
-            self.plot_space_stress = df.fem.TensorFunctionSpace(self.mesh, ("DG", 0))
-        else:
-            self.plot_space = df.fem.FunctionSpace(self.mesh, ("CG", 1))
-            self.plot_space_stress = df.fem.TensorFunctionSpace(self.mesh, ("DG", 1))
 
         # # set up xdmf file with mesh info
         # with df.io.XDMFFile(self.mesh.comm, self.pv_output_file, "w") as f:
@@ -201,17 +201,16 @@ class ConcreteAM(MaterialProblem):
         self.mechanics_solver.solve(self.d_disp)
 
         # update total displacement
-        self.displacement.vector.array[:] += self.d_disp.vector.array[:]
-        self.displacement.x.scatter_forward()
+        self.fields.displacement.vector.array[:] += self.d_disp.vector.array[:]
+        self.fields.displacement.x.scatter_forward()
 
         # save fields to global problem for sensor output
-        self.stress.vector.array[:] += self.mechanics_problem.q_sig.vector.array[:]
-        self.stress.x.scatter_forward()
-        self.strain.vector.array[:] += self.mechanics_problem.q_eps.vector.array[:]
-        self.strain.x.scatter_forward()
-        self.history_strain.vector.array[:] += self.mechanics_problem.q_eps.vector.array[:]
-        self.history_strain.x.scatter_forward()
+        self.q_fields.stress.vector.array[:] += self.mechanics_problem.q_sig.vector.array[:]
+        self.q_fields.stress.x.scatter_forward()
+        self.q_fields.strain.vector.array[:] += self.mechanics_problem.q_eps.vector.array[:]
+        self.q_fields.strain.x.scatter_forward()
 
+        # additional output field not yet used in any sensors
         self.youngsmodulus = self.mechanics_problem.q_E
 
         # get sensor data
@@ -268,17 +267,24 @@ class ConcreteAM(MaterialProblem):
             _t = t
 
         # write displacement field into existing xdmf file f
-        self.displacement.name = "displacement"
+        # self.fields.displacement.name = "displacement"
 
         # write further fields
-        sigma_plot = project(self.mechanics_problem.sigma(self.displacement), self.plot_space_stress, self.rule.dx)
-        E_plot = project(self.mechanics_problem.q_E, self.plot_space, self.rule.dx)
+        sigma_plot = project(
+            self.mechanics_problem.sigma(self.fields.displacement),
+            df.fem.TensorFunctionSpace(self.mesh, self.q_fields.plot_space_type),
+            self.rule.dx,
+        )
+
+        E_plot = project(
+            self.mechanics_problem.q_E, df.fem.FunctionSpace(self.mesh, self.q_fields.plot_space_type), self.rule.dx
+        )
 
         E_plot.name = "Youngs_Modulus"
         sigma_plot.name = "Stress"
 
         with df.io.XDMFFile(self.mesh.comm, self.pv_output_file, "a") as f:
-            f.write_function(self.displacement, _t)
+            f.write_function(self.fields.displacement, _t)
             f.write_function(sigma_plot, _t)
             f.write_function(E_plot, _t)
 

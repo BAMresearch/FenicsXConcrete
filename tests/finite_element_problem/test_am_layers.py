@@ -5,9 +5,8 @@ import dolfinx as df
 import numpy as np
 import pytest
 
-from fenicsxconcrete.experimental_setup.am_multiple_layers import AmMultipleLayers
-from fenicsxconcrete.finite_element_problem.concrete_am import ConcreteAM, ConcreteThixElasticModel
-from fenicsxconcrete.finite_element_problem.linear_elasticity import LinearElasticity
+from fenicsxconcrete.experimental_setup import AmMultipleLayers
+from fenicsxconcrete.finite_element_problem import ConcreteAM, ConcreteThixElasticModel
 from fenicsxconcrete.sensor_definition.reaction_force_sensor import ReactionForceSensor
 from fenicsxconcrete.sensor_definition.strain_sensor import StrainSensor
 from fenicsxconcrete.sensor_definition.stress_sensor import StressSensor
@@ -124,14 +123,12 @@ def test_am_single_layer(dimension: int, factor: int) -> None:
         dead_load *= problem.p["layer_width"]
 
     # dead load of full structure
-    print("check", sum(force_bottom_y), dead_load)
     assert sum(force_bottom_y) == pytest.approx(-dead_load)
 
     # check stresses change according to Emodul change
     sig_o_time = np.array(problem.sensors["StressSensor"].data)[:, -1]
     eps_o_time = np.array(problem.sensors["StrainSensor"].data)[:, -1]
-    print("sig o time", sig_o_time)
-    print("eps o time", eps_o_time)
+
     if factor == 1:
         # instance loading -> no changes
         assert sum(np.diff(sig_o_time)) == pytest.approx(0, abs=1e-8)
@@ -164,7 +161,7 @@ def test_am_multiple_layer(dimension: int, mat: str, plot: bool = False) -> None
     # define file name and path for paraview output
     file_name = f"test_am_multiple_layer_{dimension}d"
     files = [data_path / (file_name + ".xdmf"), data_path / (file_name + ".h5")]
-    # delete file if it exisits (only relevant for local tests)
+    # delete file if it exists (only relevant for local tests)
     for file in files:
         if file.is_file():
             os.remove(file)
@@ -211,7 +208,7 @@ def test_am_multiple_layer(dimension: int, mat: str, plot: bool = False) -> None
         print(f"solving for t={t}")
         problem.solve(t=t)
         problem.pv_plot(t=t)
-        print("computed disp", problem.displacement.x.array[:].max())
+        print("computed disp", problem.fields.displacement.x.array[:].max())
 
         t += solve_parameters["dt"]
 
@@ -326,8 +323,9 @@ def define_path(prob, t_diff, t_0=0):
     return q_path
 
 
-if __name__ == "__main__":
-
-    # test_am_single_layer(2, 2)
-
-    test_am_multiple_layer(2, "thix", True)
+#
+# if __name__ == "__main__":
+#
+#     # test_am_single_layer(2, 2)
+#
+#     test_am_multiple_layer(2, "thix", True)
