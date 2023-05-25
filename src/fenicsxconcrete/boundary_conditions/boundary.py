@@ -214,7 +214,7 @@ def to_floats(x: typing.Iterable[int] | typing.Iterable[float]) -> list[float]:
     """Converts `x` to a 3d coordinate.
 
     Args:
-        x: points coordinates at least 1D
+        x: point coordinates at least 1D
 
     Returns:
         point described as list with x,y,z value
