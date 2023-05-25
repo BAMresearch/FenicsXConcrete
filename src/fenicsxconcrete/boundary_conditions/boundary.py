@@ -71,7 +71,7 @@ def plane_at(coordinate: float, dim: str | int) -> Callable:
 
 
 def line_at(coordinates: list[float], dims: list[str | int]) -> Callable:
-    """return callable that determines boundary geometrically
+    """Defines a line where `x[dims[0]]` equals `coordinates[0]` and `x[dims[1]]` equals `coordinates[1]`.
 
     Args:
         coordinates: list of points
