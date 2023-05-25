@@ -163,7 +163,7 @@ class BoundaryConditions(LogMixin):
 
     @property
     def has_neumann(self) -> bool:
-        """check if Dirichlet BCs are defined
+        """check if Neumann BCs are defined
 
         Returns:
             True or False
