@@ -48,7 +48,7 @@ def plane_at(coordinate: float, dim: str | int) -> Callable:
     """Defines a plane where `x[dim]` equals `coordinate`.
 
     Args:
-        coordinate: point
+        coordinate: value
         dim: dimension
 
     Returns:
