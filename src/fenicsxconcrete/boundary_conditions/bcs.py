@@ -91,14 +91,14 @@ class BoundaryConditions(LogMixin):
             value: Anything that *might* be used to define the Dirichlet function.
                     It can be a `Function`, a `Callable` which is then interpolated
                     or an already existing Dirichlet BC, or ... (see type hint).
-                    boundary: The part of the boundary whose dofs should be constrained.
+            boundary: The part of the boundary whose dofs should be constrained.
                     This can be a callable defining the boundary geometrically or
                     an array of entity tags or an integer marking the boundary if
-                `facet_tags` is not None.
+                    `facet_tags` is not None.
             sub: If `sub` is not None the subspace `V.sub(sub)` will be
                     constrained.
             method: A hint which method should be used to locate the dofs.
-            Choices: 'topological' or 'geometrical'.
+                    Choices: 'topological' or 'geometrical'.
             entity_dim: The dimension of the entities to be located
                         topologically. Note that `entity_dim` is required if `sub`
                         is not None and `method=geometrical`.
