@@ -8,15 +8,9 @@ import ufl
 from mpi4py import MPI
 from petsc4py import PETSc
 
-from fenicsxconcrete.experimental_setup import AmMultipleLayers
-from fenicsxconcrete.experimental_setup import Experiment
+from fenicsxconcrete.experimental_setup import AmMultipleLayers, Experiment
 from fenicsxconcrete.finite_element_problem.base_material import MaterialProblem, QuadratureFields, SolutionFields
 from fenicsxconcrete.util import Parameters, QuadratureEvaluator, QuadratureRule, project, ureg
-
-# from fenicsxconcrete.experimental_setup.am_multiple_layers import AmMultipleLayers
-# from fenicsxconcrete.experimental_setup.base_experiment import Experiment
-# from fenicsxconcrete.finite_element_problem.base_material import MaterialProblem, QuadratureFields, SolutionFields
-# from fenicsxconcrete.util import Parameters, QuadratureEvaluator, QuadratureRule, project, ureg
 
 
 class ConcreteAM(MaterialProblem):
@@ -124,7 +118,7 @@ class ConcreteAM(MaterialProblem):
             ### default parameters required for ViscoDevThixElasticModel
             # not yet
             # other model parameters
-            "degree": 2 * ureg(""),  # polynomial degree
+            # "degree": 2 * ureg(""),  # polynomial degree --> default defined in base_experiment!!
             "q_degree": 2 * ureg(""),  # quadrature rule
             "load_time": 60 * ureg("s"),  # body force load applied in s
         }
