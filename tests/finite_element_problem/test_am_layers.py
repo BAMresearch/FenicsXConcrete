@@ -146,7 +146,7 @@ def test_am_single_layer(dimension: int, factor: int) -> None:
 
 
 @pytest.mark.parametrize("dimension", [2])
-@pytest.mark.parametrize("mat", ["thix"])
+@pytest.mark.parametrize("mat", ["thix"])  # visco will be added next time
 def test_am_multiple_layer(dimension: int, mat: str, plot: bool = False) -> None:
     """multiple layer test
 
