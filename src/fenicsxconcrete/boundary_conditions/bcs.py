@@ -208,7 +208,7 @@ class BoundaryConditions(LogMixin):
         """creates the ufl form of (sum of) Neumann BCs
 
         Returns:
-            The ufl of Neumann Bcs
+            A ufl object representing Neumann BCs
         """
 
         r = 0
