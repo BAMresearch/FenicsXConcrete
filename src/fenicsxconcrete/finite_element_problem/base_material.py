@@ -96,7 +96,7 @@ class MaterialProblem(ABC, LogMixin):
 
         self.sensors = self.SensorDict()  # list to hold attached sensors
 
-        # settin gup path for paraview output
+        # setting up path for paraview output
         if not pv_path:
             pv_path = "."
         self.pv_output_file = Path(pv_path) / (pv_name + ".xdmf")
@@ -106,6 +106,14 @@ class MaterialProblem(ABC, LogMixin):
         self.q_fields = None
 
         self.residual = None  # initialize residual
+
+        # setup time variables
+        self.time = 0.0
+        self.dt = 1.0  # to be set in set_timestep
+
+        # set up xdmf file with mesh info
+        with df.io.XDMFFile(self.mesh.comm, self.pv_output_file, "w") as f:
+            f.write_mesh(self.mesh)
 
         # setup the material object to access the function
         self.setup()
@@ -144,6 +152,14 @@ class MaterialProblem(ABC, LogMixin):
     def delete_sensor(self) -> None:
         del self.sensors
         self.sensors = self.SensorDict()
+
+    def set_timestep(self, dt: pint.Quantity):
+        """set timestep in base units"""
+        self.dt = dt.to_base_units().magnitude
+
+    def update_time(self):
+        """update time"""
+        self.time += self.dt
 
     class SensorDict(dict):
         """
