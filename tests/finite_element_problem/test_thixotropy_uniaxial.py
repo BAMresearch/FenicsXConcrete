@@ -187,20 +187,19 @@ def check_disp_case(problem: ConcreteAM, solve_parameters: dict, E_o_time: list[
         ] == pytest.approx(0.0)
 
     # check changing youngs modulus
-    if solve_parameters["time"].magnitude < problem.p["t_f"]:
+    if solve_parameters["time"].magnitude < problem.p["tf_E"]:
         E_end = problem.p["E_0"] + problem.p["R_E"] * (solve_parameters["time"].magnitude + problem.p["age_0"])
     else:
         E_end = (
             problem.p["E_0"]
-            + problem.p["R_E"] * problem.p["t_f"]
-            + problem.p["A_E"] * (solve_parameters["time"].magnitude + problem.p["age_0"] - problem.p["t_f"])
+            + problem.p["R_E"] * problem.p["tf_E"]
+            + problem.p["A_E"] * (solve_parameters["time"].magnitude + problem.p["age_0"] - problem.p["tf_E"])
         )
     assert E_o_time[-1] == pytest.approx(E_end)
 
 
-#
-# if __name__ == "__main__":
-#
-#     test_disp(2, 2)
-#
-#     # test_disp(3, 2)
+if __name__ == "__main__":
+
+    test_disp(2, 2)
+
+    # test_disp(3, 2)

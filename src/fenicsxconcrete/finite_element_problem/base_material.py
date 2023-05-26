@@ -55,6 +55,7 @@ class QuadratureFields:
     strain: ufl.core.expr.Expr | df.fem.Function | None = None
     degree_of_hydration: ufl.core.expr.Expr | df.fem.Function | None = None
     damage: ufl.core.expr.Expr | df.fem.Function | None = None
+    visco_strain: ufl.core.expr.Expr | df.fem.Function | None = None
 
 
 class MaterialProblem(ABC, LogMixin):

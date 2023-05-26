@@ -232,15 +232,15 @@ def test_am_multiple_layer(dimension: int, mat: str, plot: bool = False) -> None
 
     # check E modulus evolution over structure (each layer different E)
     if mat.lower() == "thix":
-        if solve_parameters["time"].magnitude >= problem.p["t_f"]:
+        if solve_parameters["time"].magnitude >= problem.p["tf_E"]:
             E_bottom_layer = (
                 problem.p["E_0"]
-                + problem.p["R_E"] * problem.p["t_f"]
+                + problem.p["R_E"] * problem.p["tf_E"]
                 + problem.p["A_E"] * (solve_parameters["time"].magnitude + problem.p["age_0"])
             )
             E_upper_layer = (
                 problem.p["E_0"]
-                + problem.p["R_E"] * problem.p["t_f"]
+                + problem.p["R_E"] * problem.p["tf_E"]
                 + problem.p["A_E"]
                 * (
                     solve_parameters["time"].magnitude
