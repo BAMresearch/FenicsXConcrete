@@ -10,7 +10,16 @@ from fenicsxconcrete.util import LogMixin
 
 
 def get_boundary_dofs(V: dolfinx.fem.FunctionSpace, marker: Callable) -> np.ndarray:
-    """Returns dofs on the boundary specified by geometrical `marker`."""
+    """Returns dofs on the boundary specified by geometrical `marker`.
+
+    Args:
+        V: function space
+        marker: marker function
+
+    Returns:
+        dofs on the boundary specified by geometrical `marker`
+    """
+
     domain = V.mesh
     tdim = domain.topology.dim
     fdim = tdim - 1
@@ -44,9 +53,9 @@ class BoundaryConditions(LogMixin):
         BCs if `facet_tags` is not None.
 
         Args:
-          domain: The computational domain.
-          space: The finite element space.
-          facet_tags: The mesh tags defining boundaries.
+            domain: The computational domain.
+            space: The finite element space.
+            facet_tags: The mesh tags defining boundaries.
         """
 
         self.domain = domain
@@ -79,20 +88,20 @@ class BoundaryConditions(LogMixin):
         """Adds a Dirichlet bc.
 
         Args:
-          value: Anything that *might* be used to define the Dirichlet function.
-            It can be a `Function`, a `Callable` which is then interpolated
-            or an already existing Dirichlet BC, or ... (see type hint).
-          boundary: The part of the boundary whose dofs should be constrained.
-            This can be a callable defining the boundary geometrically or
-            an array of entity tags or an integer marking the boundary if
-            `facet_tags` is not None.
-          sub: If `sub` is not None the subspace `V.sub(sub)` will be
-            constrained.
-          method: A hint which method should be used to locate the dofs.
-            Choices: 'topological' or 'geometrical'.
-          entity_dim: The dimension of the entities to be located
-            topologically. Note that `entity_dim` is required if `sub`
-            is not None and `method=geometrical`.
+            value: Anything that *might* be used to define the Dirichlet function.
+                    It can be a `Function`, a `Callable` which is then interpolated
+                    or an already existing Dirichlet BC, or ... (see type hint).
+            boundary: The part of the boundary whose dofs should be constrained.
+                    This can be a callable defining the boundary geometrically or
+                    an array of entity tags or an integer marking the boundary if
+                    `facet_tags` is not None.
+            sub: If `sub` is not None the subspace `V.sub(sub)` will be
+                    constrained.
+            method: A hint which method should be used to locate the dofs.
+                    Choices: 'topological' or 'geometrical'.
+            entity_dim: The dimension of the entities to be located
+                        topologically. Note that `entity_dim` is required if `sub`
+                        is not None and `method=geometrical`.
         """
         if isinstance(value, dolfinx.fem.DirichletBCMetaClass):
             self._bcs.append(value)
@@ -143,9 +152,9 @@ class BoundaryConditions(LogMixin):
         """Adds a Neumann BC.
 
         Args:
-          marker: The id of the boundary where Neumann BC should be applied.
-          value: The Neumann data, e.g. a traction vector. This has
-            to be a valid `ufl` object.
+            marker: The id of the boundary where Neumann BC should be applied.
+            value: The Neumann data, e.g. a traction vector. This has
+              to be a valid `ufl` object.
         """
         if marker not in self._facet_tags.values:
             raise ValueError(f"No facet tags defined for {marker=}.")
@@ -154,19 +163,41 @@ class BoundaryConditions(LogMixin):
 
     @property
     def has_neumann(self) -> bool:
+        """check if Neumann BCs are defined
+
+        Returns:
+            True or False
+        """
         return len(self._neumann_bcs) > 0
 
     @property
     def has_dirichlet(self) -> bool:
+        """check if Dirichlet BCs are defined
+
+        Returns:
+            True or False
+        """
         return len(self._bcs) > 0
 
     @property
     def bcs(self) -> list[dolfinx.fem.DirichletBCMetaClass]:
-        """The list of Dirichlet BCs."""
+        """returns the list of Dirichlet BCs
+
+        Returns:
+            The list of Dirichlet BCs.
+        """
+
         return self._bcs
 
     def clear(self, dirichlet: bool = True, neumann: bool = True) -> None:
-        """Clears list of Dirichlet and/or Neumann BCs."""
+        """Clears list of Dirichlet and/or Neumann BCs.
+
+        Args:
+            dirichlet: flag for Dirichlet Bcs (if true will clear those)
+            neumann: flag for Neumann Bcs (if true will clear those)
+
+        """
+
         if dirichlet:
             self._bcs.clear()
         if neumann:
@@ -174,7 +205,12 @@ class BoundaryConditions(LogMixin):
 
     @property
     def neumann_bcs(self) -> ufl.form.Form:
-        """The ufl ufl.form.Form of (sum of) Neumann BCs"""
+        """creates the ufl form of (sum of) Neumann BCs
+
+        Returns:
+            A ufl object representing Neumann BCs
+        """
+
         r = 0
         for expression, marker in self._neumann_bcs:
             r += ufl.inner(expression, self._v) * self._ds(marker)
