@@ -8,7 +8,7 @@ from mpi4py import MPI
 from petsc4py.PETSc import ScalarType
 
 from fenicsxconcrete.boundary_conditions.bcs import BoundaryConditions
-from fenicsxconcrete.boundary_conditions.boundary import line_at, plane_at, point_at
+from fenicsxconcrete.boundary_conditions.boundary import line_at, point_at
 from fenicsxconcrete.experimental_setup.base_experiment import Experiment
 from fenicsxconcrete.util import Parameters, ureg
 
@@ -191,7 +191,9 @@ class SimpleBeam(Experiment):
         facet_indices, facet_markers = [], []
         fdim = self.mesh.topology.dim - 1
 
-        locator = lambda x: np.isclose(x[fdim], self.p["height"])
+        def locator(x):
+            return np.isclose(x[fdim], self.p["height"])
+
         facets = df.mesh.locate_entities(self.mesh, fdim, locator)
         facet_indices.append(facets)
         facet_markers.append(np.full_like(facets, 1))

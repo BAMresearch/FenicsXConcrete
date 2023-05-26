@@ -3,7 +3,9 @@ from collections.abc import Callable
 import dolfinx as df
 import numpy as np
 import pint
+import ufl
 from mpi4py import MPI
+from petsc4py.PETSc import ScalarType
 
 from fenicsxconcrete.boundary_conditions.bcs import BoundaryConditions
 from fenicsxconcrete.experimental_setup.base_experiment import Experiment

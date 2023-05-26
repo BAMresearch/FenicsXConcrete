@@ -100,6 +100,21 @@ class Experiment(ABC, LogMixin):
 
         pass
 
+    def create_body_force_am(
+        self, v: ufl.argument.Argument | None = None, q_fd=None, rule=None
+    ) -> ufl.form.Form | None:
+        """defines empty body force function for am case
+
+        Args:
+            v: test function
+
+        Returns:
+            if defined a form for the body force otherwise None
+
+        """
+
+        pass
+
     def boundary_top(self) -> Callable:
         """specifies boundary: plane at top
 
