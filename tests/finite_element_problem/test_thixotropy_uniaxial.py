@@ -73,7 +73,7 @@ def test_disp(dim: int, degree: int):
     des = ConcreteAM.parameter_description()
     print(des)
 
-    _, default_params = ConcreteAM.default_parameters()
+    _, default_params = ConcreteAM.default_parameters(ConcreteThixElasticModel)
     parameters.update(default_params)
     parameters["degree"] = degree * ureg("")
     if dim == 3:

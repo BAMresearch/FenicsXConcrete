@@ -13,7 +13,7 @@ from fenicsxconcrete.sensor_definition.stress_sensor import StressSensor
 from fenicsxconcrete.util import Parameters, QuadratureEvaluator, ureg
 
 
-def set_test_parameters(dim: int) -> Parameters:
+def set_test_parameters(dim: int, mat_type: str = "thix") -> Parameters:
     """set up a test parameter set
 
     Args:
@@ -39,7 +39,11 @@ def set_test_parameters(dim: int) -> Parameters:
         setup_parameters["stress_state"] = "plane_stress" * ureg("")
 
     # default material parameters as start
-    _, default_params = ConcreteAM.default_parameters()
+    if mat_type == "thix":
+        _, default_params = ConcreteAM.default_parameters(ConcreteThixElasticModel)
+    else:
+        raise ValueError(f"Unknown material type {mat_type}")
+
     setup_parameters.update(default_params)
     if dim == 3:
         setup_parameters["q_degree"] = 4 * ureg("")
@@ -167,7 +171,7 @@ def test_am_multiple_layer(dimension: int, mat: str, plot: bool = False) -> None
             os.remove(file)
 
     # defining parameters
-    setup_parameters = set_test_parameters(dimension)
+    setup_parameters = set_test_parameters(dimension, mat_type=mat)
 
     # solving parameters
     solve_parameters = {}

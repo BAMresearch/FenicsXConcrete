@@ -111,7 +111,8 @@ class ConcreteAM(MaterialProblem):
     def default_parameters(
         non_linear_problem: df.fem.petsc.NonlinearProblem | None = None,
     ) -> tuple[Experiment, dict[str, pint.Quantity]]:
-        """Static method that returns a set of default parameters.
+        """Static method that returns a set of default parameters for the selected nonlinear problem.
+
         Returns:
             The default experiment instance and the default parameters as a dictionary.
 
@@ -145,21 +146,21 @@ class ConcreteAM(MaterialProblem):
         elif non_linear_problem == ConcreteViscoDevThixElasticModel:
             model_parameters = {
                 ### default parameters required for ViscoDevThixElasticModel
-                "visco_case": "CKelvin",
+                "visco_case": "CKelvin",  # type of viscoelastic model (CKelvin or CMaxwell)
                 # Moduli
-                "E_0": 40000 * ureg("Pa"),
-                "R_E": 0 * ureg("Pa/s"),
-                "A_E": 0 * ureg("Pa/s"),
-                "tf_E": 0 * ureg("s"),
-                "E1_0": 20000 * ureg("Pa"),
-                "R_E1": 0 * ureg("Pa/s"),
-                "A_E1": 0 * ureg("Pa/s"),
-                "tf_E1": 0 * ureg("s"),
-                "eta_0": 1000 * ureg("Pa"),
-                "R_eta": 0 * ureg("Pa/s"),
-                "A_eta": 0 * ureg("Pa/s"),
-                "tf_eta": 0 * ureg("s"),
-                "age_0": 0 * ureg("s"),  # start age of concrete same parameter as above
+                "E_0": 40000 * ureg("Pa"),  # Youngs Modulus at age=0
+                "R_E": 0 * ureg("Pa/s"),  # Reflocculation (first) rate for linear Youngs Modulus
+                "A_E": 0 * ureg("Pa/s"),  # Structuration (second) rate for linear Youngs Modulus
+                "tf_E": 0 * ureg("s"),  # Reflocculation time (switch point) for linear Youngs Modulus
+                "E1_0": 20000 * ureg("Pa"),  # visco Youngs Modulus at age=0
+                "R_E1": 0 * ureg("Pa/s"),  # Reflocculation (first) rate for visco Youngs Modulus
+                "A_E1": 0 * ureg("Pa/s"),  # Structuration (second) rate for visco Youngs Modulus
+                "tf_E1": 0 * ureg("s"),  # Reflocculation time (switch point) for visco Youngs Modulus
+                "eta_0": 1000 * ureg("Pa*s"),  # damper modulus at age=0
+                "R_eta": 0 * ureg("Pa"),  # Reflocculation (first) rate for damper modulus
+                "A_eta": 0 * ureg("Pa"),  # Structuration (second) rate for damper modulus
+                "tf_eta": 0 * ureg("s"),  # Reflocculation time (switch point) for damper modulus
+                "age_0": 0 * ureg("s"),  # start age of concrete
             }
         else:
             raise ValueError("non_linear_problem not supported")
@@ -191,10 +192,6 @@ class ConcreteAM(MaterialProblem):
         # displacement increment
         self.d_disp = df.fem.Function(self.V)
 
-        # # set total strain and stress fields
-        # self.strain = df.fem.Function(self.strain_stress_space, name="strain")
-        # self.stress = df.fem.Function(self.strain_stress_space, name="stress")
-
         # boundaries
         bcs = self.experiment.create_displacement_boundary(self.V)
         body_force_fct = self.experiment.create_body_force_am
@@ -215,10 +212,6 @@ class ConcreteAM(MaterialProblem):
         self.mechanics_solver.rtol = 1e-8
         self.mechanics_solver.report = True
 
-        # # set up xdmf file with mesh info
-        # with df.io.XDMFFile(self.mesh.comm, self.pv_output_file, "w") as f:
-        #     f.write_mesh(self.mesh)
-
     def solve(self, t: pint.Quantity | float = 1.0) -> None:
         """time incremental solving !
 
@@ -229,10 +222,6 @@ class ConcreteAM(MaterialProblem):
         #
         self.logger.info(f"solve for t:{t}")
         self.logger.info(f"CHECK if external loads are applied as incremental loads e.g. delta_u(t)!!!")
-
-        # initial old solution
-        if self.nonlinear_problem == ConcreteViscoDevThixElasticModel:
-            self.mechanics_problem.set_initial_values(self.fields, self.q_fields)
 
         # solve problem for current time increment
         self.mechanics_solver.solve(self.d_disp)
@@ -261,7 +250,7 @@ class ConcreteAM(MaterialProblem):
             self.sensors[sensor_name].measure(self, t)
 
         # update path & internal variables before next step!
-        self.mechanics_problem.update_history()  # if required otherwise pass
+        self.mechanics_problem.update_history(fields=self.fields, q_fields=self.q_fields)  # if required otherwise pass
         self.update_path()
 
     def compute_residuals(self) -> None:
@@ -567,7 +556,7 @@ class ConcreteThixElasticModel(df.fem.petsc.NonlinearProblem):
         self.sigma_evaluator.evaluate(self.q_sig)
         self.eps_evaluator.evaluate(self.q_eps)  # -> globally in concreteAM not possible why?
 
-    def update_history(self) -> None:
+    def update_history(self, fields: SolutionFields | None = None, q_fields: QuadratureFields | None = None) -> None:
         """nothing here"""
 
         pass
@@ -645,20 +634,26 @@ class ConcreteViscoDevThixElasticModel(df.fem.petsc.NonlinearProblem):
         # pseudo density for element activation
         self.q_array_pd = self.rule.create_quadrature_array(self.mesh, shape=1)
 
+        # stress and strains for viscosity
         self.q_sig = df.fem.Function(q_VT, name="stress")
         self.q_eps = df.fem.Function(q_VT, name="strain")
         self.q_epsv = df.fem.Function(q_VT, name="visco strain")
-        self.q_sig1_ten = df.fem.Function(q_VT)  # required for visco strain computation
+
+        self.q_array_sig1_ten = self.rule.create_quadrature_array(self.mesh, shape=(self.p["dim"], self.p["dim"]))
+        self.q_array_sig_old = self.rule.create_quadrature_array(self.mesh, shape=(self.p["dim"], self.p["dim"]))
+        self.q_array_epsv_old = self.rule.create_quadrature_array(self.mesh, shape=(self.p["dim"], self.p["dim"]))
 
         # standard space
         self.V = u.function_space
 
         # Define variational problem
+        self.u = u
+        self.u_old = np.zeros_like(self.u.vector.array[:])
         v = ufl.TestFunction(self.V)
 
         # build up form
         # multiplication with activated elements / current Young's modulus
-        R_ufl = ufl.inner(self.sigma(u), self.epsilon(v)) * self.rule.dx
+        R_ufl = ufl.inner(self.sigma(self.u), self.epsilon(v)) * self.rule.dx
         R_ufl += -ufl.inner(self.sigma_2(), self.epsilon(v)) * self.rule.dx  # visco part
 
         # apply body force
@@ -671,16 +666,15 @@ class ConcreteViscoDevThixElasticModel(df.fem.petsc.NonlinearProblem):
 
         # derivative
         # normal form
-        dR_ufl = ufl.derivative(R_ufl, u)
+        dR_ufl = ufl.derivative(R_ufl, self.u)
 
         # quadrature part
         self.dR = dR_ufl
-        self.sigma_evaluator = QuadratureEvaluator(self.sigma(u) - self.sigma_2(), self.mesh, self.rule)
-        self.eps_evaluator = QuadratureEvaluator(self.epsilon(u), self.mesh, self.rule)
-        self.sig1_ten = QuadratureEvaluator(self.sigma_1(u), self.mesh, self.rule)  # for visco strain computation
+        self.sigma_evaluator = QuadratureEvaluator(self.sigma(self.u) - self.sigma_2(), self.mesh, self.rule)
+        self.eps_evaluator = QuadratureEvaluator(self.epsilon(self.u), self.mesh, self.rule)
 
         self.dt = 1  # default value set via set_timestep
-        super().__init__(self.R, u, bc, self.dR)
+        super().__init__(self.R, self.u, bc, self.dR)
 
     def sigma(self, v: ufl.core.expr.Expr) -> ufl.core.expr.Expr:
         """total stress without visco part
@@ -842,8 +836,8 @@ class ConcreteViscoDevThixElasticModel(df.fem.petsc.NonlinearProblem):
             },
         )
         self.q_E1.vector.array[:] = E1_array
-
         self.q_E1.x.scatter_forward()
+
         Eta_array = E_fkt_vectorized(
             self.q_array_pd,
             self.q_array_path,
@@ -862,77 +856,55 @@ class ConcreteViscoDevThixElasticModel(df.fem.petsc.NonlinearProblem):
         self.q_fd.vector.array[:] = fd_array
         self.q_fd.x.scatter_forward()
 
-        # compute visco strains
+        # compute visco strains and stresses
         self.sigma_evaluator.evaluate(self.q_sig)
         self.eps_evaluator.evaluate(self.q_eps)  # -> globally in concreteAM not possible why?
 
-        self.sig1_ten.evaluate(self.q_sig1_ten)
-        epsv_old_list = None  # WOHER? input zu nonlinear problem?
-        sig1_list = self.q_sig1_ten.vector.array[:]  # directly only on quad ausrechnen?
-        #
-        # # compute visco strain from old epsv
-        # self.new_epsv = np.zeros_like(epsv_old_list)
-        # self.delta_epsv = np.zeros_like(epsv_old_list)
-        #
-        # # if self.p.visco_case.lower() == "cmaxwell":
-        #     # list of E1 at each quadrature point
-        #     mu_E1 = 0.5 * E1_list / (1.0 + self.p.nu)
-        #     # factor at each quadrature point
-        #     factor = 1 + self.dt * 2.0 * mu_E1 / eta_list
-        #     # repeat material parameters to size of epsv and compute epsv
-        #     # & reshaped material parameters per eps entry!!
-        #     self.new_epsv = (
-        #         1.0
-        #         / np.repeat(factor, self.p.dim**2)
-        #         * (
-        #             epsv_old_list
-        #             + self.dt / np.repeat(eta_list, self.p.dim**2) * sig1_list
-        #         )
-        #     )
-        #     # compute delta visco strain
-        #     self.delta_epsv = self.new_epsv - epsv_old_list
-        #
-        # elif self.p.visco_case.lower() == "ckelvin":
-        #     # list of E1 adn E0 at each quadrature point
-        #     mu_E1 = 0.5 * E1_list / (1.0 + self.p.nu)
-        #     mu_E0 = 0.5 * E0_list / (1.0 + self.p.nu)
-        #     # factor at each quadrature point
-        #     factor = (
-        #         1 + self.dt * 2.0 * mu_E0 / eta_list + self.dt * 2.0 * mu_E1 / eta_list
-        #     )
-        #
-        #     # repeat material parameters to size of epsv and compute epsv
-        #     self.new_epsv = (
-        #         1.0
-        #         / np.repeat(factor, self.p.dim**2)
-        #         * (
-        #             epsv_old_list
-        #             + self.dt / np.repeat(eta_list, self.p.dim**2) * sig1_list
-        #         )
-        #     )
-        #     # compute delta visco strain
-        #     self.delta_epsv = self.new_epsv - epsv_old_list
-        #
-        # else:
-        #     raise ValueError("visco case not defined")
-        #
-        # set_q(self.q_epsv, self.new_epsv)
+        # compute delta visco strain
+        u_new = self.u_old + self.u  # displacement update needed for sig1 component
+        sig1_ten = QuadratureEvaluator(self.sigma_1(u_new), self.mesh, self.rule)
+        sig1_ten.evaluate(self.q_array_sig1_ten)
 
-    def update_history(self) -> None:
-        """update history variables"""
+        if self.p["visco_case"].lower() == "cmaxwell":
+            # list of mu at each quadrature point [mu independent of plane stress or plane strain]
+            mu_E1 = 0.5 * E1_array / (1.0 + self.p["nu"])
+            # factor at each quadrature point
+            factor = 1 + self.dt * 2.0 * mu_E1 / Eta_array
+            # repeat material parameters to size of epsv and compute epsv
+            # & reshaped material parameters per eps entry!!
+            self.new_epsv = (
+                1.0
+                / np.repeat(factor, self.p["dim"] ** 2)
+                * (self.q_array_epsv_old + self.dt / np.repeat(Eta_array, self.p["dim"] ** 2) * self.q_array_sig1_ten)
+            )
+            # compute delta visco strain
+            self.q_epsv.vector.array[:] = self.new_epsv - self.q_array_epsv_old
 
-        self.q_epsv.vector.array[:] = self.delta_epsv
-        self.q_epsv.x.scatter_forward()
+        elif self.p["visco_case"].lower() == "ckelvin":
+            # list of mu_1 and mu_0 at each quadrature point
+            mu_E1 = 0.5 * E1_array / (1.0 + self.p["nu"])
+            mu_E0 = 0.5 * E_array / (1.0 + self.p["nu"])
+            # factor at each quadrature point
+            factor = 1 + self.dt * 2.0 * mu_E0 / Eta_array + self.dt * 2.0 * mu_E1 / Eta_array
+            # repeat material parameters to size of epsv and compute epsv
+            self.new_epsv = (
+                1.0
+                / np.repeat(factor, self.p["dim"] ** 2)
+                * (self.q_array_epsv_old + self.dt / np.repeat(Eta_array, self.p["dim"] ** 2) * self.q_array_sig1_ten)
+            )
+            # compute delta visco strain
+            self.q_epsv.vector.array[:] = self.new_epsv - self.q_array_epsv_old
 
-        pass
+        else:
+            raise ValueError("visco case not defined")
 
-    def set_initial_values(self, fields: SolutionFields, q_fields: QuadratureFields) -> None:
-        """set initial field values from old time step solution"""
-        self.q_epsv_old.vector.array[:] = q_fields.visco_strain.vector.array[:]
-        self.q_epsv.x.scatter_forward()
+    def update_history(self, fields: SolutionFields | None = None, q_fields: QuadratureFields | None = None) -> None:
+        """set array values for old time using current solution"""
+        self.q_array_epsv_old[:] = q_fields.visco_strain.vector.array[:]
 
-        self.q_sig_old.vector.array[:] = q_fields.stress.vector.array[:]
-        self.q_sig.x.scatter_forward()
+        self.q_array_sig_old[:] = q_fields.stress.vector.array[:]
+
+        self.u_old[:] = fields.displacement.vector.array[:]
 
     def set_timestep(self, dt: float) -> None:
         """set time step value not really needed for that material here
