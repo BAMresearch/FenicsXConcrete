@@ -12,6 +12,23 @@ from fenicsxconcrete.sensor_definition.stress_sensor import StressSensor
 from fenicsxconcrete.util import ureg
 
 
+def disp_over_time(current_time: pint.Quantity, switch_time: pint.Quantity) -> pint.Quantity:
+    """linear ramp of displacement bc over time
+
+    Args:
+        t: current time
+
+    Returns: displacement value for given time
+
+    """
+    if current_time <= switch_time:
+        current_disp = 0.1 * ureg("m") / (switch_time) * current_time
+    else:
+        current_disp = 0.1 * ureg("m")
+
+    return current_disp
+
+
 def material_parameters(parameters, mtype=""):
 
     if mtype.lower() == "pure_visco":
@@ -34,7 +51,7 @@ def material_parameters(parameters, mtype=""):
     return {**parameters, **default_params}
 
 
-def setup_test_2D(dim, mech_prob_string, sensor, mtype):
+def setup_test_2D(dim, mech_prob_string, mtype):
 
     # setup paths and directories
     data_dir = "data_files"
@@ -43,7 +60,7 @@ def setup_test_2D(dim, mech_prob_string, sensor, mtype):
     # define file name and path for paraview output
     file_name = f"test_viscothixo_uniaxial_{dim}d"
     files = [data_path / (file_name + ".xdmf"), data_path / (file_name + ".h5")]
-    # delete file if it exisits (only relevant for local tests)
+    # delete files if they exist (only relevant for local tests)
     for file in files:
         if file.is_file():
             os.remove(file)
@@ -70,25 +87,21 @@ def setup_test_2D(dim, mech_prob_string, sensor, mtype):
     # experiment
     experiment = SimpleCube(parameters)
 
-    problem = None
+    problem = ConcreteAM(
+        experiment, parameters, mech_prob_string=mech_prob_string, pv_name=file_name, pv_path=data_path
+    )
 
-    # problem = fenics_concrete.ConcreteAMMechanical(
-    #     experiment,
-    #     parameters,
-    #     mech_prob_string=mech_prob_string,
-    #     pv_name=file_path + f"test2D_visco_{mech_prob_string}",
-    # )
-    #
-    # if parameters["bc_setting"] == "disp":
-    #     problem.experiment.apply_displ_load(parameters["u_bc"])
-    # for i in range(len(sensor)):
-    #     problem.add_sensor(sensor[i])
-    # # problem.add_sensor(sensor)
-    #
-    # # set time step
-    # problem.set_timestep(problem.p.dt)  # for time integration scheme
+    problem.set_timestep(solve_parameters["dt"])
 
-    return problem
+    # add sensors
+    if dim == 2:
+        problem.add_sensor(StressSensor([0.5, 0.5, 0.0]))
+        problem.add_sensor(StrainSensor([0.5, 0.5, 0.0]))
+    elif dim == 3:
+        problem.add_sensor(StressSensor([0.5, 0.5, 0.5]))
+        problem.add_sensor(StrainSensor([0.5, 0.5, 0.5]))
+
+    return problem, solve_parameters
 
 
 # @pytest.mark.parametrize("visco_case", ["Cmaxwell", "Ckelvin"])
@@ -98,53 +111,53 @@ def setup_test_2D(dim, mech_prob_string, sensor, mtype):
 # )
 # @pytest.mark.parametrize("dim", [2, 3])
 # @pytest.mark.parametrize("mtype", ["pure_visco", "visco_thixo"])
-# def test_relaxation(visco_case, mech_prob_string, dim, mtype, plot=False):
-#     """
-#     uniaxial tension test displacement control to check relaxation of visco-thix material class
-#     """
-#     parameters = fenics_concrete.Parameters()  # using the current default values
-#
-#     # changing parameters:
-#     parameters["dim"] = dim
-#     parameters["visco_case"] = visco_case
-#     parameters["density"] = 0.0
-#     parameters["u_bc"] = 0.002  # == strain because unit-square/cube (H=1)!!
-#     parameters["bc_setting"] = "disp"
-#
-#     # sensor
-#     sensor01 = fenics_concrete.sensors.StressSensor(df.Point(1.0, 1.0))
-#     sensor02 = fenics_concrete.sensors.StrainSensor(df.Point(1.0, 1.0))
-#
-#     prob = setup_test_2D(parameters, mech_prob_string, [sensor01, sensor02], mtype)
-#
-#     time = []
-#     # define load increments of bc fully applied in one step (alternative as time dependent dolfin Expression)
-#     dubcs = np.zeros(int(parameters["time"] / parameters["dt"]) + 1)
-#     dubcs[0] = 1
-#     i = 0
-#     # initialize time and solve!
-#     t = 0
-#     while t <= prob.p.time:  # time
-#         time.append(t)
-#         # set load increment u_bc (for density automatic!)
-#         prob.experiment.apply_displ_load(dubcs[i] * parameters["u_bc"])
-#         i += 1
-#         # solve
-#         prob.solve(t=t)  # solving this
-#         prob.pv_plot(t=t)
-#         # prepare next timestep
-#         t += prob.p.dt
-#
-#     # get stress over time (Tensor format)
-#     if prob.p.dim == 2:
-#         # sig_yy and eps_yy in case dim=2
-#         sig_o_time = np.array(prob.sensors[sensor01.name].data)[:, -1]
-#         # eps_o_time = np.array(prob.sensors[sensor02.name].data)[:, -1]
-#     elif prob.p.dim == 3:
-#         # sig_zz and eps_zz in case dim=3
-#         sig_o_time = np.array(prob.sensors[sensor01.name].data)[:, -1]
-#         # eps_o_time = np.array(prob.sensors[sensor02.name].data)[:, -1]
-#
+def test_relaxation(visco_case, mech_prob_string, dim, mtype, plot=False):
+    """
+    uniaxial tension test displacement control to check relaxation of visco-thix material class
+    """
+
+    parameters = {}
+    parameters["dim"] = dim * ureg("")
+    parameters["visco_case"] = visco_case * ureg("")
+    parameters["density"] = 0.0 * ureg("kg/m**3")
+    parameters["strain_state"] = "uniaxial" * ureg("")
+    displacement = disp_over_time
+
+    problem, solve_parameters = setup_test_2D(parameters, mech_prob_string, mtype)
+
+    E_o_time = []
+    disp_o_time = [0.0]
+    t = 0.0 * ureg("s")
+    while t <= solve_parameters["time"]:
+        print(f"solving for t={t}")
+        # apply increment displacements!!!
+        disp_o_time.append(displacement(t, solve_parameters["dt"]).to_base_units())
+        delta_disp = disp_o_time[-1] - disp_o_time[-2]
+        problem.experiment.apply_displ_load(delta_disp)
+
+        problem.solve(t=t)
+        problem.pv_plot(t=t)
+        # print("computed disp", problem.fields.displacement.x.array[:].max())
+
+        # store Young's modulus over time
+        E_o_time.append(problem.youngsmodulus.vector.array[:].max())
+
+        t += solve_parameters["dt"]
+
+    # get stress over time (Tensor format)
+    if dim == 2:
+        # sig_yy and eps_yy in case dim=2
+        sig_o_time = np.array(problem.sensors["StressSensor"].data)[:, -1]
+        eps_o_time = np.array(problem.sensors["StrainSensor"].data)[:, -1]
+    elif dim == 3:
+        # sig_zz and eps_zz in case dim=3
+        sig_o_time = np.array(problem.sensors["StressSensor"].data)[:, -1]
+        eps_o_time = np.array(problem.sensors["StrainSensor"].data)[:, -1]
+    #
+    print(sig_o_time)
+    print(eps_o_time)
+
+
 #     # relaxation check - first and last value
 #     eps_r = prob.p.u_bc  # L==1 -> u_bc = eps_r (prescriped strain)
 #     #
@@ -300,7 +313,8 @@ def setup_test_2D(dim, mech_prob_string, sensor, mtype):
 #         plt.show()
 
 
-# if __name__ == "__main__":
-#
-#     test_relaxation("ckelvin", "ConcreteViscoDevThixElasticModel", 2, "pure_visco", plot=True)
+if __name__ == "__main__":
+
+    test_relaxation("ckelvin", "ConcreteViscoDevThixElasticModel", 2, "pure_visco", plot=True)
+
 #     test_creep("ckelvin", "ConcreteViscoDevThixElasticModel", 2, "pure_visco", plot=True)

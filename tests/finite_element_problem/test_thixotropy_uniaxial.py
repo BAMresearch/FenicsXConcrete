@@ -45,7 +45,7 @@ def test_disp(dim: int, degree: int):
     # define file name and path for paraview output
     file_name = f"test_thixotropy_uniaxial_{dim}d"
     files = [data_path / (file_name + ".xdmf"), data_path / (file_name + ".h5")]
-    # delete file if it exisits (only relevant for local tests)
+    # delete file if it exists (only relevant for local tests)
     for file in files:
         if file.is_file():
             os.remove(file)
