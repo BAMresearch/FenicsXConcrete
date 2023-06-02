@@ -43,6 +43,16 @@ def test_base_sensor() -> None:
     assert u_sensor.get_last_entry().units == ureg.millimeter
     # check magnitude
     assert m_data.magnitude == pytest.approx(mm_data.magnitude / 1000)
+    # testing metadata report
+    metadata = u_sensor.report_metadata()
+    true_metadata = {
+        "id": "DisplacementSensor",
+        "type": "DisplacementSensor",
+        "units": "millimeter",
+        "dimensionality": "[length]",
+    }
+    for key in true_metadata:
+        assert key in metadata and true_metadata[key] == metadata[key]
 
 
 @pytest.mark.parametrize("sensor", [DisplacementSensor, ReactionForceSensor, StressSensor, StrainSensor])

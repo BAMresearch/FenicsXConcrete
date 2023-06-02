@@ -8,6 +8,7 @@ dependencies:
   - matplotlib
   - python-gmsh
   - meshio
+  - jsonschema
   # tests
   - pytest
   - coverage

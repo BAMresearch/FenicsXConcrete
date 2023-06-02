@@ -1,3 +1,5 @@
+import os
+
 import dolfinx as df
 
 from fenicsxconcrete.finite_element_problem.base_material import MaterialProblem
@@ -44,6 +46,12 @@ class DisplacementSensor(PointSensor):
 
         self.data.append(displacement_data)
         self.time.append(problem.time)
+
+    def report_metadata(self) -> dict:
+        """Generates dictionary with the metadata of this sensor"""
+        metadata = super().report_metadata()
+        metadata["sensor_file"] = os.path.splitext(os.path.basename(__file__))[0]
+        return metadata
 
     @staticmethod
     def base_unit() -> ureg:
