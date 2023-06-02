@@ -84,6 +84,7 @@ class MaterialProblem(ABC, LogMixin):
         # setting up default material parameters
         default_fem_parameters = Parameters()
         default_fem_parameters["g"] = 9.81 * ureg("m/s^2")
+        default_fem_parameters["dt"] = 1.0 * ureg("s")
 
         # adding experimental parameters to dictionary to combine to one
         default_fem_parameters.update(self.experiment.parameters)
@@ -107,9 +108,8 @@ class MaterialProblem(ABC, LogMixin):
 
         self.residual = None  # initialize residual
 
-        # setup time variables
+        # initialize time
         self.time = 0.0
-        self.dt = 1.0  # to be set in set_timestep
 
         # set up xdmf file with mesh info
         with df.io.XDMFFile(self.mesh.comm, self.pv_output_file, "w") as f:
@@ -131,8 +131,9 @@ class MaterialProblem(ABC, LogMixin):
 
     @abstractmethod
     def solve(self) -> None:
-        # define what to do, to solve this problem
         """Implemented in child if needed"""
+        self.update_time()
+        # define what to do, to solve this problem
 
     @abstractmethod
     def compute_residuals(self) -> None:
@@ -153,13 +154,9 @@ class MaterialProblem(ABC, LogMixin):
         del self.sensors
         self.sensors = self.SensorDict()
 
-    def set_timestep(self, dt: pint.Quantity):
-        """set timestep in base units"""
-        self.dt = dt.to_base_units().magnitude
-
     def update_time(self):
         """update time"""
-        self.time += self.dt
+        self.time += self.p["dt"]
 
     class SensorDict(dict):
         """

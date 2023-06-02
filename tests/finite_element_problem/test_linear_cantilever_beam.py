@@ -81,15 +81,13 @@ def test_linear_cantilever_beam(dimension: int, results: list[float]) -> None:
     # Third test
     # solving several time steps - same result for each time step since no time dependent loads applied
     time_end = 10.0 * ureg("s")
-    dt = 2.0 * ureg("s")
+    fem_parameters["dt"] = 2.0 * ureg("s")
     problem3 = LinearElasticity(experiment, fem_parameters, pv_name=f"{file_name}_time", pv_path=data_path)
     sensor1 = DisplacementSensor(sensor_location)  # re-initialization
     problem3.add_sensor(sensor1)
-    problem3.set_timestep(dt)
     while problem3.time < time_end.to_base_units().magnitude:
         problem3.solve()
         problem3.pv_plot()
-        problem3.update_time()
 
     displacement_data3 = problem3.sensors["DisplacementSensor"].get_last_entry()
 
@@ -98,5 +96,5 @@ def test_linear_cantilever_beam(dimension: int, results: list[float]) -> None:
     assert np.diff(np.array(problem3.sensors["DisplacementSensor"].data)[:, 0]) == pytest.approx(0.0)
     assert np.diff(np.array(problem3.sensors["DisplacementSensor"].data)[:, 1]) == pytest.approx(0.0)
     # check length of output in time and time step
-    assert len(problem3.sensors["DisplacementSensor"].time) == pytest.approx(int(problem3.time / problem3.dt))
-    assert np.mean(np.diff(problem3.sensors["DisplacementSensor"].time)) == pytest.approx(problem3.dt)
+    assert len(problem3.sensors["DisplacementSensor"].time) == pytest.approx(int(problem3.time / problem3.p["dt"]))
+    assert np.mean(np.diff(problem3.sensors["DisplacementSensor"].time)) == pytest.approx(problem3.p["dt"])

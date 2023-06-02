@@ -105,6 +105,7 @@ class LinearElasticity(MaterialProblem):
         return self.lambda_ * ufl.nabla_div(u) * ufl.Identity(self.p["dim"]) + 2 * self.mu * self.epsilon(u)
 
     def solve(self) -> None:
+        self.update_time()
         self.logger.info(f"solving t={self.time}")
         self.weak_form_problem.solve()
 
