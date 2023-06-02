@@ -88,7 +88,7 @@ class MaterialProblem(ABC, LogMixin):
         # setting up default material parameters
         default_fem_parameters = Parameters()
         default_fem_parameters["g"] = 9.81 * ureg("m/s^2")
-        default_fem_parameters["dt"] = 1 * ureg("s")
+        default_fem_parameters["dt"] = 1.0 * ureg("s")
 
         # adding experimental parameters to dictionary to combine to one
         default_fem_parameters.update(self.experiment.parameters)
