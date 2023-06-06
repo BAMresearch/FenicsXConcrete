@@ -1,6 +1,7 @@
 import os
 from pathlib import Path
 
+import numpy as np
 import pytest
 
 from fenicsxconcrete.experimental_setup.cantilever_beam import CantileverBeam
@@ -76,3 +77,24 @@ def test_linear_cantilever_beam(dimension: int, results: list[float]) -> None:
     displacement_data2 = problem2.sensors["DisplacementSensor"].get_last_entry()
 
     assert displacement_data2.magnitude * increase == pytest.approx(displacement_data.magnitude)
+
+    # Third test
+    # solving several time steps - same result for each time step since no time dependent loads applied
+    time_end = 10.0 * ureg("s")
+    fem_parameters["dt"] = 2.0 * ureg("s")
+    problem3 = LinearElasticity(experiment, fem_parameters, pv_name=f"{file_name}_time", pv_path=data_path)
+    sensor1 = DisplacementSensor(sensor_location)  # re-initialization
+    problem3.add_sensor(sensor1)
+    while problem3.time < time_end.to_base_units().magnitude:
+        problem3.solve()
+        problem3.pv_plot()
+
+    displacement_data3 = problem3.sensors["DisplacementSensor"].get_last_entry()
+
+    # check displacement output over time
+    assert displacement_data3.magnitude * increase == pytest.approx(displacement_data.magnitude)
+    assert np.diff(np.array(problem3.sensors["DisplacementSensor"].data)[:, 0]) == pytest.approx(0.0)
+    assert np.diff(np.array(problem3.sensors["DisplacementSensor"].data)[:, 1]) == pytest.approx(0.0)
+    # check length of output in time and time step
+    assert len(problem3.sensors["DisplacementSensor"].time) == pytest.approx(int(problem3.time / problem3.p["dt"]))
+    assert np.mean(np.diff(problem3.sensors["DisplacementSensor"].time)) == pytest.approx(problem3.p["dt"])
