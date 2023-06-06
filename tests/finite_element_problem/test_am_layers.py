@@ -99,12 +99,11 @@ def test_am_single_layer(dimension: int, factor: int) -> None:
     problem.add_sensor(StrainSensor([problem.p["layer_length"] / 2, 0, 0]))
 
     E_o_time = []
-    t = 0.0 * ureg("s")
-    while t <= 6 * 60 * ureg("s"):
-        t += setup_parameters["dt"]
+    total_time = 6 * 60 * ureg("s")
+    while problem.time <= total_time.to_base_units().magnitude:
         problem.solve()
         problem.pv_plot()
-        print("computed disp", t, problem.fields.displacement.x.array[:].max())
+        print("computed disp", problem.time, problem.fields.displacement.x.array[:].max())
         # # store Young's modulus over time
         E_o_time.append(problem.youngsmodulus.vector.array[:].max())
 
@@ -198,12 +197,11 @@ def test_am_multiple_layer(dimension: int, mat: str, plot: bool = False) -> None
     problem.add_sensor(StressSensor([problem.p["layer_length"] / 2, 0, 0]))
     problem.add_sensor(StrainSensor([problem.p["layer_length"] / 2, 0, 0]))
 
-    t = 0.0 * ureg("s")
-    while t <= setup_parameters["num_layers"] * time_layer:
-        t += setup_parameters["dt"]
+    total_time = setup_parameters["num_layers"] * time_layer
+    while problem.time <= total_time.to_base_units().magnitude:
         problem.solve()
         problem.pv_plot()
-        print("computed disp", t, problem.fields.displacement.x.array[:].max())
+        print("computed disp", problem.time, problem.fields.displacement.x.array[:].max())
 
     # check residual force bottom
     force_bottom_y = np.array(problem.sensors["ReactionForceSensor"].data)[:, -1]

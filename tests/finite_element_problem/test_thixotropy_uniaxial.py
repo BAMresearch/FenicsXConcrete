@@ -97,12 +97,11 @@ def test_disp(dim: int, degree: int):
 
     E_o_time = []
     disp_o_time = [0.0]
-    t = 0.0 * ureg("s")
-
-    while t <= total_time:
-        t += parameters["dt"]
+    while problem.time <= total_time.to_base_units().magnitude:
         # apply increment displacements!!!
-        disp_o_time.append(displacement(t, 2 * parameters["dt"]).to_base_units())
+        disp_o_time.append(
+            displacement((problem.time + problem.p["dt"]) * ureg("s"), 2 * parameters["dt"]).to_base_units()
+        )
         delta_disp = disp_o_time[-1] - disp_o_time[-2]
         problem.experiment.apply_displ_load(delta_disp)
 
@@ -196,8 +195,8 @@ def check_disp_case(problem: ConcreteAM, dt: pint.Quantity, E_o_time: list[float
     assert E_o_time[-1] == pytest.approx(E_end)
 
 
-# if __name__ == "__main__":
-#
-#     test_disp(2, 2)
-#
-#     # test_disp(3, 2)
+if __name__ == "__main__":
+
+    test_disp(2, 2)
+
+    # test_disp(3, 2)

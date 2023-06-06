@@ -145,17 +145,17 @@ class ConcreteAM(MaterialProblem):
         elif non_linear_problem == ConcreteViscoDevThixElasticModel:
             model_parameters = {
                 ### default parameters required for ViscoDevThixElasticModel
-                "visco_case": "CKelvin",  # type of viscoelastic model (CKelvin or CMaxwell)
+                "visco_case": "CKelvin" * ureg(""),  # type of viscoelastic model (CKelvin or CMaxwell)
                 # Moduli
-                "E_0": 40000 * ureg("Pa"),  # Youngs Modulus at age=0
+                "E_0": 70e3 * ureg("Pa"),  # Youngs Modulus at age=0
                 "R_E": 0 * ureg("Pa/s"),  # Reflocculation (first) rate for linear Youngs Modulus
                 "A_E": 0 * ureg("Pa/s"),  # Structuration (second) rate for linear Youngs Modulus
                 "tf_E": 0 * ureg("s"),  # Reflocculation time (switch point) for linear Youngs Modulus
-                "E1_0": 20000 * ureg("Pa"),  # visco Youngs Modulus at age=0
+                "E1_0": 20e3 * ureg("Pa"),  # visco Youngs Modulus at age=0
                 "R_E1": 0 * ureg("Pa/s"),  # Reflocculation (first) rate for visco Youngs Modulus
                 "A_E1": 0 * ureg("Pa/s"),  # Structuration (second) rate for visco Youngs Modulus
                 "tf_E1": 0 * ureg("s"),  # Reflocculation time (switch point) for visco Youngs Modulus
-                "eta_0": 1000 * ureg("Pa*s"),  # damper modulus at age=0
+                "eta_0": 2e3 * ureg("Pa*s"),  # damper modulus at age=0
                 "R_eta": 0 * ureg("Pa"),  # Reflocculation (first) rate for damper modulus
                 "A_eta": 0 * ureg("Pa"),  # Structuration (second) rate for damper modulus
                 "tf_eta": 0 * ureg("s"),  # Reflocculation time (switch point) for damper modulus
@@ -591,8 +591,8 @@ class ConcreteViscoDevThixElasticModel(df.fem.petsc.NonlinearProblem):
 
         # quadrature functions (required in pde)
         self.q_E = df.fem.Function(q_V, name="youngs_modulus")
-        self.q_E1 = df.fem.Function(q_V, name="visco modulus")
-        self.q_eta = df.fem.Function(q_V, name="damper modulus")
+        self.q_E1 = df.fem.Function(q_V, name="visco_modulus")
+        self.q_eta = df.fem.Function(q_V, name="damper_modulus")
         self.q_fd = df.fem.Function(q_V, name="density_increment")
 
         # path variable from AM Problem
@@ -604,7 +604,7 @@ class ConcreteViscoDevThixElasticModel(df.fem.petsc.NonlinearProblem):
         # stress and strains for viscosity
         self.q_sig = df.fem.Function(q_VT, name="stress")
         self.q_eps = df.fem.Function(q_VT, name="strain")
-        self.q_epsv = df.fem.Function(q_VT, name="visco strain")
+        self.q_epsv = df.fem.Function(q_VT, name="visco_strain")
 
         self.q_array_sig1_ten = self.rule.create_quadrature_array(self.mesh, shape=(self.p["dim"], self.p["dim"]))
         self.q_array_sig_old = self.rule.create_quadrature_array(self.mesh, shape=(self.p["dim"], self.p["dim"]))
@@ -655,7 +655,7 @@ class ConcreteViscoDevThixElasticModel(df.fem.petsc.NonlinearProblem):
         mu_E0 = self.q_E / (2.0 * (1.0 + self.p["nu"]))
         lmb_E0 = self.q_E * self.p["nu"] / ((1.0 + self.p["nu"]) * (1.0 - 2.0 * self.p["nu"]))
 
-        if self.p["dim"] == 2 and self.p["stress_case"] == "plane_stress":
+        if self.p["dim"] == 2 and self.p["stress_state"] == "plane_stress":
             # see https://comet-fenics.readthedocs.io/en/latest/demo/elasticity/2D_elasticity.py.html
             lmb_E0 = 2 * mu_E0 * lmb_E0 / (lmb_E0 + 2 * mu_E0)
         if self.p["visco_case"].lower() == "cmaxwell":
@@ -687,7 +687,7 @@ class ConcreteViscoDevThixElasticModel(df.fem.petsc.NonlinearProblem):
         if self.p["visco_case"].lower() == "cmaxwell":
             mu_E1 = self.q_E1 / (2.0 * (1.0 + self.p["nu"]))
             lmb_E1 = self.q_E1 * self.p["nu"] / ((1.0 + self.p["nu"]) * (1.0 - 2.0 * self.p["nu"]))
-            if self.p["dim"] == 2 and self.p["stress_case"] == "plane_stress":
+            if self.p["dim"] == 2 and self.p["stress_state"] == "plane_stress":
                 lmb_E1 = 2 * mu_E1 * lmb_E1 / (lmb_E1 + 2 * mu_E1)
 
             sig1 = 2.0 * mu_E1 * self.epsilon(v) + lmb_E1 * ufl.nabla_div(v) * ufl.Identity(self.p["dim"])
@@ -713,7 +713,7 @@ class ConcreteViscoDevThixElasticModel(df.fem.petsc.NonlinearProblem):
             mu_E1 = self.q_E1 / (2.0 * (1.0 + self.p["nu"]))
             sig2 = 2 * mu_E1 * self.q_epsv
         elif self.p["visco_case"].lower() == "ckelvin":
-            mu_E0 = self.q_E0 / (2.0 * (1.0 + self.p["nu"]))
+            mu_E0 = self.q_E / (2.0 * (1.0 + self.p["nu"]))
             sig2 = 2 * mu_E0 * self.q_epsv
         else:
             sig2 = None
@@ -773,6 +773,7 @@ class ConcreteViscoDevThixElasticModel(df.fem.petsc.NonlinearProblem):
 
         # compute current element activation using static function from ConcreteAM
         self.q_array_pd = ConcreteAM.pd_fkt(self.q_array_path)
+        print("current path", self.q_array_path)
 
         # compute current Young's modulus
         # vectorize the function for speed up
@@ -790,7 +791,7 @@ class ConcreteViscoDevThixElasticModel(df.fem.petsc.NonlinearProblem):
         )
         self.q_E.vector.array[:] = E_array
         self.q_E.x.scatter_forward()
-
+        print("E_array", E_array)
         E1_array = E_fkt_vectorized(
             self.q_array_pd,
             self.q_array_path,
@@ -803,7 +804,7 @@ class ConcreteViscoDevThixElasticModel(df.fem.petsc.NonlinearProblem):
         )
         self.q_E1.vector.array[:] = E1_array
         self.q_E1.x.scatter_forward()
-
+        print("E1_array", E1_array)
         Eta_array = E_fkt_vectorized(
             self.q_array_pd,
             self.q_array_path,
@@ -816,22 +817,27 @@ class ConcreteViscoDevThixElasticModel(df.fem.petsc.NonlinearProblem):
         )
         self.q_eta.vector.array[:] = Eta_array
         self.q_eta.x.scatter_forward()
-
+        print("Eta_array", Eta_array)
         # compute loading factors for density load using static function from ConcreteAM
         fd_array = ConcreteAM.fd_fkt(self.q_array_pd, self.q_array_path, self.p["dt"], self.p["load_time"])
         self.q_fd.vector.array[:] = fd_array
         self.q_fd.x.scatter_forward()
+        print("fd_array", fd_array)
 
         # compute visco strains and stresses
         self.sigma_evaluator.evaluate(self.q_sig)
         self.eps_evaluator.evaluate(self.q_eps)  # -> globally in concreteAM not possible why?
 
         # compute delta visco strain
-        u_new = self.u_old + self.u  # displacement update needed for sig1 component
+        # displacement update needed for sig1 component
+        u_new_array = self.u_old + self.u.vector.array[:]
+        u_new = df.fem.Function(self.V)
+        u_new.vector.array[:] = u_new_array
         sig1_ten = QuadratureEvaluator(self.sigma_1(u_new), self.mesh, self.rule)
         sig1_ten.evaluate(self.q_array_sig1_ten)
 
         if self.p["visco_case"].lower() == "cmaxwell":
+
             # list of mu at each quadrature point [mu independent of plane stress or plane strain]
             mu_E1 = 0.5 * E1_array / (1.0 + self.p["nu"])
             # factor at each quadrature point
@@ -850,6 +856,7 @@ class ConcreteViscoDevThixElasticModel(df.fem.petsc.NonlinearProblem):
             self.q_epsv.vector.array[:] = self.new_epsv - self.q_array_epsv_old
 
         elif self.p["visco_case"].lower() == "ckelvin":
+            print("in ckelvin")
             # list of mu_1 and mu_0 at each quadrature point
             mu_E1 = 0.5 * E1_array / (1.0 + self.p["nu"])
             mu_E0 = 0.5 * E_array / (1.0 + self.p["nu"])
