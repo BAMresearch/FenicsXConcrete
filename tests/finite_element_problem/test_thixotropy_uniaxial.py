@@ -195,8 +195,8 @@ def check_disp_case(problem: ConcreteAM, dt: pint.Quantity, E_o_time: list[float
     assert E_o_time[-1] == pytest.approx(E_end)
 
 
-if __name__ == "__main__":
-
-    test_disp(2, 2)
-
-    # test_disp(3, 2)
+# if __name__ == "__main__":
+#
+#     test_disp(2, 2)
+#
+#     # test_disp(3, 2)

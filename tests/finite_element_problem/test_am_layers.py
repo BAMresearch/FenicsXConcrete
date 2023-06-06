@@ -223,29 +223,29 @@ def test_am_multiple_layer(dimension: int, mat: str, plot: bool = False) -> None
 
     # check E modulus evolution over structure (each layer different E)
     if mat.lower() == "thix":
-        if problem.time >= problem.p["tf_E"]:
-            E_bottom_layer = (
-                problem.p["E_0"]
-                + problem.p["R_E"] * problem.p["tf_E"]
-                + problem.p["A_E"] * (problem.time + problem.p["age_0"])
-            )
-            E_upper_layer = (
-                problem.p["E_0"]
-                + problem.p["R_E"] * problem.p["tf_E"]
-                + problem.p["A_E"]
-                * (
-                    problem.time
-                    - (problem.p["num_layers"] - 1) * time_layer.magnitude  # layers before
-                    + problem.p["age_0"]
-                )
-            )
-        else:
-            E_bottom_layer = problem.p["E_0"] + problem.p["R_E"] * (problem.time + problem.p["age_0"])
-            E_upper_layer = problem.p["E_0"] + problem.p["R_E"] * (
-                problem.time
-                - (problem.p["num_layers"] - 1) * time_layer.magnitude  # layers before
-                + problem.p["age_0"]
-            )
+        E_bottom_layer = ConcreteAM.E_fkt(
+            1,
+            problem.time,
+            {
+                "P0": problem.p["E_0"],
+                "R_P": problem.p["R_E"],
+                "A_P": problem.p["A_E"],
+                "tf_P": problem.p["tf_E"],
+                "age_0": problem.p["age_0"],
+            },
+        )
+        time_upper = problem.time - (problem.p["num_layers"] - 1) * time_layer.magnitude
+        E_upper_layer = ConcreteAM.E_fkt(
+            1,
+            time_upper,
+            {
+                "P0": problem.p["E_0"],
+                "R_P": problem.p["R_E"],
+                "A_P": problem.p["A_E"],
+                "tf_P": problem.p["tf_E"],
+                "age_0": problem.p["age_0"],
+            },
+        )
 
         print("E_bottom, E_upper", E_bottom_layer, E_upper_layer)
         print(problem.youngsmodulus.vector.array[:].min(), problem.youngsmodulus.vector.array[:].max())
@@ -312,8 +312,8 @@ def define_path(prob, t_diff, t_0=0):
     return q_path
 
 
-# if __name__ == "__main__":
-#
-#     test_am_single_layer(2, 2)
-#
-#     test_am_multiple_layer(2, "thix", True)
+if __name__ == "__main__":
+
+    # test_am_single_layer(2, 2)
+    #
+    test_am_multiple_layer(2, "thix", True)

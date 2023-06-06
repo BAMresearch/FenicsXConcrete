@@ -343,6 +343,34 @@ class ConcreteAM(MaterialProblem):
 
         return l_active
 
+    @staticmethod
+    def E_fkt(pd: float, path_time: float, parameters: dict) -> float:
+        """computes the Young's modulus at current quadrature point according to bilinear Kruger model
+
+        Args:
+            pd: value of pseudo density [0 - non active or 1 - active]
+            path_time: process time value
+            parameters: parameter dict for bilinear model described by (P0,R_P,A_P,tf_P,age_0)
+
+        Returns:
+            value of current Young's modulus
+        """
+        # print(parameters["age_0"] + path_time)
+        if pd > 0:  # element active, compute current Young's modulus
+            age = parameters["age_0"] + path_time  # age concrete
+            if age < parameters["tf_P"]:
+                E = parameters["P0"] + parameters["R_P"] * age
+            elif age >= parameters["tf_P"]:
+                E = (
+                    parameters["P0"]
+                    + parameters["R_P"] * parameters["tf_P"]
+                    + parameters["A_P"] * (age - parameters["tf_P"])
+                )
+        else:
+            E = 1e-4  # non-active
+
+        return E
+
 
 class ConcreteThixElasticModel(df.fem.petsc.NonlinearProblem):
     """linear elastic thixotropy concrete model
@@ -463,33 +491,6 @@ class ConcreteThixElasticModel(df.fem.petsc.NonlinearProblem):
         """
         return ufl.tensoralgebra.Sym(ufl.grad(v))
 
-    def E_fkt(self, pd: float, path_time: float, parameters: dict) -> float:
-        """computes the Young's modulus at current quadrature point according to bilinear Kruger model
-
-        Args:
-            pd: value of pseudo density [0 - non active or 1 - active]
-            path_time: process time value
-            parameters: parameter dict for bilinear model (E_0,R_E,A_E,tf_E,age_0)
-
-        Returns:
-            value of current Young's modulus
-        """
-        # print(parameters["age_0"] + path_time)
-        if pd > 0:  # element active, compute current Young's modulus
-            age = parameters["age_0"] + path_time  # age concrete
-            if age < parameters["tf_E"]:
-                E = parameters["E_0"] + parameters["R_E"] * age
-            elif age >= parameters["tf_E"]:
-                E = (
-                    parameters["E_0"]
-                    + parameters["R_E"] * parameters["tf_E"]
-                    + parameters["A_E"] * (age - parameters["tf_E"])
-                )
-        else:
-            E = 1e-4  # non-active
-
-        return E
-
     def form(self, x: PETSc.Vec) -> None:
         """This function is called before the residual or Jacobian is
         computed. We override it to calculate the values on the quadrature
@@ -508,15 +509,15 @@ class ConcreteThixElasticModel(df.fem.petsc.NonlinearProblem):
 
         # compute current Young's modulus
         # vectorize the function for speed up
-        E_fkt_vectorized = np.vectorize(self.E_fkt)
+        E_fkt_vectorized = np.vectorize(ConcreteAM.E_fkt)
         E_array = E_fkt_vectorized(
             self.q_array_pd,
             self.q_array_path,
             {
-                "E_0": self.p["E_0"],
-                "R_E": self.p["R_E"],
-                "A_E": self.p["A_E"],
-                "tf_E": self.p["tf_E"],
+                "P0": self.p["E_0"],
+                "R_P": self.p["R_E"],
+                "A_P": self.p["A_E"],
+                "tf_P": self.p["tf_E"],
                 "age_0": self.p["age_0"],
             },
         )
@@ -731,33 +732,6 @@ class ConcreteViscoDevThixElasticModel(df.fem.petsc.NonlinearProblem):
         """
         return ufl.tensoralgebra.Sym(ufl.grad(v))
 
-    def E_fkt(self, pd: float, path_time: float, parameters: dict) -> float:
-        """computes the Young's modulus at current quadrature point according to bilinear Kruger model
-
-        Args:
-            pd: value of pseudo density [0 - non active or 1 - active]
-            path_time: process time value
-            parameters: parameter dict for bilinear model described by (P0,R_P,A_P,tf_P)
-
-        Returns:
-            value of current Young's modulus
-        """
-        # print(parameters["age_0"] + path_time)
-        if pd > 0:  # element active, compute current Young's modulus
-            age = self.p["age_0"] + path_time  # age concrete
-            if age < parameters["tf_P"]:
-                E = parameters["P0"] + parameters["R_P"] * age
-            elif age >= parameters["tf_P"]:
-                E = (
-                    parameters["P0"]
-                    + parameters["R_P"] * parameters["tf_P"]
-                    + parameters["A_P"] * (age - parameters["tf_P"])
-                )
-        else:
-            E = 1e-4  # non-active
-
-        return E
-
     def form(self, x: PETSc.Vec) -> None:
         """This function is called before the residual or Jacobian is
         computed. We override it to calculate the values on the quadrature
@@ -777,7 +751,7 @@ class ConcreteViscoDevThixElasticModel(df.fem.petsc.NonlinearProblem):
 
         # compute current Young's modulus
         # vectorize the function for speed up
-        E_fkt_vectorized = np.vectorize(self.E_fkt)
+        E_fkt_vectorized = np.vectorize(ConcreteAM.E_fkt)
 
         E_array = E_fkt_vectorized(
             self.q_array_pd,
@@ -787,6 +761,7 @@ class ConcreteViscoDevThixElasticModel(df.fem.petsc.NonlinearProblem):
                 "R_P": self.p["R_E"],
                 "A_P": self.p["A_E"],
                 "tf_P": self.p["tf_E"],
+                "age_0": self.p["age_0"],
             },
         )
         self.q_E.vector.array[:] = E_array
@@ -800,6 +775,7 @@ class ConcreteViscoDevThixElasticModel(df.fem.petsc.NonlinearProblem):
                 "R_P": self.p["R_E1"],
                 "A_P": self.p["A_E1"],
                 "tf_P": self.p["tf_E1"],
+                "age_0": self.p["age_0"],
             },
         )
         self.q_E1.vector.array[:] = E1_array
@@ -813,6 +789,7 @@ class ConcreteViscoDevThixElasticModel(df.fem.petsc.NonlinearProblem):
                 "R_P": self.p["R_eta"],
                 "A_P": self.p["A_eta"],
                 "tf_P": self.p["tf_eta"],
+                "age_0": self.p["age_0"],
             },
         )
         self.q_eta.vector.array[:] = Eta_array

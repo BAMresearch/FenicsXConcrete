@@ -29,11 +29,55 @@ def disp_over_time(current_time: pint.Quantity, switch_time: pint.Quantity) -> p
     return current_disp
 
 
+def get_parameters(cur_t, paramsp):
+    # compute E_0, E_1, tau for current time and given parameter dic from problem (without units)
+
+    E_0 = ConcreteAM.E_fkt(
+        1,
+        cur_t,
+        {
+            "P0": paramsp["E_0"],
+            "R_P": paramsp["R_E"],
+            "A_P": paramsp["A_E"],
+            "tf_P": paramsp["tf_E"],
+            "age_0": paramsp["age_0"],
+        },
+    )
+
+    E_1 = ConcreteAM.E_fkt(
+        1,
+        cur_t,
+        {
+            "P0": paramsp["E1_0"],
+            "R_P": paramsp["R_E1"],
+            "A_P": paramsp["A_E1"],
+            "tf_P": paramsp["tf_E1"],
+            "age_0": paramsp["age_0"],
+        },
+    )
+
+    eta = ConcreteAM.E_fkt(
+        1,
+        cur_t,
+        {
+            "P0": paramsp["eta_0"],
+            "R_P": paramsp["R_eta"],
+            "A_P": paramsp["A_eta"],
+            "tf_P": paramsp["tf_eta"],
+            "age_0": paramsp["age_0"],
+        },
+    )
+
+    return E_0, E_1, eta / E_1
+
+
 def material_parameters(parameters, mtype=""):
 
     if mtype.lower() == "pure_visco":
 
         _, default_params = ConcreteAM.default_parameters(ConcreteViscoDevThixElasticModel)
+
+        default_params["nu"] = 0.0 * ureg("")  # to compare with 1D analytical solution
 
     elif mtype.lower() == "visco_thixo":
 
@@ -44,6 +88,8 @@ def material_parameters(parameters, mtype=""):
 
         # much bigger than simulation time to see thix effect!
         default_params["age_0"] = 200.0 * ureg("s")
+
+        default_params["nu"] = 0.0 * ureg("")
 
     else:
         raise ValueError("material type not implemented")
@@ -75,7 +121,7 @@ def setup_test_2D(parameters, mech_prob_string, mtype):
 
     # time
     parameters["dt"] = 0.01 * ureg("s")  # (should be < tau=eta/E_1)
-    parameters["load_time"] = parameters["dt"]
+    parameters["load_time"] = 0  # not relevant here
 
     # material
     parameters = material_parameters(parameters, mtype=mtype)
@@ -98,14 +144,10 @@ def setup_test_2D(parameters, mech_prob_string, mtype):
     return problem
 
 
-# @pytest.mark.parametrize("visco_case", ["Cmaxwell", "Ckelvin"])
-# @pytest.mark.parametrize(
-#     "mech_prob_string",
-#     ["ConcreteViscoDevThixElasticModel"],
-# )
-# @pytest.mark.parametrize("dim", [2, 3])
-# @pytest.mark.parametrize("mtype", ["pure_visco", "visco_thixo"])
-def test_relaxation(visco_case, mech_prob_string, dim, mtype, plot=False):
+@pytest.mark.parametrize("visco_case", ["Cmaxwell", "Ckelvin"])
+@pytest.mark.parametrize("dim", [2, 3])
+@pytest.mark.parametrize("mtype", ["pure_visco", "visco_thixo"])
+def test_relaxation(visco_case, dim, mtype, plot=False):
     """
     uniaxial tension test displacement control to check relaxation of visco-thix material class
     """
@@ -115,15 +157,14 @@ def test_relaxation(visco_case, mech_prob_string, dim, mtype, plot=False):
     parameters["visco_case"] = visco_case * ureg("")
     parameters["density"] = 0.0 * ureg("kg/m**3")
     parameters["strain_state"] = "uniaxial" * ureg("")
-    parameters["dt"] = 0.0001 * ureg("s")
     displacement = disp_over_time
 
-    problem = setup_test_2D(parameters, mech_prob_string, mtype)
-    problem.time = -problem.p["dt"]
+    problem = setup_test_2D(parameters, ConcreteViscoDevThixElasticModel, mtype)
+    problem.time = -problem.p["dt"]  # to get explizit solution for t=0
     E_o_time = []
     disp_o_time = [0.0]
-    while problem.time < 1.5:  # total computation time in seconds
-        print("solve for time step")
+    total_time = 1.5 * ureg("s")
+    while problem.time <= total_time.to_base_units().magnitude:
         # apply increment displacements!!! for time step
         disp_o_time.append(
             displacement((problem.time + 1) * problem.parameters["dt"], problem.parameters["dt"]).to_base_units()
@@ -160,8 +201,8 @@ def test_relaxation(visco_case, mech_prob_string, dim, mtype, plot=False):
     print("prescribed strain", eps_r)
 
     # analytic case just for CONSTANT parameters over time (otherwise analytic integration not valid)
-    E_0, E_1, eta = problem.p["E_0"], problem.p["E1_0"], problem.p["eta_0"]
-    tau = eta / E_1
+    # assuming age development much smaller than relaxation time
+    E_0, E_1, tau = get_parameters(0, problem.p)
     if problem.p["visco_case"].lower() == "cmaxwell":
         sig0 = E_0 * eps_r + E_1 * eps_r
         sig1 = E_0 * eps_r + E_1 * eps_r * np.exp(-problem.p["dt"] / tau)
@@ -178,23 +219,23 @@ def test_relaxation(visco_case, mech_prob_string, dim, mtype, plot=False):
     # assert (sig_o_time[0] - sig0) / sig0 < 1e-8
     # assert (sig_o_time[-1] - sigend) / sigend < 1e-4
 
-    #
-    #     # get stresses and strain tensors at the end
-    #     # print("stresses", prob.sensors[sensor01.name].data[-1])
-    #     # print("strains", prob.sensors[sensor02.name].data[-1])
-    #     if prob.p.dim == 2:
-    #         strain_xx = prob.sensors[sensor02.name].data[-1][0]
-    #         strain_yy = prob.sensors[sensor02.name].data[-1][-1]
-    #         assert strain_yy == pytest.approx(prob.p.u_bc)  # L==1!
-    #         assert strain_xx == pytest.approx(-prob.p.nu * prob.p.u_bc)
-    #     elif prob.p.dim == 3:
-    #         strain_xx = prob.sensors[sensor02.name].data[-1][0]
-    #         strain_yy = prob.sensors[sensor02.name].data[-1][4]
-    #         strain_zz = prob.sensors[sensor02.name].data[-1][-1]
-    #         assert strain_zz == pytest.approx(prob.p.u_bc)  # L==1!
-    #         assert strain_xx == pytest.approx(-prob.p.nu * prob.p.u_bc)
-    #         assert strain_yy == pytest.approx(-prob.p.nu * prob.p.u_bc)
-    #
+    # get stresses and strain tensors at the end
+    # print("stresses", prob.sensors[sensor01.name].data[-1])
+    # print("strains", prob.sensors["StrainSensor"].data[-1])
+    # check uniaxiality of strain tensor
+    if problem.p["dim"] == 2:
+        strain_xx = problem.sensors["StrainSensor"].data[-1][0]
+        strain_yy = problem.sensors["StrainSensor"].data[-1][-1]
+        assert strain_yy == pytest.approx(eps_r)
+        assert strain_xx == pytest.approx(-problem.p["nu"] * eps_r)
+    elif problem.p["dim"] == 3:
+        strain_xx = problem.sensors["StrainSensor"].data[-1][0]
+        strain_yy = problem.sensors["StrainSensor"].data[-1][4]
+        strain_zz = problem.sensors["StrainSensor"].data[-1][-1]
+        assert strain_zz == pytest.approx(eps_r)
+        assert strain_xx == pytest.approx(-problem.p["nu"] * eps_r)
+        assert strain_yy == pytest.approx(-problem.p["nu"] * eps_r)
+
     # full analytic 1D solution (for relaxation test -> fits if nu=0 and small enough time steps)
     sig_yy = []
     if problem.p["visco_case"].lower() == "cmaxwell":
@@ -220,28 +261,21 @@ def test_relaxation(visco_case, mech_prob_string, dim, mtype, plot=False):
         plt.show()
 
 
-#
-#
-# @pytest.mark.parametrize("visco_case", ["Cmaxwell", "Ckelvin"])
-# @pytest.mark.parametrize(
-#     "mech_prob_string",
-#     ["ConcreteViscoDevThixElasticModel"],
-# )
-# @pytest.mark.parametrize("dim", [2, 3])
-# @pytest.mark.parametrize("mtype", ["pure_visco", "visco_thixo"])
-# def test_creep(visco_case, mech_prob_string, dim, mtype, plot=False):
-#     """
-#     uniaxial tension test with density load as stress control to check creep of visco(-thix) material class
-#     """
-#
-#     parameters = fenics_concrete.Parameters()  # using the current default values
-#
-#     # changing parameters:
-#     parameters["dim"] = dim
-#     parameters["visco_case"] = visco_case
-#     parameters["density"] = 207.0  # load controlled
-#     parameters["bc_setting"] = "density"
-#
+@pytest.mark.parametrize("visco_case", ["Cmaxwell", "Ckelvin"])
+@pytest.mark.parametrize("dim", [2, 3])
+@pytest.mark.parametrize("mtype", ["pure_visco", "visco_thixo"])
+def test_creep(visco_case, dim, mtype, plot=False):
+    """
+    uniaxial tension test with density load as stress control to check creep of visco(-thix) material class
+    """
+
+    parameters = {}
+    parameters["dim"] = dim
+    parameters["visco_case"] = visco_case * ureg("")
+    parameters["density"] = 207.0 * ureg("kg/m^3")  # load controlled
+    parameters["strain_state"] = "uniaxial" * ureg("")
+
+
 #     # sensor
 #     sensor01 = fenics_concrete.sensors.StressSensor(df.Point(0.5, 0.0))
 #     sensor02 = fenics_concrete.sensors.StrainSensor(df.Point(0.5, 0.0))
@@ -317,6 +351,6 @@ def test_relaxation(visco_case, mech_prob_string, dim, mtype, plot=False):
 
 if __name__ == "__main__":
 
-    test_relaxation("ckelvin", ConcreteViscoDevThixElasticModel, 2, "pure_visco", plot=True)
+    test_relaxation("ckelvin", 2, "pure_visco", plot=True)
 
-#     test_creep("ckelvin", "ConcreteViscoDevThixElasticModel", 2, "pure_visco", plot=True)
+#     test_creep("ckelvin", 2, "pure_visco", plot=True)
