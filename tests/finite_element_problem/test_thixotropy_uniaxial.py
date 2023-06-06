@@ -61,11 +61,6 @@ def test_disp(dim: int, degree: int):
     if dim == 2:
         parameters["stress_state"] = "plane_stress" * ureg("")
 
-    # defining solving parameters
-    solve_parameters = {}
-    solve_parameters["time"] = 6 * 60 * ureg("s")
-    solve_parameters["dt"] = 1 * 60 * ureg("s")
-
     # setting up the problem
     experiment = SimpleCube(parameters)
 
@@ -79,6 +74,10 @@ def test_disp(dim: int, degree: int):
     if dim == 3:
         parameters["q_degree"] = 4 * ureg("")
 
+    # defining time parameters
+    parameters["dt"] = 1 * 60 * ureg("s")
+    total_time = 6 * 60 * ureg("s")
+
     # displacement controlled uniaxial test with no body force
     parameters["strain_state"] = "uniaxial" * ureg("")
     displacement = disp_over_time
@@ -87,7 +86,6 @@ def test_disp(dim: int, degree: int):
     problem = ConcreteAM(
         experiment, parameters, nonlinear_problem=ConcreteThixElasticModel, pv_name=file_name, pv_path=data_path
     )
-    problem.set_timestep(solve_parameters["dt"])
 
     # add sensors
     if dim == 2:
@@ -101,44 +99,44 @@ def test_disp(dim: int, degree: int):
     disp_o_time = [0.0]
     t = 0.0 * ureg("s")
 
-    while t <= solve_parameters["time"]:
-        # print(f"solving for t={t}")
+    while t <= total_time:
+        t += parameters["dt"]
         # apply increment displacements!!!
-        disp_o_time.append(displacement(t, 2 * solve_parameters["dt"]).to_base_units())
+        disp_o_time.append(displacement(t, 2 * parameters["dt"]).to_base_units())
         delta_disp = disp_o_time[-1] - disp_o_time[-2]
         problem.experiment.apply_displ_load(delta_disp)
 
-        problem.solve(t=t)
-        problem.pv_plot(t=t)
-        # print("computed disp", problem.fields.displacement.x.array[:].max())
+        problem.solve()
+        problem.pv_plot()
+        print("problem time", problem.time)
+        print("computed disp", problem.fields.displacement.x.array[:].max())
 
         # store Young's modulus over time
         E_o_time.append(problem.youngsmodulus.vector.array[:].max())
 
-        t += solve_parameters["dt"]
+    print("Stress sensor", problem.sensors["StressSensor"].data)
+    print("strain sensor", problem.sensors["StrainSensor"].data)
+    print("time", problem.sensors["StrainSensor"].time)
+    print("E modul", E_o_time)
 
-    # print("Stress sensor", problem.sensors["StressSensor"].data)
-    # print("strain sensor", problem.sensors["StrainSensor"].data)
-    # print("time", problem.sensors["StrainSensor"].time)
-    # print("E modul", E_o_time)
-
-    check_disp_case(problem, solve_parameters, E_o_time)
+    check_disp_case(problem, parameters["dt"], E_o_time)
 
 
-def check_disp_case(problem: ConcreteAM, solve_parameters: dict, E_o_time: list[float]) -> None:
+def check_disp_case(problem: ConcreteAM, dt: pint.Quantity, E_o_time: list[float]) -> None:
     """checks for displacement controlled version
 
     Args:
         problem: concreteam problem instance
-        solve_parameters: solving parameters including "dt" and "time"
+        dt: time step parameter
         E_o_time: Youngs modulus values over time
 
     """
 
-    disp_at_end = disp_over_time(problem.sensors["StrainSensor"].time[-1], 2 * solve_parameters["dt"]).to_base_units()
+    disp_at_end = disp_over_time(problem.sensors["StrainSensor"].time[-1] * ureg("s"), 2 * dt).to_base_units()
     analytic_eps = (disp_at_end / (1.0 * ureg("m"))).magnitude
-    disp_dt1 = disp_over_time(problem.sensors["StrainSensor"].time[1], 2 * solve_parameters["dt"]).to_base_units()
+    disp_dt1 = disp_over_time(problem.sensors["StrainSensor"].time[0] * ureg("s"), 2 * dt).to_base_units()
     analytic_eps_dt1 = (disp_dt1 / (1.0 * ureg("m"))).magnitude
+    print(analytic_eps, analytic_eps_dt1, disp_at_end, disp_dt1)
 
     if problem.p["dim"] == 2:
         # standard uniaxial checks for last time step
@@ -154,7 +152,7 @@ def check_disp_case(problem: ConcreteAM, solve_parameters: dict, E_o_time: list[
 
         # thix related tests
         # thix tests stress in yy first time step
-        assert problem.sensors["StressSensor"].data[1][-1] == pytest.approx((analytic_eps_dt1 * E_o_time[1]))
+        assert problem.sensors["StressSensor"].data[0][-1] == pytest.approx((analytic_eps_dt1 * E_o_time[0]))
         # stress delta between last time steps
         assert problem.sensors["StressSensor"].data[-1][-1] - problem.sensors["StressSensor"].data[-2][
             -1
@@ -180,26 +178,26 @@ def check_disp_case(problem: ConcreteAM, solve_parameters: dict, E_o_time: list[
 
         # thix related tests
         # thix tests stress in zz direction first time step
-        assert problem.sensors["StressSensor"].data[1][-1] == pytest.approx(analytic_eps_dt1 * E_o_time[1])
+        assert problem.sensors["StressSensor"].data[0][-1] == pytest.approx(analytic_eps_dt1 * E_o_time[0])
         # stress delta between last time steps
         assert problem.sensors["StressSensor"].data[-1][-1] - problem.sensors["StressSensor"].data[-2][
             -1
         ] == pytest.approx(0.0)
 
     # check changing youngs modulus
-    if solve_parameters["time"].magnitude < problem.p["tf_E"]:
-        E_end = problem.p["E_0"] + problem.p["R_E"] * (solve_parameters["time"].magnitude + problem.p["age_0"])
+    if problem.time < problem.p["tf_E"]:
+        E_end = problem.p["E_0"] + problem.p["R_E"] * (problem.time + problem.p["age_0"])
     else:
         E_end = (
             problem.p["E_0"]
             + problem.p["R_E"] * problem.p["tf_E"]
-            + problem.p["A_E"] * (solve_parameters["time"].magnitude + problem.p["age_0"] - problem.p["tf_E"])
+            + problem.p["A_E"] * (problem.time + problem.p["age_0"] - problem.p["tf_E"])
         )
     assert E_o_time[-1] == pytest.approx(E_end)
 
 
-if __name__ == "__main__":
-
-    test_disp(2, 2)
-
-    # test_disp(3, 2)
+# if __name__ == "__main__":
+#
+#     test_disp(2, 2)
+#
+#     # test_disp(3, 2)

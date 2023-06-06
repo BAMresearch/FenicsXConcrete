@@ -59,8 +59,6 @@ class ConcreteAM(MaterialProblem):
         else:
             self.nonlinear_problem = ConcreteThixElasticModel  # default material
 
-        self.dt = 1  # default time step to be set via set_timestep()
-
         super().__init__(experiment, default_p, pv_name, pv_path)
 
     @staticmethod
@@ -79,6 +77,7 @@ class ConcreteAM(MaterialProblem):
                 "q_degree": "Polynomial degree for which the quadrature rule integrates correctly",
                 "load_time": "load applied in 1 s",
                 "stress_state": "for 2D plain stress or plane strain",
+                "dt": "time step",  # default set in material base class
             },
             "ThixElasticModel": {
                 "E_0": "Youngs Modulus at age=0",
@@ -212,15 +211,12 @@ class ConcreteAM(MaterialProblem):
         self.mechanics_solver.rtol = 1e-8
         self.mechanics_solver.report = True
 
-    def solve(self, t: pint.Quantity | float = 1.0) -> None:
-        """time incremental solving !
-
-        Args:
-            t: time point to solve (default = 1) for output
-
-        """
+    def solve(self) -> None:
+        """time incremental solving !"""
         #
-        self.logger.info(f"solve for t:{t}")
+        self.update_time()  # set t+dt
+        self.update_path()  # set path
+        self.logger.info(f"solve for t: {self.time}")
         self.logger.info(f"CHECK if external loads are applied as incremental loads e.g. delta_u(t)!!!")
 
         # solve problem for current time increment
@@ -247,33 +243,20 @@ class ConcreteAM(MaterialProblem):
         self.compute_residuals()  # for residual sensor
         for sensor_name in self.sensors:
             # go through all sensors and measure
-            self.sensors[sensor_name].measure(self, t)
+            self.sensors[sensor_name].measure(self)
 
         # update path & internal variables before next step!
         self.mechanics_problem.update_history(fields=self.fields, q_fields=self.q_fields)  # if required otherwise pass
-        self.update_path()
 
     def compute_residuals(self) -> None:
         """defines what to do, to compute the residuals. Called in solve for sensors"""
 
         self.residual = self.mechanics_problem.R
 
-    def set_timestep(self, dt: pint.Quantity) -> None:
-        """sets time step value here and in mechanics problems using base units
-
-        Args:
-            dt: time step value with unit
-        """
-        _dt = dt.to_base_units().magnitude
-        self.dt = _dt
-        self.mechanics_problem.set_timestep(dt.to_base_units().magnitude)
-
     def update_path(self) -> None:
         """update path for next time increment"""
 
-        # self.q_array_path += self.dt * np.ones_like(self.q_array_path)
-        # self.mechanics_problem.q_array_path = self.q_array_path
-        self.mechanics_problem.q_array_path += self.dt * np.ones_like(self.mechanics_problem.q_array_path)
+        self.mechanics_problem.q_array_path += self.p["dt"] * np.ones_like(self.mechanics_problem.q_array_path)
 
     def set_initial_path(self, path: list[float]):
         """set initial path for problem
@@ -284,20 +267,13 @@ class ConcreteAM(MaterialProblem):
         """
         self.mechanics_problem.q_array_path = path
 
-    def pv_plot(self, t: pint.Quantity | float = 1) -> None:
+    def pv_plot(self) -> None:
         """creates paraview output at given time step
 
         Args:
             t: time point of output (default = 1)
         """
-        print("create pv plot for t", t)
-        try:
-            _t = t.magnitude
-        except:
-            _t = t
-
-        # write displacement field into existing xdmf file f
-        # self.fields.displacement.name = "displacement"
+        self.logger.info(f"create pv plot for t: {self.time}")
 
         # write further fields
         sigma_plot = project(
@@ -314,9 +290,9 @@ class ConcreteAM(MaterialProblem):
         sigma_plot.name = "Stress"
 
         with df.io.XDMFFile(self.mesh.comm, self.pv_output_file, "a") as f:
-            f.write_function(self.fields.displacement, _t)
-            f.write_function(sigma_plot, _t)
-            f.write_function(E_plot, _t)
+            f.write_function(self.fields.displacement, self.time)
+            f.write_function(sigma_plot, self.time)
+            f.write_function(E_plot, self.time)
 
     @staticmethod
     def fd_fkt(pd: list[float], path_time: list[float], dt: float, load_time: float) -> list[float]:
@@ -338,7 +314,8 @@ class ConcreteAM(MaterialProblem):
         fd = np.zeros_like(pd)
 
         active_idx = np.where(pd > 0)[0]  # only active elements
-        load_idx = np.where(path_time[active_idx] < load_time)
+        # select indices where path_time is smaller than load_time and bigger then zero [since usually we start the computation at dt so that also for further layers the laoding starts at local layer time +dt]
+        load_idx = np.where((path_time[active_idx] <= load_time) & (path_time[active_idx] > 0))
         for _ in load_idx:
             fd[active_idx[load_idx]] = dt / load_time  # linear ramp
 
@@ -443,7 +420,6 @@ class ConcreteThixElasticModel(df.fem.petsc.NonlinearProblem):
         self.sigma_evaluator = QuadratureEvaluator(self.sigma(u), self.mesh, self.rule)
         self.eps_evaluator = QuadratureEvaluator(self.epsilon(u), self.mesh, self.rule)
 
-        self.dt = 1  # default value set via set_timestep
         super().__init__(self.R, u, bc, self.dR)
 
     def x_sigma(self, v: ufl.core.expr.Expr) -> ufl.core.expr.Expr:
@@ -548,7 +524,7 @@ class ConcreteThixElasticModel(df.fem.petsc.NonlinearProblem):
         self.q_E.x.scatter_forward()
 
         # compute loading factors for density load using static function of ConcreteAM
-        fd_array = ConcreteAM.fd_fkt(self.q_array_pd, self.q_array_path, self.dt, self.p["load_time"])
+        fd_array = ConcreteAM.fd_fkt(self.q_array_pd, self.q_array_path, self.p["dt"], self.p["load_time"])
         self.q_fd.vector.array[:] = fd_array
         self.q_fd.x.scatter_forward()
 
@@ -560,15 +536,6 @@ class ConcreteThixElasticModel(df.fem.petsc.NonlinearProblem):
         """nothing here"""
 
         pass
-
-    def set_timestep(self, dt: float) -> None:
-        """set time step value not really needed for that material here
-
-        Args:
-            dt: value of time step
-        """
-
-        self.dt = dt
 
 
 # further nonlinear problem classes for different types of materials
@@ -673,7 +640,6 @@ class ConcreteViscoDevThixElasticModel(df.fem.petsc.NonlinearProblem):
         self.sigma_evaluator = QuadratureEvaluator(self.sigma(self.u) - self.sigma_2(), self.mesh, self.rule)
         self.eps_evaluator = QuadratureEvaluator(self.epsilon(self.u), self.mesh, self.rule)
 
-        self.dt = 1  # default value set via set_timestep
         super().__init__(self.R, self.u, bc, self.dR)
 
     def sigma(self, v: ufl.core.expr.Expr) -> ufl.core.expr.Expr:
@@ -852,7 +818,7 @@ class ConcreteViscoDevThixElasticModel(df.fem.petsc.NonlinearProblem):
         self.q_eta.x.scatter_forward()
 
         # compute loading factors for density load using static function from ConcreteAM
-        fd_array = ConcreteAM.fd_fkt(self.q_array_pd, self.q_array_path, self.dt, self.p["load_time"])
+        fd_array = ConcreteAM.fd_fkt(self.q_array_pd, self.q_array_path, self.p["dt"], self.p["load_time"])
         self.q_fd.vector.array[:] = fd_array
         self.q_fd.x.scatter_forward()
 
@@ -869,13 +835,16 @@ class ConcreteViscoDevThixElasticModel(df.fem.petsc.NonlinearProblem):
             # list of mu at each quadrature point [mu independent of plane stress or plane strain]
             mu_E1 = 0.5 * E1_array / (1.0 + self.p["nu"])
             # factor at each quadrature point
-            factor = 1 + self.dt * 2.0 * mu_E1 / Eta_array
+            factor = 1 + self.p["dt"] * 2.0 * mu_E1 / Eta_array
             # repeat material parameters to size of epsv and compute epsv
             # & reshaped material parameters per eps entry!!
             self.new_epsv = (
                 1.0
                 / np.repeat(factor, self.p["dim"] ** 2)
-                * (self.q_array_epsv_old + self.dt / np.repeat(Eta_array, self.p["dim"] ** 2) * self.q_array_sig1_ten)
+                * (
+                    self.q_array_epsv_old
+                    + self.p["dt"] / np.repeat(Eta_array, self.p["dim"] ** 2) * self.q_array_sig1_ten
+                )
             )
             # compute delta visco strain
             self.q_epsv.vector.array[:] = self.new_epsv - self.q_array_epsv_old
@@ -885,12 +854,15 @@ class ConcreteViscoDevThixElasticModel(df.fem.petsc.NonlinearProblem):
             mu_E1 = 0.5 * E1_array / (1.0 + self.p["nu"])
             mu_E0 = 0.5 * E_array / (1.0 + self.p["nu"])
             # factor at each quadrature point
-            factor = 1 + self.dt * 2.0 * mu_E0 / Eta_array + self.dt * 2.0 * mu_E1 / Eta_array
+            factor = 1 + self.p["dt"] * 2.0 * mu_E0 / Eta_array + self.p["dt"] * 2.0 * mu_E1 / Eta_array
             # repeat material parameters to size of epsv and compute epsv
             self.new_epsv = (
                 1.0
                 / np.repeat(factor, self.p["dim"] ** 2)
-                * (self.q_array_epsv_old + self.dt / np.repeat(Eta_array, self.p["dim"] ** 2) * self.q_array_sig1_ten)
+                * (
+                    self.q_array_epsv_old
+                    + self.p["dt"] / np.repeat(Eta_array, self.p["dim"] ** 2) * self.q_array_sig1_ten
+                )
             )
             # compute delta visco strain
             self.q_epsv.vector.array[:] = self.new_epsv - self.q_array_epsv_old
@@ -905,12 +877,3 @@ class ConcreteViscoDevThixElasticModel(df.fem.petsc.NonlinearProblem):
         self.q_array_sig_old[:] = q_fields.stress.vector.array[:]
 
         self.u_old[:] = fields.displacement.vector.array[:]
-
-    def set_timestep(self, dt: float) -> None:
-        """set time step value not really needed for that material here
-
-        Args:
-            dt: value of time step
-        """
-
-        self.dt = dt
