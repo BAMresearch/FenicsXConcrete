@@ -9,7 +9,7 @@ from petsc4py.PETSc import ScalarType
 
 from fenicsxconcrete.boundary_conditions.bcs import BoundaryConditions
 from fenicsxconcrete.experimental_setup.base_experiment import Experiment
-from fenicsxconcrete.util import Parameters, ureg
+from fenicsxconcrete.util import Parameters, QuadratureRule, ureg
 
 
 class SimpleCube(Experiment):
@@ -58,7 +58,6 @@ class SimpleCube(Experiment):
         setup_parameters["num_elements_length"] = 2 * ureg("")
         setup_parameters["num_elements_width"] = 2 * ureg("")
         setup_parameters["num_elements_height"] = 2 * ureg("")
-        setup_parameters["strain_state"] = "uniaxial" * ureg("")
         setup_parameters["strain_state"] = "uniaxial" * ureg("")
 
         return setup_parameters
@@ -123,18 +122,21 @@ class SimpleCube(Experiment):
             )
 
             if self.p["strain_state"] == "uniaxial":
-                # displacement controlled
+                # displacement controlled in one direction
                 bc_generator.add_dirichlet_bc(
                     self.top_displacement, boundary=self.boundary_top(), sub=1, method="geometrical", entity_dim=1
                 )
             elif self.p["strain_state"] == "multiaxial":
-                # displacement controlled
+                # displacement controlled in all directions
                 bc_generator.add_dirichlet_bc(
                     self.top_displacement, boundary=self.boundary_top(), sub=1, method="geometrical", entity_dim=1
                 )
                 bc_generator.add_dirichlet_bc(
                     self.top_displacement, boundary=self.boundary_right(), sub=0, method="geometrical", entity_dim=1
                 )
+            elif self.p["strain_state"] == "stress_controlled":
+                # no additional boundary conditions
+                pass
             else:
                 raise ValueError(f'Strain_state value: {self.p["strain_state"]} is not implemented in 2D.')
 
@@ -150,12 +152,13 @@ class SimpleCube(Experiment):
                 np.float64(0.0), boundary=self.boundary_front(), sub=1, method="geometrical", entity_dim=2
             )
 
-            # displacement controlled
+            # displacement controlled in one direction
             if self.p["strain_state"] == "uniaxial":
                 bc_generator.add_dirichlet_bc(
                     self.top_displacement, boundary=self.boundary_top(), sub=2, method="geometrical", entity_dim=2
                 )
             elif self.p["strain_state"] == "multiaxial":
+                # displacement controlled in all directions
                 bc_generator.add_dirichlet_bc(
                     self.top_displacement, boundary=self.boundary_top(), sub=2, method="geometrical", entity_dim=2
                 )
@@ -165,6 +168,9 @@ class SimpleCube(Experiment):
                 bc_generator.add_dirichlet_bc(
                     self.top_displacement, boundary=self.boundary_back(), sub=1, method="geometrical", entity_dim=2
                 )
+            elif self.p["strain_state"] == "stress_controlled":
+                # no additional boundary conditions
+                pass
             else:
                 raise ValueError(f'Strain_state value: {self.p["strain_state"]} is not implemented in 3D.')
 
@@ -177,5 +183,29 @@ class SimpleCube(Experiment):
             top_displacement: Displacement of the top boundary in mm, > 0 ; tension, < 0 ; compression
 
         """
-        top_displacement.ito_base_units()
+        top_displacement.to_base_units()
         self.top_displacement.value = top_displacement.magnitude
+
+    def create_body_force_am(
+        self, v: ufl.argument.Argument, q_fd: df.fem.Function, rule: QuadratureRule
+    ) -> ufl.form.Form:
+        """defines body force for am experiments
+
+        element activation via pseudo density and incremental loading via parameter ["load_time"] computed in class concrete_am
+
+        Args:
+            v: test function
+            q_fd: quadrature function given the loading increment where elements are active
+
+        Returns:
+            form for body force
+
+        """
+
+        force_vector = np.zeros(self.p["dim"])
+        force_vector[-1] = -self.p["rho"] * self.p["g"]  # works for 2D and 3D
+
+        f = df.fem.Constant(self.mesh, ScalarType(force_vector))
+        L = q_fd * ufl.dot(f, v) * rule.dx
+
+        return L

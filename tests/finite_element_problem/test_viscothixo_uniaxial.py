@@ -12,23 +12,6 @@ from fenicsxconcrete.sensor_definition.stress_sensor import StressSensor
 from fenicsxconcrete.util import ureg
 
 
-def disp_over_time(current_time: pint.Quantity, switch_time: pint.Quantity) -> pint.Quantity:
-    """linear ramp of displacement bc over time
-
-    Args:
-        t: current time
-
-    Returns: displacement value for given time
-
-    """
-    if current_time <= switch_time:
-        current_disp = 0.002 * ureg("m") / (switch_time) * current_time
-    else:
-        current_disp = 0.002 * ureg("m")
-
-    return current_disp
-
-
 def get_parameters(cur_t, paramsp):
     # compute E_0, E_1, tau for current time and given parameter dic from problem (without units)
 
@@ -71,7 +54,7 @@ def get_parameters(cur_t, paramsp):
     return E_0, E_1, eta / E_1
 
 
-def material_parameters(parameters, mtype=""):
+def material_parameters(mtype=""):
 
     if mtype.lower() == "pure_visco":
 
@@ -94,7 +77,7 @@ def material_parameters(parameters, mtype=""):
     else:
         raise ValueError("material type not implemented")
 
-    return {**parameters, **default_params}
+    return default_params
 
 
 def setup_test_2D(parameters, mech_prob_string, mtype):
@@ -121,10 +104,7 @@ def setup_test_2D(parameters, mech_prob_string, mtype):
 
     # time
     parameters["dt"] = 0.01 * ureg("s")  # (should be < tau=eta/E_1)
-    parameters["load_time"] = 0  # not relevant here
-
-    # material
-    parameters = material_parameters(parameters, mtype=mtype)
+    parameters["load_time"] = parameters["dt"]  # not relevant here
 
     # experiment
     experiment = SimpleCube(parameters)
@@ -151,55 +131,64 @@ def test_relaxation(visco_case, dim, mtype, plot=False):
     """
     uniaxial tension test displacement control to check relaxation of visco-thix material class
     """
-
-    parameters = {}
+    # get default material parameters
+    parameters = material_parameters(mtype=mtype)
+    # change parameters for individual test
     parameters["dim"] = dim * ureg("")
     parameters["visco_case"] = visco_case * ureg("")
     parameters["density"] = 0.0 * ureg("kg/m**3")
     parameters["strain_state"] = "uniaxial" * ureg("")
-    displacement = disp_over_time
+    disp = 0.002 * ureg("m")
 
     problem = setup_test_2D(parameters, ConcreteViscoDevThixElasticModel, mtype)
-    problem.time = -problem.p["dt"]  # to get explizit solution for t=0
+
+    # to force solution for t=0
+    # problem.time = -problem.p["dt"]
+    # problem.set_initial_path(problem.time)
+    ###
     E_o_time = []
-    disp_o_time = [0.0]
+    eps_v = []
     total_time = 1.5 * ureg("s")
+
+    i = 0  # for incremntal loading
     while problem.time <= total_time.to_base_units().magnitude:
         # apply increment displacements!!! for time step
-        disp_o_time.append(
-            displacement((problem.time + 1) * problem.parameters["dt"], problem.parameters["dt"]).to_base_units()
-        )
-        delta_disp = disp_o_time[-1] - disp_o_time[-2]
-        print(delta_disp)
+        if i == 0:
+            delta_disp = disp.to_base_units()
+        else:
+            delta_disp = 0.0 * ureg("m")
         problem.experiment.apply_displ_load(delta_disp)
+        i += 1
 
         problem.solve()
         problem.pv_plot()
+        print("loading disp", delta_disp)
         print("computed disp", problem.time, problem.fields.displacement.x.array[:].max())
 
+        print("strain", problem.time, problem.sensors["StrainSensor"].data[-1])
+        print("stress", problem.time, problem.sensors["StressSensor"].data[-1])
+        print("visco strain?", problem.time, problem.q_fields.visco_strain.x.array[:].max())
         # store Young's modulus over time
         E_o_time.append(problem.youngsmodulus.vector.array[:].max())
+        eps_v.append(problem.q_fields.visco_strain.vector.array[:].max())
 
     # get stress over time (Tensor format)
     time = np.array(problem.sensors["StrainSensor"].time)
-    if dim == 2:
-        # sig_yy and eps_yy in case dim=2
-        sig_o_time = np.array(problem.sensors["StressSensor"].data)[:, -1]
-        eps_o_time = np.array(problem.sensors["StrainSensor"].data)[:, -1]
-    elif dim == 3:
-        # sig_zz and eps_zz in case dim=3
-        sig_o_time = np.array(problem.sensors["StressSensor"].data)[:, -1]
-        eps_o_time = np.array(problem.sensors["StrainSensor"].data)[:, -1]
+    # stress and strain in case of dim=2 yy in case of dim=3 zz
+    sig_o_time = np.array(problem.sensors["StressSensor"].data)[:, -1]
+    eps_o_time = np.array(problem.sensors["StrainSensor"].data)[:, -1]
+    print("time", time)
+    print("sig_o_time", sig_o_time)
+    print("eps_o_time", eps_o_time)
+    print("E_o_time", E_o_time)
+    print("eps_v", eps_v)
+
     #
-    print("----relaxation check----")
-    print(sig_o_time)
-    print(eps_o_time)
-    print(time)
-
+    problem.mechanics_problem.evaluate_material()
+    print("""""")
+    # print("----relaxation check----")
     # relaxation check - first and last value
-    eps_r = (disp_o_time[-1] / (1.0 * ureg("m"))).magnitude  # (prescriped strain)
-    print("prescribed strain", eps_r)
-
+    eps_r = (disp / (1.0 * ureg("m"))).magnitude  # (prescriped strain)
     # analytic case just for CONSTANT parameters over time (otherwise analytic integration not valid)
     # assuming age development much smaller than relaxation time
     E_0, E_1, tau = get_parameters(0, problem.p)
@@ -215,13 +204,11 @@ def test_relaxation(visco_case, dim, mtype, plot=False):
         raise ValueError("visco case not defined")
 
     print("theory", sig0, sig1, sigend)
-    print("computed", sig_o_time[0], sig_o_time[1], sig_o_time[-1])
-    # assert (sig_o_time[0] - sig0) / sig0 < 1e-8
-    # assert (sig_o_time[-1] - sigend) / sigend < 1e-4
+    print("computed", sig_o_time[0], sig_o_time[-1])
+    print(sig_o_time - sig0)
+    assert sig_o_time[0] == pytest.approx(sig0)
+    assert sig_o_time[-1] == pytest.approx(sigend)
 
-    # get stresses and strain tensors at the end
-    # print("stresses", prob.sensors[sensor01.name].data[-1])
-    # print("strains", prob.sensors["StrainSensor"].data[-1])
     # check uniaxiality of strain tensor
     if problem.p["dim"] == 2:
         strain_xx = problem.sensors["StrainSensor"].data[-1][0]
@@ -236,20 +223,17 @@ def test_relaxation(visco_case, dim, mtype, plot=False):
         assert strain_xx == pytest.approx(-problem.p["nu"] * eps_r)
         assert strain_yy == pytest.approx(-problem.p["nu"] * eps_r)
 
-    # full analytic 1D solution (for relaxation test -> fits if nu=0 and small enough time steps)
-    sig_yy = []
-    if problem.p["visco_case"].lower() == "cmaxwell":
-        for i in time:
-            sig_yy.append(E_0 * eps_r + E_1 * eps_r * np.exp(-i / tau))
-    elif problem.p["visco_case"].lower() == "ckelvin":
-        for i in time:
-            sig_yy.append(E_0 * eps_r / (E_1 + E_0) * (E_1 + E_0 * np.exp(-i / tau * (E_0 + E_1) / E_1)))
-
-    # print("analytic 1D == 2D with nu=0", sig_yy)
-    # print("stress over time", sig_o_time)
-
     ##### plotting #######
     if plot:
+
+        # full analytic 1D solution (for relaxation test -> fits if nu=0 and small enough time steps)
+        sig_yy = []
+        if problem.p["visco_case"].lower() == "cmaxwell":
+            for i in time:
+                sig_yy.append(E_0 * eps_r + E_1 * eps_r * np.exp(-i / tau))
+        elif problem.p["visco_case"].lower() == "ckelvin":
+            for i in time:
+                sig_yy.append(E_0 * eps_r / (E_1 + E_0) * (E_1 + E_0 * np.exp(-i / tau * (E_0 + E_1) / E_1)))
 
         import matplotlib.pyplot as plt
 
@@ -269,88 +253,97 @@ def test_creep(visco_case, dim, mtype, plot=False):
     uniaxial tension test with density load as stress control to check creep of visco(-thix) material class
     """
 
-    parameters = {}
-    parameters["dim"] = dim
+    # get default material parameters
+    parameters = material_parameters(mtype=mtype)
+    # change parameters for individual test
+    parameters["dim"] = dim * ureg("")
     parameters["visco_case"] = visco_case * ureg("")
     parameters["density"] = 207.0 * ureg("kg/m^3")  # load controlled
-    parameters["strain_state"] = "uniaxial" * ureg("")
+    parameters["strain_state"] = "stress_controlled" * ureg("")
+    parameters["load_time"] = 0.001 * ureg("s")  # ??
 
+    problem = setup_test_2D(parameters, ConcreteViscoDevThixElasticModel, mtype)
 
-#     # sensor
-#     sensor01 = fenics_concrete.sensors.StressSensor(df.Point(0.5, 0.0))
-#     sensor02 = fenics_concrete.sensors.StrainSensor(df.Point(0.5, 0.0))
-#
-#     prob = setup_test_2D(parameters, mech_prob_string, [sensor01, sensor02], mtype)
-#
-#     time = []
-#     # initialize time and solve!
-#     t = 0
-#     while t <= prob.p.time:  # time
-#         time.append(t)
-#         # solve
-#         prob.solve(t=t)  # solving this
-#         prob.pv_plot(t=t)
-#         # prepare next timestep
-#         t += prob.p.dt
-#
-#     # get stress over time
-#     if prob.p.dim == 2:
-#         # sig_yy and eps_yy in case dim=2
-#         sig_o_time = np.array(prob.sensors[sensor01.name].data)[:, -1]
-#         eps_o_time = np.array(prob.sensors[sensor02.name].data)[:, -1]
-#     elif prob.p.dim == 3:
-#         # sig_zz and eps_zz in case dim=3
-#         sig_o_time = np.array(prob.sensors[sensor01.name].data)[:, -1]
-#         eps_o_time = np.array(prob.sensors[sensor02.name].data)[:, -1]
-#
-#     # relaxation check - first and last value
-#     sig_c = sig_o_time[0]
-#     assert sig_c == pytest.approx(-prob.p.density * prob.p.g)
-#     #
-#     # print(prob.p.visco_case)
-#     # analytic case just for CONSTANT parameters over time (otherwise analytic integration not valid)
-#     # for tests, it is assumed that the total test time is short (age effects neglectable!) but initial concrete age can change parameter!
-#     E_0, E_1, tau = get_parameters(0, parameters)
-#     if prob.p.visco_case.lower() == "cmaxwell":
-#         eps0 = sig_c / E_0 * (1 - E_1 / (E_0 + E_1))
-#         epsend = sig_c / E_0
-#     elif prob.p.visco_case.lower() == "ckelvin":
-#         eps0 = sig_c / E_0
-#         epsend = sig_c / E_0 + sig_c / E_1
-#     else:
-#         raise ValueError("visco case not defined")
-#
-#     print("theory", eps0, epsend)
-#     print("computed", eps_o_time[0], eps_o_time[-1])
-#     assert (eps_o_time[0] - eps0) / eps0 < 1e-8
-#     assert (eps_o_time[-1] - epsend) / epsend < 1e-4
-#
-#     # analytic 1D solution (for creep test -> fits if nu=0 and small enough time steps)
-#     eps_yy = []
-#     if prob.p.visco_case.lower() == "cmaxwell":
-#         for i in time:
-#             eps_yy.append(sig_c / E_0 * (1 - E_1 / (E_0 + E_1) * np.exp(-i / tau * E_0 / (E_0 + E_1))))
-#     elif prob.p.visco_case.lower() == "ckelvin":
-#         for i in time:
-#             eps_yy.append(sig_c / E_0 + sig_c / E_1 * (1 - np.exp(-i / tau)))
-#
-#     # print("analytic 1D == 2D with nu=0", eps_yy)
-#     # print("stress over time", eps_o_time)
-#
-#     ##### plotting #######
-#     if plot:
-#         import matplotlib.pyplot as plt
-#
-#         plt.plot(time, eps_yy, "*r", label="analytic")
-#         plt.plot(time, eps_o_time, "og", label="FEM")
-#         plt.xlabel("time [s]")
-#         plt.ylabel("eps yy [-]")
-#         plt.legend()
-#         plt.show()
+    # to force solution for t=0
+    problem.time = -problem.p["dt"]
+    problem.set_initial_path(problem.time)
+    ##
+    E_o_time = []
+    total_time = 1.5 * ureg("s")
+    while problem.time <= total_time.to_base_units().magnitude:
+        print(problem.time)
+        input()
+        problem.solve()
+        problem.pv_plot()
+        print("computed disp", problem.time, problem.fields.displacement.x.array[:].max())
+        input()
+        # store Young's modulus over time
+        E_o_time.append(problem.youngsmodulus.vector.array[:].max())
+
+    # get stress over time (Tensor format)
+    time = np.array(problem.sensors["StrainSensor"].time)
+    # stress and strain in case of dim=2 yy in case of dim=3 zz
+    sig_o_time = np.array(problem.sensors["StressSensor"].data)[:, -1]
+    eps_o_time = np.array(problem.sensors["StrainSensor"].data)[:, -1]
+
+    #
+    print("----creep check----")
+    print(sig_o_time)
+    print(eps_o_time)
+    print(time)
+
+    #
+    #     # relaxation check - first and last value
+    #     sig_c = sig_o_time[0]
+    sig_c = problem.p["density"] * problem.p["g"]
+    print("check sig_c", sig_c)
+    #     assert sig_c == pytest.approx(-prob.p.density * prob.p.g)
+    #     #
+    #     # print(prob.p.visco_case)
+    #     # analytic case just for CONSTANT parameters over time (otherwise analytic integration not valid)
+    #     # for tests, it is assumed that the total test time is short (age effects neglectable!) but initial concrete age can change parameter!
+    E_0, E_1, tau = get_parameters(0, problem.p)
+    #     if prob.p.visco_case.lower() == "cmaxwell":
+    #         eps0 = sig_c / E_0 * (1 - E_1 / (E_0 + E_1))
+    #         epsend = sig_c / E_0
+    #     elif prob.p.visco_case.lower() == "ckelvin":
+    #         eps0 = sig_c / E_0
+    #         epsend = sig_c / E_0 + sig_c / E_1
+    #     else:
+    #         raise ValueError("visco case not defined")
+    #
+    #     print("theory", eps0, epsend)
+    #     print("computed", eps_o_time[0], eps_o_time[-1])
+    #     assert (eps_o_time[0] - eps0) / eps0 < 1e-8
+    #     assert (eps_o_time[-1] - epsend) / epsend < 1e-4
+    #
+    # analytic 1D solution (for creep test -> fits if nu=0 and small enough time steps)
+    eps_yy = []
+    if problem.p["visco_case"].lower() == "cmaxwell":
+        for i in time:
+            eps_yy.append(sig_c / E_0 * (1 - E_1 / (E_0 + E_1) * np.exp(-i / tau * E_0 / (E_0 + E_1))))
+    elif problem.p["visco_case"].lower() == "ckelvin":
+        for i in time:
+            eps_yy.append(sig_c / E_0 + sig_c / E_1 * (1 - np.exp(-i / tau)))
+
+    # print("analytic 1D == 2D with nu=0", eps_yy)
+    # print("stress over time", eps_o_time)
+
+    ##### plotting #######
+    if plot:
+        import matplotlib.pyplot as plt
+
+        plt.plot(time, eps_yy, "*r", label="analytic")
+        plt.plot(time, eps_o_time, "og", label="FEM")
+        plt.xlabel("time [s]")
+        plt.ylabel("eps yy [-]")
+        plt.legend()
+        plt.show()
 
 
 if __name__ == "__main__":
 
     test_relaxation("ckelvin", 2, "pure_visco", plot=True)
+    # test_relaxation("cmaxwell", 2, "pure_visco", plot=True)
 
-#     test_creep("ckelvin", 2, "pure_visco", plot=True)
+    # test_creep("ckelvin", 2, "pure_visco", plot=True)

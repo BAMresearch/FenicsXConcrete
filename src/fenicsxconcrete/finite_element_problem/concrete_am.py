@@ -213,9 +213,10 @@ class ConcreteAM(MaterialProblem):
 
     def solve(self) -> None:
         """time incremental solving !"""
-        #
+
         self.update_time()  # set t+dt
         self.update_path()  # set path
+
         self.logger.info(f"solve for t: {self.time}")
         self.logger.info(f"CHECK if external loads are applied as incremental loads e.g. delta_u(t)!!!")
 
@@ -255,17 +256,20 @@ class ConcreteAM(MaterialProblem):
 
     def update_path(self) -> None:
         """update path for next time increment"""
-
         self.mechanics_problem.q_array_path += self.p["dt"] * np.ones_like(self.mechanics_problem.q_array_path)
 
-    def set_initial_path(self, path: list[float]):
+    def set_initial_path(self, path: list[float] | float):
         """set initial path for problem
 
         Args:
             path: array describing the negative time when an element will be reached on quadrature space
+                    if only one value is given, it is assumed that all elements are reached at the same time
 
         """
-        self.mechanics_problem.q_array_path = path
+        if isinstance(path, float):
+            self.mechanics_problem.q_array_path = path * np.ones_like(self.mechanics_problem.q_array_path)
+        else:
+            self.mechanics_problem.q_array_path = path
 
     def pv_plot(self) -> None:
         """creates paraview output at given time step
@@ -616,7 +620,7 @@ class ConcreteViscoDevThixElasticModel(df.fem.petsc.NonlinearProblem):
 
         # Define variational problem
         self.u = u
-        self.u_old = np.zeros_like(self.u.vector.array[:])
+        self.u_old = df.fem.Function(self.V)
         v = ufl.TestFunction(self.V)
 
         # build up form
@@ -640,6 +644,7 @@ class ConcreteViscoDevThixElasticModel(df.fem.petsc.NonlinearProblem):
         self.dR = dR_ufl
         self.sigma_evaluator = QuadratureEvaluator(self.sigma(self.u) - self.sigma_2(), self.mesh, self.rule)
         self.eps_evaluator = QuadratureEvaluator(self.epsilon(self.u), self.mesh, self.rule)
+        self.sig1_ten = QuadratureEvaluator(self.sigma_1(self.u_old + self.u), self.mesh, self.rule)  # for visco part
 
         super().__init__(self.R, self.u, bc, self.dR)
 
@@ -801,20 +806,21 @@ class ConcreteViscoDevThixElasticModel(df.fem.petsc.NonlinearProblem):
         self.q_fd.x.scatter_forward()
         print("fd_array", fd_array)
 
-        # compute visco strains and stresses
+        # compute current visco strains and stresses
+        print("delta_u", self.u.vector.array[:])
         self.sigma_evaluator.evaluate(self.q_sig)
         self.eps_evaluator.evaluate(self.q_eps)  # -> globally in concreteAM not possible why?
+        print("sig", self.q_sig.vector.array[:])
+        print("eps", self.q_eps.vector.array[:])
+        print("epsv", self.q_epsv.vector.array[:])
 
         # compute delta visco strain
-        # displacement update needed for sig1 component
-        u_new_array = self.u_old + self.u.vector.array[:]
-        u_new = df.fem.Function(self.V)
-        u_new.vector.array[:] = u_new_array
-        sig1_ten = QuadratureEvaluator(self.sigma_1(u_new), self.mesh, self.rule)
-        sig1_ten.evaluate(self.q_array_sig1_ten)
+        print("u_old", self.u_old.vector.array[:])
+        self.sig1_ten.evaluate(self.q_array_sig1_ten)
+        input()
 
         if self.p["visco_case"].lower() == "cmaxwell":
-
+            print("in cmaxwell")
             # list of mu at each quadrature point [mu independent of plane stress or plane strain]
             mu_E1 = 0.5 * E1_array / (1.0 + self.p["nu"])
             # factor at each quadrature point
@@ -860,4 +866,5 @@ class ConcreteViscoDevThixElasticModel(df.fem.petsc.NonlinearProblem):
 
         self.q_array_sig_old[:] = q_fields.stress.vector.array[:]
 
-        self.u_old[:] = fields.displacement.vector.array[:]
+        self.u_old.vector.array[:] = fields.displacement.vector.array[:]
+        self.u_old.x.scatter_forward()
