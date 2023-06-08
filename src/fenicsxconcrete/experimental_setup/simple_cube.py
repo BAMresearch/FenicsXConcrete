@@ -135,7 +135,6 @@ class SimpleCube(Experiment):
                     self.top_displacement, boundary=self.boundary_right(), sub=0, method="geometrical", entity_dim=1
                 )
             elif self.p["strain_state"] == "stress_controlled":
-                # no additional boundary conditions
                 pass
             else:
                 raise ValueError(f'Strain_state value: {self.p["strain_state"]} is not implemented in 2D.')
@@ -169,7 +168,6 @@ class SimpleCube(Experiment):
                     self.top_displacement, boundary=self.boundary_back(), sub=1, method="geometrical", entity_dim=2
                 )
             elif self.p["strain_state"] == "stress_controlled":
-                # no additional boundary conditions
                 pass
             else:
                 raise ValueError(f'Strain_state value: {self.p["strain_state"]} is not implemented in 3D.')
@@ -201,10 +199,11 @@ class SimpleCube(Experiment):
             form for body force
 
         """
+        print("in create body force am")
 
         force_vector = np.zeros(self.p["dim"])
         force_vector[-1] = -self.p["rho"] * self.p["g"]  # works for 2D and 3D
-
+        print(force_vector)
         f = df.fem.Constant(self.mesh, ScalarType(force_vector))
         L = q_fd * ufl.dot(f, v) * rule.dx
 

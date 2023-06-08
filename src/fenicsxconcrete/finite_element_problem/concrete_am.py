@@ -210,6 +210,9 @@ class ConcreteAM(MaterialProblem):
         self.mechanics_solver.atol = 1e-9
         self.mechanics_solver.rtol = 1e-8
         self.mechanics_solver.report = True
+        from dolfinx import log
+
+        log.set_log_level(log.LogLevel.INFO)
 
     def solve(self) -> None:
         """time incremental solving !"""
@@ -648,6 +651,24 @@ class ConcreteViscoDevThixElasticModel(df.fem.petsc.NonlinearProblem):
 
         super().__init__(self.R, self.u, bc, self.dR)
 
+    def x_sigma(self, v: ufl.core.expr.Expr) -> ufl.core.expr.Expr:
+        """compute stresses for Young's modulus == 1
+
+        Args:
+            v: testfunction
+
+        Returns:
+            ufl expression for sigma
+        """
+
+        x_mu = df.fem.Constant(self.mesh, 1.0 / (2.0 * (1.0 + self.p["nu"])))
+        x_lambda = df.fem.Constant(self.mesh, 1.0 * self.p["nu"] / ((1.0 + self.p["nu"]) * (1.0 - 2.0 * self.p["nu"])))
+        if self.p["dim"] == 2 and self.p["stress_state"] == "plane_stress":
+            # see https://comet-fenics.readthedocs.io/en/latest/demo/elasticity/2D_elasticity.py.html
+            x_lambda = df.fem.Constant(self.mesh, 2 * x_mu.value * x_lambda.value / (x_lambda.value + 2 * x_mu.value))
+
+        return 2.0 * x_mu * self.epsilon(v) + x_lambda * ufl.nabla_div(v) * ufl.Identity(self.p["dim"])
+
     def sigma(self, v: ufl.core.expr.Expr) -> ufl.core.expr.Expr:
         """total stress without visco part
 
@@ -657,23 +678,13 @@ class ConcreteViscoDevThixElasticModel(df.fem.petsc.NonlinearProblem):
         Returns:
             ufl expression for sigma
         """
-
-        mu_E0 = self.q_E / (2.0 * (1.0 + self.p["nu"]))
-        lmb_E0 = self.q_E * self.p["nu"] / ((1.0 + self.p["nu"]) * (1.0 - 2.0 * self.p["nu"]))
-
-        if self.p["dim"] == 2 and self.p["stress_state"] == "plane_stress":
-            # see https://comet-fenics.readthedocs.io/en/latest/demo/elasticity/2D_elasticity.py.html
-            lmb_E0 = 2 * mu_E0 * lmb_E0 / (lmb_E0 + 2 * mu_E0)
         if self.p["visco_case"].lower() == "cmaxwell":
             # stress stiffness zero + stress stiffness one
-            sig = (
-                2.0 * mu_E0 * self.epsilon(v)
-                + lmb_E0 * ufl.nabla_div(v) * ufl.Identity(self.p["dim"])
-                + self.sigma_1(v)
-            )
+            sig = self.q_E * self.x_sigma(v) + self.sigma_1(v)
+
         elif self.p["visco_case"].lower() == "ckelvin":
             # stress stiffness zero
-            sig = 2.0 * mu_E0 * self.epsilon(v) + lmb_E0 * ufl.nabla_div(v) * ufl.Identity(self.p["dim"])
+            sig = self.q_E * self.x_sigma(v)
         else:
             sig = None
             raise ValueError("case not defined")
@@ -691,12 +702,7 @@ class ConcreteViscoDevThixElasticModel(df.fem.petsc.NonlinearProblem):
         """
 
         if self.p["visco_case"].lower() == "cmaxwell":
-            mu_E1 = self.q_E1 / (2.0 * (1.0 + self.p["nu"]))
-            lmb_E1 = self.q_E1 * self.p["nu"] / ((1.0 + self.p["nu"]) * (1.0 - 2.0 * self.p["nu"]))
-            if self.p["dim"] == 2 and self.p["stress_state"] == "plane_stress":
-                lmb_E1 = 2 * mu_E1 * lmb_E1 / (lmb_E1 + 2 * mu_E1)
-
-            sig1 = 2.0 * mu_E1 * self.epsilon(v) + lmb_E1 * ufl.nabla_div(v) * ufl.Identity(self.p["dim"])
+            sig1 = self.q_E_1 * self.x_sigma(v)
         elif self.p["visco_case"].lower() == "ckelvin":
             sig1 = self.sigma(v)
         else:
@@ -714,13 +720,13 @@ class ConcreteViscoDevThixElasticModel(df.fem.petsc.NonlinearProblem):
         Returns:
             ufl expression for sigma
         """
-
+        x_mu = df.fem.Constant(self.mesh, 1.0 / (2.0 * (1.0 + self.p["nu"])))
         if self.p["visco_case"].lower() == "cmaxwell":
-            mu_E1 = self.q_E1 / (2.0 * (1.0 + self.p["nu"]))
-            sig2 = 2 * mu_E1 * self.q_epsv
+            sig2 = 2 * self.q_E1 * x_mu * self.q_epsv
+
         elif self.p["visco_case"].lower() == "ckelvin":
-            mu_E0 = self.q_E / (2.0 * (1.0 + self.p["nu"]))
-            sig2 = 2 * mu_E0 * self.q_epsv
+            sig2 = 2 * self.q_E * x_mu * self.q_epsv
+
         else:
             sig2 = None
             raise ValueError("case not defined")
@@ -752,7 +758,7 @@ class ConcreteViscoDevThixElasticModel(df.fem.petsc.NonlinearProblem):
 
         # compute current element activation using static function from ConcreteAM
         self.q_array_pd = ConcreteAM.pd_fkt(self.q_array_path)
-        print("current path", self.q_array_path)
+        # print("current path", self.q_array_path)
 
         # compute current Young's modulus
         # vectorize the function for speed up
@@ -771,7 +777,7 @@ class ConcreteViscoDevThixElasticModel(df.fem.petsc.NonlinearProblem):
         )
         self.q_E.vector.array[:] = E_array
         self.q_E.x.scatter_forward()
-        print("E_array", E_array)
+        # print("E_array", E_array)
         E1_array = E_fkt_vectorized(
             self.q_array_pd,
             self.q_array_path,
@@ -785,7 +791,7 @@ class ConcreteViscoDevThixElasticModel(df.fem.petsc.NonlinearProblem):
         )
         self.q_E1.vector.array[:] = E1_array
         self.q_E1.x.scatter_forward()
-        print("E1_array", E1_array)
+        # print("E1_array", E1_array)
         Eta_array = E_fkt_vectorized(
             self.q_array_pd,
             self.q_array_path,
@@ -799,28 +805,28 @@ class ConcreteViscoDevThixElasticModel(df.fem.petsc.NonlinearProblem):
         )
         self.q_eta.vector.array[:] = Eta_array
         self.q_eta.x.scatter_forward()
-        print("Eta_array", Eta_array)
+        # print("Eta_array", Eta_array)
         # compute loading factors for density load using static function from ConcreteAM
         fd_array = ConcreteAM.fd_fkt(self.q_array_pd, self.q_array_path, self.p["dt"], self.p["load_time"])
         self.q_fd.vector.array[:] = fd_array
         self.q_fd.x.scatter_forward()
-        print("fd_array", fd_array)
+        # print("fd_array", fd_array)
 
         # compute current visco strains and stresses
-        print("delta_u", self.u.vector.array[:])
+        # print("delta_u", self.u.vector.array[:])
         self.sigma_evaluator.evaluate(self.q_sig)
         self.eps_evaluator.evaluate(self.q_eps)  # -> globally in concreteAM not possible why?
-        print("sig", self.q_sig.vector.array[:])
-        print("eps", self.q_eps.vector.array[:])
-        print("epsv", self.q_epsv.vector.array[:])
+        print("delta sig", self.q_sig.vector.array[:])
+        print("delta eps", self.q_eps.vector.array[:])
+        print("delta epsv", self.q_epsv.vector.array[:])
 
         # compute delta visco strain
-        print("u_old", self.u_old.vector.array[:])
+        # print("u", self.u.vector.array[:])
         self.sig1_ten.evaluate(self.q_array_sig1_ten)
-        input()
+        print("sig1", self.q_array_sig1_ten)
 
         if self.p["visco_case"].lower() == "cmaxwell":
-            print("in cmaxwell")
+            # print("in cmaxwell")
             # list of mu at each quadrature point [mu independent of plane stress or plane strain]
             mu_E1 = 0.5 * E1_array / (1.0 + self.p["nu"])
             # factor at each quadrature point
@@ -839,7 +845,7 @@ class ConcreteViscoDevThixElasticModel(df.fem.petsc.NonlinearProblem):
             self.q_epsv.vector.array[:] = self.new_epsv - self.q_array_epsv_old
 
         elif self.p["visco_case"].lower() == "ckelvin":
-            print("in ckelvin")
+            # print("in ckelvin")
             # list of mu_1 and mu_0 at each quadrature point
             mu_E1 = 0.5 * E1_array / (1.0 + self.p["nu"])
             mu_E0 = 0.5 * E_array / (1.0 + self.p["nu"])
@@ -854,11 +860,14 @@ class ConcreteViscoDevThixElasticModel(df.fem.petsc.NonlinearProblem):
                     + self.p["dt"] / np.repeat(Eta_array, self.p["dim"] ** 2) * self.q_array_sig1_ten
                 )
             )
+            print("new epsv", self.new_epsv)
             # compute delta visco strain
             self.q_epsv.vector.array[:] = self.new_epsv - self.q_array_epsv_old
 
         else:
             raise ValueError("visco case not defined")
+
+        input()
 
     def update_history(self, fields: SolutionFields | None = None, q_fields: QuadratureFields | None = None) -> None:
         """set array values for old time using current solution"""
