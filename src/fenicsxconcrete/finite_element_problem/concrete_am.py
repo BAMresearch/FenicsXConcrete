@@ -375,7 +375,6 @@ class ConcreteThixElasticModel(df.fem.petsc.NonlinearProblem):
 
         # path variable from AM Problem
         self.q_array_path = self.rule.create_quadrature_array(self.mesh, shape=1)
-        self.q_array_path[:] = 0.0  # default all active set by "set_initial_path(q_array_path)"
         # pseudo density for element activation
         self.q_array_pd = self.rule.create_quadrature_array(self.mesh, shape=1)
 
