@@ -8,11 +8,11 @@ import ufl
 from petsc4py import PETSc
 
 from fenicsxconcrete.experimental_setup import Experiment, MinimalCubeExperiment
-from fenicsxconcrete.finite_element_problem import MaterialProblem
-from fenicsxconcrete.util import Parameters, QuadratureEvaluator, QuadratureRule, project, ureg
+from fenicsxconcrete.finite_element_problem import MaterialProblem, QuadratureFields, SolutionFields
+from fenicsxconcrete.util import LogMixin, Parameters, QuadratureEvaluator, QuadratureRule, project, ureg
 
 
-class ConcreteThermoMechanical(MaterialProblem):
+class ConcreteThermoMechanical(MaterialProblem, LogMixin):
     """
     A class for a weakly coupled thermo-mechanical model, where the youngs modulus of the
     concrete depends on the thermal problem.
@@ -117,27 +117,29 @@ class ConcreteThermoMechanical(MaterialProblem):
 
     def setup(self) -> None:
         self.rule = QuadratureRule(cell_type=self.mesh.ufl_cell(), degree=self.p["q_degree"])
-        self.displacement_space = df.fem.VectorFunctionSpace(self.experiment.mesh, ("P", self.p["degree"]))
-        self.temperature_space = df.fem.FunctionSpace(self.experiment.mesh, ("P", self.p["degree"]))
+        displacement_space = df.fem.VectorFunctionSpace(self.experiment.mesh, ("P", self.p["degree"]))
+        temperature_space = df.fem.FunctionSpace(self.experiment.mesh, ("P", self.p["degree"]))
 
-        self.displacement = df.fem.Function(self.displacement_space)
-        self.temperature = df.fem.Function(self.temperature_space)
+        self.fields = SolutionFields(
+            displacement=df.fem.Function(displacement_space, name="displacement"),
+            temperature=df.fem.Function(temperature_space, name="temperature"),
+        )
 
-        bcs_temperature = self.experiment.create_temperature_bcs(self.temperature_space)
+        bcs_temperature = self.experiment.create_temperature_bcs(temperature_space)
         # setting up the two nonlinear problems
         self.temperature_problem = ConcreteTemperatureHydrationModel(
-            self.experiment.mesh, self.p, self.rule, self.temperature, bcs_temperature
+            self.experiment.mesh, self.p, self.rule, self.fields.temperature, bcs_temperature
         )
 
         # here I "pass on the parameters from temperature to mechanics problem.."
-        bcs_mechanical = self.experiment.create_displacement_boundary(self.displacement_space)
-        body_forces = self.experiment.create_body_force(ufl.TestFunction(self.displacement_space))
+        bcs_mechanical = self.experiment.create_displacement_boundary(displacement_space)
+        body_forces = self.experiment.create_body_force(ufl.TestFunction(displacement_space))
 
         self.mechanics_problem = ConcreteMechanicsModel(
             self.experiment.mesh,
             self.p,
             self.rule,
-            self.displacement,
+            self.fields.displacement,
             bcs_mechanical,
             body_forces,
         )
@@ -147,32 +149,48 @@ class ConcreteThermoMechanical(MaterialProblem):
         # TODO: this is not supposed to be set here
         self.temperature_problem.set_timestep(10)
 
+        # set q_fields now that the solvers are initialized
+        plot_space_type = ("DG", 0) if self.p["degree"] == 1 else ("CG", self.p["degree"] - 1)
+        self.q_fields = QuadratureFields(
+            measure=self.rule.dx,
+            plot_space_type=plot_space_type,
+            stress=self.mechanics_problem.sigma(self.fields.displacement),
+            degree_of_hydration=self.temperature_problem.q_alpha,
+            youngs_modulus=self.mechanics_problem.q_E,
+            compressive_strength=self.mechanics_problem.q_fc,
+            tensile_strength=self.mechanics_problem.q_ft,
+            yield_values=self.mechanics_problem.q_yield,
+        )
+
         # setting up the solvers
-        self.temperature_solver = df.nls.petsc.NewtonSolver(self.mesh.comm, self.temperature_problem)
+        self.temperature_solver = df.nls.petsc.NewtonSolver(self.experiment.mesh.comm, self.temperature_problem)
         self.temperature_solver.atol = 1e-9
         self.temperature_solver.rtol = 1e-8
 
-        self.mechanics_solver = df.nls.petsc.NewtonSolver(self.mesh.comm, self.mechanics_problem)
+        self.mechanics_solver = df.nls.petsc.NewtonSolver(self.experiment.mesh.comm, self.mechanics_problem)
         self.mechanics_solver.atol = 1e-9
         self.mechanics_solver.rtol = 1e-8
         # if self.wrapper:
         #     self.wrapper.set_geometry(self.mechanics_problem.V, [])
 
-        if self.p["degree"] == 1:
-            self.plot_space = df.fem.FunctionSpace(self.mesh, ("DG", 0))
-            self.plot_space_stress = df.fem.VectorFunctionSpace(
-                self.mesh, ("DG", 0), dim=self.mechanics_problem.stress_strain_dim
-            )
-        else:
-            self.plot_space = df.fem.FunctionSpace(self.mesh, ("P", 1))
-            self.plot_space_stress = df.fem.VectorFunctionSpace(
-                self.mesh, ("DG", 1), dim=self.mechanics_problem.stress_strain_dim
-            )
+        self.plot_space = df.fem.FunctionSpace(self.experiment.mesh, self.q_fields.plot_space_type)
+        self.plot_space_stress = df.fem.VectorFunctionSpace(
+            self.experiment.mesh, self.q_fields.plot_space_type, dim=self.mechanics_problem.stress_strain_dim
+        )
+
+        with df.io.XDMFFile(self.mesh.comm, self.pv_path + self.pv_name, "w") as f:
+            f.write_mesh(self.mesh)
 
     def solve(self, t=1.0) -> None:
         # from dolfinx import log
         # log.set_log_level(log.LogLevel.INFO)
-        n, converged = self.temperature_solver.solve(self.temperature)
+        self.logger.info(f"Starting solve for temperature at time {t}")
+        n, converged = self.temperature_solver.solve(self.fields.temperature)
+
+        if not converged:
+            raise Exception("Temperature solve did not converge")
+        else:
+            self.logger.info(f"Temperature solve converged in {n} iterations")
 
         # set current DOH for computation of Young's modulus
         self.mechanics_problem.q_array_alpha[:] = self.temperature_problem.q_alpha.vector.array
@@ -180,58 +198,62 @@ class ConcreteThermoMechanical(MaterialProblem):
 
         # mechanics paroblem is not required for temperature, could crash in frist time steps but then be useful
         try:
-            n, converged = self.mechanics_solver.solve(self.displacement)
+            n, converged = self.mechanics_solver.solve(self.fields.displacement)
+            if not converged:
+                self.logger.warning("Mechanics solve did not converge")
+            else:
+                self.logger.info(f"Mechanics solve converged in {n} iterations")
         except RuntimeError as e:
             print(
-                f"An error occured during the mechanics solve. This can happen in the first few solves. Error message{e}"
+                f"An error occured during the mechanics solve. This can happen in the first few solves. Error message {e}"
             )
 
         # history update
         self.temperature_problem.update_history()
 
-        self.degree_of_hydration = project(
-            self.temperature_problem.q_alpha, self.plot_space, self.temperature_problem.rule.dx
-        )
+        # self.degree_of_hydration = project(
+        #    self.q_fields.degree_of_hydration, self.plot_space, self.rule.dx
+        # )
 
-        self.q_degree_of_hydration = self.temperature_problem.q_alpha
-        self.q_yield = self.mechanics_problem.q_yield
+        # self.q_degree_of_hydration = self.temperature_problem.q_alpha
+        # self.q_yield = self.mechanics_problem.q_yield
         # self.stress = self.mechanics_problem.sigma_ufl
 
         # get sensor data
         for sensor_name in self.sensors:
             # go through all sensors and measure
-            self.sensors[sensor_name].measure(self, self.wrapper, t)
+            self.sensors[sensor_name].measure(self)
 
     def pv_plot(self, t=0) -> None:
-        with df.io.XDMFFile(self.mesh.comm, self.pv_path + self.pv_name) as f:
-            # TODO: is writing the mesh actually needed?
-            f.write_mesh(self.mesh)
+        self.logger.info(f"Writing output to {self.pv_path + self.pv_name}")
 
         self._pv_plot_mechanics(t)
         self._pv_plot_temperature(t)
 
     def _pv_plot_temperature(self, t=0) -> None:
-        with df.io.XDMFFile(self.mesh.comm, self.pv_path + self.pv_name) as f:
+        with df.io.XDMFFile(self.mesh.comm, self.pv_path + self.pv_name, "a") as f:
             # temperature plots
-            f.write_function(self.temperature, t)
+            f.write_function(self.fields.temperature, t)
 
-            alpha_plot = project(self.temperature_problem.q_alpha, self.plot_space, self.rule.dx)
+            alpha_plot = project(self.q_fields.degree_of_hydration, self.plot_space, self.q_fields.measure)
             alpha_plot.name = "alpha"
             f.write_function(alpha_plot, t)
 
             # mechanics
-            f.write_function(self.displacement, t)
+            # f.write_function(self.fields.displacement, t)
 
     def _pv_plot_mechanics(self, t=0) -> None:
-        with df.io.XDMFFile(self.mesh.comm, self.pv_path + self.pv_name) as f:
+        with df.io.XDMFFile(self.mesh.comm, self.pv_path + self.pv_name, "a") as f:
             # mechanics
-            f.write_function(self.displacement, t)
+            f.write_function(self.fields.displacement, t)
 
-            sigma_plot = project(self.mechanics_problem.sigma(self.displacement), self.plot_space_stress, self.rule.dx)
-            E_plot = project(self.mechanics_problem.q_E, self.plot_space, self.rule.dx)
-            fc_plot = project(self.mechanics_problem.q_fc, self.plot_space, self.rule.dx)
-            ft_plot = project(self.mechanics_problem.q_ft, self.plot_space, self.rule.dx)
-            yield_plot = project(self.mechanics_problem.q_yield, self.plot_space, self.rule.dx)
+            sigma_plot = project(
+                self.mechanics_problem.sigma(self.fields.displacement), self.plot_space_stress, self.rule.dx
+            )
+            E_plot = project(self.q_fields.youngs_modulus, self.plot_space, self.rule.dx)
+            fc_plot = project(self.q_fields.compressive_strength, self.plot_space, self.rule.dx)
+            ft_plot = project(self.q_fields.tensile_strength, self.plot_space, self.rule.dx)
+            yield_plot = project(self.q_fields.yield_values, self.plot_space, self.rule.dx)
 
             E_plot.name = "Young's_Modulus"
             fc_plot.name = "Compressive_strength"
