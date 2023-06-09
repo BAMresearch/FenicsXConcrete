@@ -189,7 +189,7 @@ class Experiment(ABC, LogMixin):
 
 class ThermalExperimentMixin(ABC):
     @abstractmethod
-    def create_temperature_boundary(self, V: df.fem.FunctionSpace) -> list[df.fem.bcs.DirichletBCMetaClass]:
+    def create_temperature_bcs(self, V: df.fem.FunctionSpace) -> list[df.fem.bcs.DirichletBCMetaClass]:
         """defines empty temperature boundary conditions (to be done in child)
 
         this function is abstract until there is a need for a material that does need a temperature boundary

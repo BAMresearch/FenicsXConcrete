@@ -5,7 +5,6 @@ from abc import ABC, abstractmethod
 
 import pint
 
-from fenicsxconcrete.finite_element_problem import MaterialProblem
 from fenicsxconcrete.util import LogMixin, ureg
 
 
@@ -34,8 +33,9 @@ class BaseSensor(ABC, LogMixin):
         else:
             self.name = name
 
+    # Can't use type hint here, because it would create a circular import
     @abstractmethod
-    def measure(self, problem: MaterialProblem) -> None:
+    def measure(self, problem) -> None:
         """Needs to be implemented in child, depends on the sensor
 
         This function is called, when the sensor adds the data to the data list.
@@ -146,7 +146,7 @@ class PointSensor(BaseSensor):
         self.where = where
 
     @abstractmethod
-    def measure(self, problem: MaterialProblem):
+    def measure(self, problem) -> None:
         """Needs to be implemented in child, depending on the sensor"""
 
     @staticmethod

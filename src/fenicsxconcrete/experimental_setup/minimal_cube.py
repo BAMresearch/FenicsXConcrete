@@ -11,10 +11,10 @@ from petsc4py.PETSc import ScalarType
 
 from fenicsxconcrete.boundary_conditions import BoundaryConditions, plane_at
 from fenicsxconcrete.experimental_setup import Experiment, ThermalExperimentMixin
-from fenicsxconcrete.util import Parameters, ureg
+from fenicsxconcrete.util import LogMixin, Parameters, ureg
 
 
-class MinimalCubeExperiment(Experiment, ThermalExperimentMixin):
+class MinimalCubeExperiment(Experiment, ThermalExperimentMixin, LogMixin):
     """A cylinder mesh for a uni-axial displacement load"""
 
     def __init__(self, parameters: dict[str, pint.Quantity] | None = None) -> None:

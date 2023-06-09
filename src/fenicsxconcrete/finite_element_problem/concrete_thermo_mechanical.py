@@ -178,7 +178,7 @@ class ConcreteThermoMechanical(MaterialProblem, LogMixin):
             self.experiment.mesh, self.q_fields.plot_space_type, dim=self.mechanics_problem.stress_strain_dim
         )
 
-        with df.io.XDMFFile(self.mesh.comm, self.pv_path + self.pv_name, "w") as f:
+        with df.io.XDMFFile(self.mesh.comm, self.pv_output_file, "w") as f:
             f.write_mesh(self.mesh)
 
     def solve(self, t=1.0) -> None:
@@ -225,13 +225,13 @@ class ConcreteThermoMechanical(MaterialProblem, LogMixin):
             self.sensors[sensor_name].measure(self)
 
     def pv_plot(self, t=0) -> None:
-        self.logger.info(f"Writing output to {self.pv_path + self.pv_name}")
+        self.logger.info(f"Writing output to {self.pv_output_file}")
 
         self._pv_plot_mechanics(t)
         self._pv_plot_temperature(t)
 
     def _pv_plot_temperature(self, t=0) -> None:
-        with df.io.XDMFFile(self.mesh.comm, self.pv_path + self.pv_name, "a") as f:
+        with df.io.XDMFFile(self.mesh.comm, self.pv_output_file, "a") as f:
             # temperature plots
             f.write_function(self.fields.temperature, t)
 
@@ -243,7 +243,7 @@ class ConcreteThermoMechanical(MaterialProblem, LogMixin):
             # f.write_function(self.fields.displacement, t)
 
     def _pv_plot_mechanics(self, t=0) -> None:
-        with df.io.XDMFFile(self.mesh.comm, self.pv_path + self.pv_name, "a") as f:
+        with df.io.XDMFFile(self.mesh.comm, self.pv_output_file, "a") as f:
             # mechanics
             f.write_function(self.fields.displacement, t)
 

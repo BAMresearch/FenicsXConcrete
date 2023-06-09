@@ -162,7 +162,7 @@ class MaterialProblem(ABC, LogMixin):
         del self.sensors
         self.sensors = self.SensorDict()
 
-    def update_time(self):
+    def update_time(self) -> None:
         """update time"""
         self.time += self.p["dt"]
 
