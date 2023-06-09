@@ -7,6 +7,7 @@ import pint
 import ufl
 from mpi4py import MPI
 from petsc4py import PETSc
+from typing import Type
 
 from fenicsxconcrete.experimental_setup import AmMultipleLayers, Experiment
 from fenicsxconcrete.finite_element_problem.base_material import MaterialProblem, QuadratureFields, SolutionFields
