@@ -134,7 +134,6 @@ class ConcreteAM(MaterialProblem):
         """set up problem"""
 
         self.rule = QuadratureRule(cell_type=self.mesh.ufl_cell(), degree=self.p["q_degree"])
-        # print("num q", self.rule.number_of_points(mesh=self.experiment.mesh))
         # displacement space (name V required for sensors!)
         self.V = df.fem.VectorFunctionSpace(self.mesh, ("CG", self.p["degree"]))
         self.strain_stress_space = self.rule.create_quadrature_tensor_space(self.mesh, (self.p["dim"], self.p["dim"]))
