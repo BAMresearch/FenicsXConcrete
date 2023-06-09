@@ -148,7 +148,6 @@ class ConcreteAM(MaterialProblem):
             stress=df.fem.Function(self.strain_stress_space, name="stress"),
         )
 
-        # self.displacement = df.fem.Function(self.V)
         # displacement increment
         self.d_disp = df.fem.Function(self.V)
 
