@@ -59,8 +59,6 @@ class ConcreteAM(MaterialProblem):
         else:
             self.nonlinear_problem = ConcreteThixElasticModel  # default material
 
-        self.dt = 1  # default time step to be set via set_timestep()
-
         super().__init__(experiment, default_p, pv_name, pv_path)
 
     @staticmethod
@@ -79,22 +77,25 @@ class ConcreteAM(MaterialProblem):
                 "q_degree": "Polynomial degree for which the quadrature rule integrates correctly",
                 "load_time": "load applied in 1 s",
                 "stress_state": "for 2D plain stress or plane strain",
+                "dt": "time step",  # default set in material base class
             },
             "ThixElasticModel": {
                 "E_0": "Youngs Modulus at age=0",
                 "R_E": "Reflocculation (first) rate",
                 "A_E": "Structuration (second) rate",
-                "t_f": "Reflocculation time (switch point)",
+                "tf_E": "Reflocculation time (switch point)",
                 "age_0": "Start age of concrete",
             },
-            "ViscoDevThixElasticModel": {"not yet implemented"},
         }
 
         return description
 
     @staticmethod
-    def default_parameters() -> tuple[Experiment, dict[str, pint.Quantity]]:
-        """Static method that returns a set of default parameters.
+    def default_parameters(
+        non_linear_problem: df.fem.petsc.NonlinearProblem | None = None,
+    ) -> tuple[Experiment, dict[str, pint.Quantity]]:
+        """Static method that returns a set of default parameters for the selected nonlinear problem.
+
         Returns:
             The default experiment instance and the default parameters as a dictionary.
 
@@ -103,27 +104,31 @@ class ConcreteAM(MaterialProblem):
         # default experiment
         experiment = AmMultipleLayers(AmMultipleLayers.default_parameters())
 
-        model_parameters = {
+        # default parameters according given nonlinear problem
+        joined_parameters = {
             # Material parameter for concrete model with structural build-up
             "rho": 2070 * ureg("kg/m^3"),  # density of fresh concrete
             "nu": 0.3 * ureg(""),  # Poissons Ratio
-            ### default parameters required for ThixElasticModel
-            # Youngs modulus is changing over age (see E_fkt) following the bilinear approach Kruger et al 2019
-            # (https://www.sciencedirect.com/science/article/pii/S0950061819317507) with two different rates
-            "E_0": 15000 * ureg("Pa"),  # Youngs Modulus at age=0
-            "R_E": 15 * ureg("Pa/s"),  # Reflocculation (first) rate
-            "A_E": 30 * ureg("Pa/s"),  # Structuration (second) rate
-            "t_f": 300 * ureg("s"),  # Reflocculation time (switch point)
-            "age_0": 0 * ureg("s"),  # start age of concrete
-            ### default parameters required for ViscoDevThixElasticModel
-            # not yet
             # other model parameters
             # "degree": 2 * ureg(""),  # polynomial degree --> default defined in base_experiment!!
             "q_degree": 2 * ureg(""),  # quadrature rule
             "load_time": 60 * ureg("s"),  # body force load applied in s
         }
+        if not non_linear_problem or non_linear_problem == ConcreteThixElasticModel:
+            ### default parameters required for ThixElasticModel
+            model_parameters = {
+                # Youngs modulus is changing over age (see E_fkt) following the bilinear approach Kruger et al 2019
+                # (https://www.sciencedirect.com/science/article/pii/S0950061819317507) with two different rates
+                "E_0": 15000 * ureg("Pa"),  # Youngs Modulus at age=0
+                "R_E": 15 * ureg("Pa/s"),  # Reflocculation (first) rate
+                "A_E": 30 * ureg("Pa/s"),  # Structuration (second) rate
+                "tf_E": 300 * ureg("s"),  # Reflocculation time (switch point)
+                "age_0": 0 * ureg("s"),  # start age of concrete
+            }
+        else:
+            raise ValueError("non_linear_problem not supported")
 
-        return experiment, model_parameters
+        return experiment, {**joined_parameters, **model_parameters}
 
     def setup(self) -> None:
         """set up problem"""
@@ -149,10 +154,6 @@ class ConcreteAM(MaterialProblem):
         # displacement increment
         self.d_disp = df.fem.Function(self.V)
 
-        # # set total strain and stress fields
-        # self.strain = df.fem.Function(self.strain_stress_space, name="strain")
-        # self.stress = df.fem.Function(self.strain_stress_space, name="stress")
-
         # boundaries
         bcs = self.experiment.create_displacement_boundary(self.V)
         body_force_fct = self.experiment.create_body_force_am
@@ -173,23 +174,14 @@ class ConcreteAM(MaterialProblem):
         self.mechanics_solver.rtol = 1e-8
         self.mechanics_solver.report = True
 
-        # # set up xdmf file with mesh info
-        # with df.io.XDMFFile(self.mesh.comm, self.pv_output_file, "w") as f:
-        #     f.write_mesh(self.mesh)
+    def solve(self) -> None:
+        """time incremental solving !"""
 
-    def solve(self, t: pint.Quantity | float = 1.0) -> None:
-        """time incremental solving !
+        self.update_time()  # set t+dt
+        self.update_path()  # set path
 
-        Args:
-            t: time point to solve (default = 1) for output
-
-        """
-        #
-        self.logger.info(f"solve for t:{t}")
+        self.logger.info(f"solve for t: {self.time}")
         self.logger.info(f"CHECK if external loads are applied as incremental loads e.g. delta_u(t)!!!")
-
-        # initial old solution
-        # self.mechanics_problem
 
         # solve problem for current time increment
         self.mechanics_solver.solve(self.d_disp)
@@ -211,57 +203,40 @@ class ConcreteAM(MaterialProblem):
         self.compute_residuals()  # for residual sensor
         for sensor_name in self.sensors:
             # go through all sensors and measure
-            self.sensors[sensor_name].measure(self, t)
+            self.sensors[sensor_name].measure(self)
 
         # update path & internal variables before next step!
-        self.mechanics_problem.update_history()  # if required
-        self.update_path()
+        self.mechanics_problem.update_history(fields=self.fields, q_fields=self.q_fields)  # if required otherwise pass
 
     def compute_residuals(self) -> None:
         """defines what to do, to compute the residuals. Called in solve for sensors"""
 
         self.residual = self.mechanics_problem.R
 
-    def set_timestep(self, dt: pint.Quantity) -> None:
-        """sets time step value here and in mechanics problems using base units
-
-        Args:
-            dt: time step value with unit
-        """
-        _dt = dt.to_base_units().magnitude
-        self.dt = _dt
-        self.mechanics_problem.set_timestep(dt.to_base_units().magnitude)
-
     def update_path(self) -> None:
         """update path for next time increment"""
+        self.mechanics_problem.q_array_path += self.p["dt"] * np.ones_like(self.mechanics_problem.q_array_path)
 
-        # self.q_array_path += self.dt * np.ones_like(self.q_array_path)
-        # self.mechanics_problem.q_array_path = self.q_array_path
-        self.mechanics_problem.q_array_path += self.dt * np.ones_like(self.mechanics_problem.q_array_path)
-
-    def set_initial_path(self, path: list[float]):
+    def set_initial_path(self, path: list[float] | float):
         """set initial path for problem
 
         Args:
             path: array describing the negative time when an element will be reached on quadrature space
+                    if only one value is given, it is assumed that all elements are reached at the same time
 
         """
-        self.mechanics_problem.q_array_path = path
+        if isinstance(path, float):
+            self.mechanics_problem.q_array_path = path * np.ones_like(self.mechanics_problem.q_array_path)
+        else:
+            self.mechanics_problem.q_array_path = path
 
-    def pv_plot(self, t: pint.Quantity | float = 1) -> None:
+    def pv_plot(self) -> None:
         """creates paraview output at given time step
 
         Args:
             t: time point of output (default = 1)
         """
-        print("create pv plot for t", t)
-        try:
-            _t = t.magnitude
-        except:
-            _t = t
-
-        # write displacement field into existing xdmf file f
-        # self.fields.displacement.name = "displacement"
+        self.logger.info(f"create pv plot for t: {self.time}")
 
         # write further fields
         sigma_plot = project(
@@ -278,9 +253,86 @@ class ConcreteAM(MaterialProblem):
         sigma_plot.name = "Stress"
 
         with df.io.XDMFFile(self.mesh.comm, self.pv_output_file, "a") as f:
-            f.write_function(self.fields.displacement, _t)
-            f.write_function(sigma_plot, _t)
-            f.write_function(E_plot, _t)
+            f.write_function(self.fields.displacement, self.time)
+            f.write_function(sigma_plot, self.time)
+            f.write_function(E_plot, self.time)
+
+    @staticmethod
+    def fd_fkt(pd: list[float], path_time: list[float], dt: float, load_time: float) -> list[float]:
+        """computes weighting fct for body force term in pde
+
+        body force can be applied in several loading steps given by parameter ["load_time"]
+        load factor for each step = 1 / "load_time" * dt
+        can be used in all nonlinear problems
+
+        Args:
+            pd: array of pseudo density values
+            path_time: array of process time values
+            dt: time step value
+            load_time: time when load is fully applied
+
+        Returns:
+            array of incremental weigths for body force
+        """
+        fd = np.zeros_like(pd)
+
+        active_idx = np.where(pd > 0)[0]  # only active elements
+        # select indices where path_time is smaller than load_time and bigger then zero [since usually we start the computation at dt so that also for further layers the laoding starts at local layer time +dt]
+        load_idx = np.where((path_time[active_idx] <= load_time) & (path_time[active_idx] > 0))
+        for _ in load_idx:
+            fd[active_idx[load_idx]] = dt / load_time  # linear ramp
+
+        return fd
+
+    @staticmethod
+    def pd_fkt(path_time: list[float]) -> list[float]:
+        """computes pseudo density array
+
+        pseudo density: decides if layer is there (age >=0 active) or not (age < 0 nonactive!)
+        decision based on current path_time value
+        can be used in all nonlinear problems
+
+        Args:
+            path_time: array of process time values at quadrature points
+
+        Returns:
+            array of pseudo density
+        """
+
+        l_active = np.zeros_like(path_time)  # 0: non-active
+
+        activ_idx = np.where(path_time >= 0 - 1e-5)[0]
+        l_active[activ_idx] = 1.0  # active
+
+        return l_active
+
+    @staticmethod
+    def E_fkt(pd: float, path_time: float, parameters: dict) -> float:
+        """computes the Young's modulus at current quadrature point according to bilinear Kruger model
+
+        Args:
+            pd: value of pseudo density [0 - non active or 1 - active]
+            path_time: process time value
+            parameters: parameter dict for bilinear model described by (P0,R_P,A_P,tf_P,age_0)
+
+        Returns:
+            value of current Young's modulus
+        """
+        # print(parameters["age_0"] + path_time)
+        if pd > 0:  # element active, compute current Young's modulus
+            age = parameters["age_0"] + path_time  # age concrete
+            if age < parameters["tf_P"]:
+                E = parameters["P0"] + parameters["R_P"] * age
+            elif age >= parameters["tf_P"]:
+                E = (
+                    parameters["P0"]
+                    + parameters["R_P"] * parameters["tf_P"]
+                    + parameters["A_P"] * (age - parameters["tf_P"])
+                )
+        else:
+            E = 1e-4  # non-active
+
+        return E
 
 
 class ConcreteThixElasticModel(df.fem.petsc.NonlinearProblem):
@@ -359,7 +411,6 @@ class ConcreteThixElasticModel(df.fem.petsc.NonlinearProblem):
         self.sigma_evaluator = QuadratureEvaluator(self.sigma(u), self.mesh, self.rule)
         self.eps_evaluator = QuadratureEvaluator(self.epsilon(u), self.mesh, self.rule)
 
-        self.dt = 1  # default value set via set_timestep
         super().__init__(self.R, u, bc, self.dR)
 
     def x_sigma(self, v: ufl.core.expr.Expr) -> ufl.core.expr.Expr:
@@ -403,75 +454,6 @@ class ConcreteThixElasticModel(df.fem.petsc.NonlinearProblem):
         """
         return ufl.tensoralgebra.Sym(ufl.grad(v))
 
-    def E_fkt(self, pd: float, path_time: float, parameters: dict) -> float:
-        """computes the Young's modulus at current quadrature point according to bilinear Kruger model
-
-        Args:
-            pd: value of pseudo density [0 - non active or 1 - active]
-            path_time: process time value
-            parameters: parameter dict for bilinear model (E_0,R_E,A_E,t_f,age_0)
-
-        Returns:
-            value of current Young's modulus
-        """
-        # print(parameters["age_0"] + path_time)
-        if pd > 0:  # element active, compute current Young's modulus
-            age = parameters["age_0"] + path_time  # age concrete
-            if age < parameters["t_f"]:
-                E = parameters["E_0"] + parameters["R_E"] * age
-            elif age >= parameters["t_f"]:
-                E = (
-                    parameters["E_0"]
-                    + parameters["R_E"] * parameters["t_f"]
-                    + parameters["A_E"] * (age - parameters["t_f"])
-                )
-        else:
-            E = 1e-4  # non-active
-
-        return E
-
-    def pd_fkt(self, path_time: list[float]) -> list[float]:
-        """computes pseudo density array
-
-        pseudo density: decides if layer is there (age >=0 active) or not (age < 0 nonactive!)
-        decision based on current path_time value
-
-        Args:
-            path_time: array of process time values at quadrature points
-
-        Returns:
-            array of pseudo density
-        """
-
-        l_active = np.zeros_like(path_time)  # 0: non-active
-
-        activ_idx = np.where(path_time >= 0 - 1e-5)[0]
-        l_active[activ_idx] = 1.0  # active
-
-        return l_active
-
-    def fd_fkt(self, pd: list[float], path_time: list[float]) -> list[float]:
-        """computes weighting fct for body force term in pde
-
-        body force can be applied in several loading steps given by parameter ["load_time"]
-        load factor for each step = 1 / "load_time" * dt
-
-        Args:
-            pd: array of pseudo density values
-            path_time: array of process time values
-
-        Returns:
-            array of incremental weigths for body force
-        """
-        fd = np.zeros_like(pd)
-
-        active_idx = np.where(pd > 0)[0]  # only active elements
-        load_idx = np.where(path_time[active_idx] < self.p["load_time"])
-        for _ in load_idx:
-            fd[active_idx[load_idx]] = self.dt / self.p["load_time"]  # linear ramp
-
-        return fd
-
     def form(self, x: PETSc.Vec) -> None:
         """This function is called before the residual or Jacobian is
         computed. We override it to calculate the values on the quadrature
@@ -485,28 +467,28 @@ class ConcreteThixElasticModel(df.fem.petsc.NonlinearProblem):
     def evaluate_material(self) -> None:
         """evaluate material"""
 
-        # compute current element activation
-        self.q_array_pd = self.pd_fkt(self.q_array_path)
+        # compute current element activation using static function of ConcreteAM
+        self.q_array_pd = ConcreteAM.pd_fkt(self.q_array_path)
 
         # compute current Young's modulus
         # vectorize the function for speed up
-        E_fkt_vectorized = np.vectorize(self.E_fkt)
+        E_fkt_vectorized = np.vectorize(ConcreteAM.E_fkt)
         E_array = E_fkt_vectorized(
             self.q_array_pd,
             self.q_array_path,
             {
-                "E_0": self.p["E_0"],
-                "R_E": self.p["R_E"],
-                "A_E": self.p["A_E"],
-                "t_f": self.p["t_f"],
+                "P0": self.p["E_0"],
+                "R_P": self.p["R_E"],
+                "A_P": self.p["A_E"],
+                "tf_P": self.p["tf_E"],
                 "age_0": self.p["age_0"],
             },
         )
         self.q_E.vector.array[:] = E_array
         self.q_E.x.scatter_forward()
 
-        # compute loading factors for density load
-        fd_array = self.fd_fkt(self.q_array_pd, self.q_array_path)
+        # compute loading factors for density load using static function of ConcreteAM
+        fd_array = ConcreteAM.fd_fkt(self.q_array_pd, self.q_array_path, self.p["dt"], self.p["load_time"])
         self.q_fd.vector.array[:] = fd_array
         self.q_fd.x.scatter_forward()
 
@@ -514,20 +496,11 @@ class ConcreteThixElasticModel(df.fem.petsc.NonlinearProblem):
         self.sigma_evaluator.evaluate(self.q_sig)
         self.eps_evaluator.evaluate(self.q_eps)  # -> globally in concreteAM not possible why?
 
-    def update_history(self) -> None:
+    def update_history(self, fields: SolutionFields | None = None, q_fields: QuadratureFields | None = None) -> None:
         """nothing here"""
 
         pass
 
-    def set_timestep(self, dt: float) -> None:
-        """set time step value not really needed for that material here
-
-        Args:
-            dt: value of time step
-        """
-
-        self.dt = dt
-
 
 # further nonlinear problem classes for different types of materials
-# class ConcreteViscoDevThixElasticModel(df.NonlinearProblem) # will be added next
+# class ConcreteViscoDevThixElasticModel(df.fem.petsc.NonlinearProblem):

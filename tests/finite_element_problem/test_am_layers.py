@@ -13,7 +13,7 @@ from fenicsxconcrete.sensor_definition.stress_sensor import StressSensor
 from fenicsxconcrete.util import Parameters, QuadratureEvaluator, ureg
 
 
-def set_test_parameters(dim: int) -> Parameters:
+def set_test_parameters(dim: int, mat_type: str = "thix") -> Parameters:
     """set up a test parameter set
 
     Args:
@@ -39,7 +39,11 @@ def set_test_parameters(dim: int) -> Parameters:
         setup_parameters["stress_state"] = "plane_stress" * ureg("")
 
     # default material parameters as start
-    _, default_params = ConcreteAM.default_parameters()
+    if mat_type == "thix":
+        _, default_params = ConcreteAM.default_parameters(ConcreteThixElasticModel)
+    else:
+        raise ValueError(f"Unknown material type {mat_type}")
+
     setup_parameters.update(default_params)
     if dim == 3:
         setup_parameters["q_degree"] = 4 * ureg("")
@@ -78,10 +82,10 @@ def test_am_single_layer(dimension: int, factor: int) -> None:
     # solving parameters
     solve_parameters = {}
     solve_parameters["time"] = 6 * 60 * ureg("s")
-    solve_parameters["dt"] = 60 * ureg("s")
 
     # defining different loading
-    setup_parameters["load_time"] = factor * solve_parameters["dt"]  # interval where load is applied linear over time
+    setup_parameters["dt"] = 60 * ureg("s")
+    setup_parameters["load_time"] = factor * setup_parameters["dt"]  # interval where load is applied linear over time
 
     # setting up the problem
     experiment = AmMultipleLayers(setup_parameters)
@@ -94,19 +98,14 @@ def test_am_single_layer(dimension: int, factor: int) -> None:
     problem.add_sensor(StressSensor([problem.p["layer_length"] / 2, 0, 0]))
     problem.add_sensor(StrainSensor([problem.p["layer_length"] / 2, 0, 0]))
 
-    problem.set_timestep(solve_parameters["dt"])
-
     E_o_time = []
-    t = 0.0 * ureg("s")
-    while t <= solve_parameters["time"]:
-        print(f"solving for t={t}")
-        problem.solve(t=t)
-        problem.pv_plot(t=t)
-
+    total_time = 6 * 60 * ureg("s")
+    while problem.time <= total_time.to_base_units().magnitude:
+        problem.solve()
+        problem.pv_plot()
+        print("computed disp", problem.time, problem.fields.displacement.x.array[:].max())
         # # store Young's modulus over time
         E_o_time.append(problem.youngsmodulus.vector.array[:].max())
-
-        t += solve_parameters["dt"]
 
     # check reaction force
     force_bottom_y = np.array(problem.sensors["ReactionForceSensor"].data)[:, -1]
@@ -123,6 +122,7 @@ def test_am_single_layer(dimension: int, factor: int) -> None:
         dead_load *= problem.p["layer_width"]
 
     # dead load of full structure
+    print("Check", force_bottom_y, dead_load)
     assert sum(force_bottom_y) == pytest.approx(-dead_load)
 
     # check stresses change according to Emodul change
@@ -167,16 +167,12 @@ def test_am_multiple_layer(dimension: int, mat: str, plot: bool = False) -> None
             os.remove(file)
 
     # defining parameters
-    setup_parameters = set_test_parameters(dimension)
-
-    # solving parameters
-    solve_parameters = {}
-    time_layer = 20 * ureg("s")  # time to build one layer
-    solve_parameters["time"] = setup_parameters["num_layers"] * time_layer
-    solve_parameters["dt"] = time_layer / 4
+    setup_parameters = set_test_parameters(dimension, mat_type=mat)
 
     # defining different loading
-    setup_parameters["load_time"] = 2 * solve_parameters["dt"]  # interval where load is applied linear over time
+    time_layer = 20 * ureg("s")  # time to build one layer
+    setup_parameters["dt"] = time_layer / 4
+    setup_parameters["load_time"] = 2 * setup_parameters["dt"]  # interval where load is applied linear over time
 
     # setting up the problem
     experiment = AmMultipleLayers(setup_parameters)
@@ -191,8 +187,6 @@ def test_am_multiple_layer(dimension: int, mat: str, plot: bool = False) -> None
     else:
         print(f"nonlinear problem {mat} not yet implemented")
 
-    problem.set_timestep(solve_parameters["dt"])
-
     # initial path function describing layer activation
     path_activation = define_path(
         problem, time_layer.magnitude, t_0=-(setup_parameters["num_layers"].magnitude - 1) * time_layer.magnitude
@@ -203,14 +197,11 @@ def test_am_multiple_layer(dimension: int, mat: str, plot: bool = False) -> None
     problem.add_sensor(StressSensor([problem.p["layer_length"] / 2, 0, 0]))
     problem.add_sensor(StrainSensor([problem.p["layer_length"] / 2, 0, 0]))
 
-    t = 0.0 * ureg("s")
-    while t <= solve_parameters["time"]:
-        print(f"solving for t={t}")
-        problem.solve(t=t)
-        problem.pv_plot(t=t)
-        print("computed disp", problem.fields.displacement.x.array[:].max())
-
-        t += solve_parameters["dt"]
+    total_time = setup_parameters["num_layers"] * time_layer
+    while problem.time <= total_time.to_base_units().magnitude:
+        problem.solve()
+        problem.pv_plot()
+        print("computed disp", problem.time, problem.fields.displacement.x.array[:].max())
 
     # check residual force bottom
     force_bottom_y = np.array(problem.sensors["ReactionForceSensor"].data)[:, -1]
@@ -232,31 +223,29 @@ def test_am_multiple_layer(dimension: int, mat: str, plot: bool = False) -> None
 
     # check E modulus evolution over structure (each layer different E)
     if mat.lower() == "thix":
-        if solve_parameters["time"].magnitude >= problem.p["t_f"]:
-            E_bottom_layer = (
-                problem.p["E_0"]
-                + problem.p["R_E"] * problem.p["t_f"]
-                + problem.p["A_E"] * (solve_parameters["time"].magnitude + problem.p["age_0"])
-            )
-            E_upper_layer = (
-                problem.p["E_0"]
-                + problem.p["R_E"] * problem.p["t_f"]
-                + problem.p["A_E"]
-                * (
-                    solve_parameters["time"].magnitude
-                    - (problem.p["num_layers"] - 1) * time_layer.magnitude  # layers before
-                    + problem.p["age_0"]
-                )
-            )
-        else:
-            E_bottom_layer = problem.p["E_0"] + problem.p["R_E"] * (
-                solve_parameters["time"].magnitude + problem.p["age_0"]
-            )
-            E_upper_layer = problem.p["E_0"] + problem.p["R_E"] * (
-                solve_parameters["time"].magnitude
-                - (problem.p["num_layers"] - 1) * time_layer.magnitude  # layers before
-                + problem.p["age_0"]
-            )
+        E_bottom_layer = ConcreteAM.E_fkt(
+            1,
+            problem.time,
+            {
+                "P0": problem.p["E_0"],
+                "R_P": problem.p["R_E"],
+                "A_P": problem.p["A_E"],
+                "tf_P": problem.p["tf_E"],
+                "age_0": problem.p["age_0"],
+            },
+        )
+        time_upper = problem.time - (problem.p["num_layers"] - 1) * time_layer.magnitude
+        E_upper_layer = ConcreteAM.E_fkt(
+            1,
+            time_upper,
+            {
+                "P0": problem.p["E_0"],
+                "R_P": problem.p["R_E"],
+                "A_P": problem.p["A_E"],
+                "tf_P": problem.p["tf_E"],
+                "age_0": problem.p["age_0"],
+            },
+        )
 
         print("E_bottom, E_upper", E_bottom_layer, E_upper_layer)
         print(problem.youngsmodulus.vector.array[:].min(), problem.youngsmodulus.vector.array[:].max())
@@ -267,14 +256,14 @@ def test_am_multiple_layer(dimension: int, mat: str, plot: bool = False) -> None
         # example plotting
         strain_yy = np.array(problem.sensors["StrainSensor"].data)[:, -1]
         time = []
-        [time.append(ti.magnitude) for ti in problem.sensors["StrainSensor"].time]
+        [time.append(ti) for ti in problem.sensors["StrainSensor"].time]
 
         import matplotlib.pylab as plt
 
         plt.figure(1)
-        plt.plot(time, strain_yy, "*-r")
+        plt.plot([0] + time, [0] + list(strain_yy), "*-r")
         plt.xlabel("process time")
-        plt.ylabel("sensor bottom middle")
+        plt.ylabel("sensor bottom middle strain_yy")
         plt.show()
 
 
@@ -327,5 +316,5 @@ def define_path(prob, t_diff, t_0=0):
 # if __name__ == "__main__":
 #
 #     # test_am_single_layer(2, 2)
-#
+#     #
 #     test_am_multiple_layer(2, "thix", True)
