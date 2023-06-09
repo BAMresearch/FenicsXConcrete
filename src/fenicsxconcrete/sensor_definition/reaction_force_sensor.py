@@ -1,4 +1,5 @@
-from collections.abc import Callable
+import os
+from typing import TypedDict
 
 import dolfinx as df
 import ufl
@@ -9,6 +10,18 @@ from fenicsxconcrete.sensor_definition.base_sensor import BaseSensor
 from fenicsxconcrete.util import ureg
 
 
+class Surface(TypedDict):
+    """A typed dictionary class to define a surface
+
+    Attributes:
+        function: name of the function to be called to ge the surface
+        args: additional arguments to be passed to such a function
+    """
+
+    function: str
+    args: dict
+
+
 class ReactionForceSensor(BaseSensor):
     """A sensor that measures the reaction force at a specified surface
 
@@ -17,21 +30,21 @@ class ReactionForceSensor(BaseSensor):
         time: list of time stamps
         units : pint definition of the base unit a sensor returns
         name : name of the sensor, default is class name, but can be changed
-        surface : function that defines the surface where the reaction force is measured
+        surface : dictionary that defines the surface where the reaction force is measured
     """
 
-    def __init__(self, surface: Callable | None = None, name: str | None = None) -> None:
+    def __init__(self, surface: Surface | None = None, name: str | None = None) -> None:
         """
         initializes a reaction force sensor, for further details, see base class
 
         Arguments:
-            surface : a function that defines the reaction boundary, default is the bottom surface
+            surface : a dictionary that defines the function for the reaction boundary, default is the bottom surface
             name : name of the sensor, default is class name, but can be changed
         """
         super().__init__(name=name)
-        self.surface = surface
+        self.surface_dict = surface
 
-    def measure(self, problem: MaterialProblem, t: float = 1.0) -> None:
+    def measure(self, problem: MaterialProblem) -> None:
         """
         The reaction force vector of the defined surface is added to the data list,
         as well as the time t to the time list
@@ -41,8 +54,10 @@ class ReactionForceSensor(BaseSensor):
             t : time of measurement for time dependent problems, default is 1
         """
         # boundary condition
-        if self.surface is None:
+        if self.surface_dict is None:
             self.surface = problem.experiment.boundary_bottom()
+        else:
+            self.surface = getattr(problem.experiment, self.surface_dict["function"])(**self.surface_dict["args"])
 
         v_reac = df.fem.Function(problem.fields.displacement.function_space)
 
@@ -86,7 +101,14 @@ class ReactionForceSensor(BaseSensor):
             reaction_force_vector.append(computed_force_z)
 
         self.data.append(reaction_force_vector)
-        self.time.append(t)
+        self.time.append(problem.time)
+
+    def report_metadata(self) -> dict:
+        """Generates dictionary with the metadata of this sensor"""
+        metadata = super().report_metadata()
+        metadata["surface"] = self.surface_dict
+        metadata["sensor_file"] = os.path.splitext(os.path.basename(__file__))[0]
+        return metadata
 
     @staticmethod
     def base_unit() -> ureg:

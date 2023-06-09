@@ -45,7 +45,15 @@ dolfinx:
 
 
 def plane_at(coordinate: float, dim: str | int) -> Callable:
-    """Defines a plane where `x[dim]` equals `coordinate`."""
+    """Defines a plane where `x[dim]` equals `coordinate`.
+
+    Args:
+        coordinate: value
+        dim: dimension
+
+    Returns:
+        function defining the boundary
+    """
 
     if dim in ["x", "X"]:
         dim = 0
@@ -63,13 +71,16 @@ def plane_at(coordinate: float, dim: str | int) -> Callable:
 
 
 def line_at(coordinates: list[float], dims: list[str | int]) -> Callable:
-    """return callable that determines boundary geometrically
+    """Defines a line where `x[dims[0]]` equals `coordinates[0]` and `x[dims[1]]` equals `coordinates[1]`.
 
-    Parameters
-    ----------
-    coordinates
-    dims
+    Args:
+        coordinates: list of values
+        dims: list of dimension
+
+    Returns:
+        function defining the boundary
     """
+
     assert len(coordinates) == 2
     assert len(dims) == 2
 
@@ -106,8 +117,11 @@ def within_range(
     will mark the whole range and not just the boundary.
 
     Args:
-      start: The start point of the range.
-      end: The end point of the range.
+        start: The start point of the range.
+        end: The end point of the range.
+
+    Returns:
+        function defining the boundary
     """
     start = to_floats(start)
     end = to_floats(end)
@@ -130,7 +144,14 @@ def within_range(
 
 
 def point_at(coord: typing.Iterable[int] | typing.Iterable[float]) -> Callable:
-    """Defines a point."""
+    """Defines a point.
+
+    Args:
+        coord: points coordinates
+
+    Returns:
+        function defining the boundary
+    """
     p = to_floats(coord)
 
     def boundary(x):
@@ -155,13 +176,13 @@ def show_marked(
       dimension 2.
 
     Args:
-      domain: The computational domain.
-      marker: A function that takes an array of points ``x`` with shape
-        ``(gdim, num_points)`` and returns an array of booleans of
-        length ``num_points``, evaluating to ``True`` for entities whose
-        degree-of-freedom should be returned.
-      filename: Save figure to this path.
-        If None, the figure is shown (default).
+        domain: The computational domain.
+        marker: A function that takes an array of points ``x`` with shape
+          ``(gdim, num_points)`` and returns an array of booleans of
+          length ``num_points``, evaluating to ``True`` for entities whose
+          degree-of-freedom should be returned.
+        filename: Save figure to this path.
+          If None, the figure is shown (default).
     """
     import matplotlib.pyplot as plt
 
@@ -190,7 +211,15 @@ def show_marked(
 
 
 def to_floats(x: typing.Iterable[int] | typing.Iterable[float]) -> list[float]:
-    """Converts `x` to a 3d coordinate."""
+    """Converts `x` to a 3d coordinate.
+
+    Args:
+        x: point coordinates at least 1D
+
+    Returns:
+        point described as list with x,y,z value
+    """
+
     floats = []
     try:
         for v in x:
@@ -213,9 +242,9 @@ def create_facet_tags(
     See https://jsdokken.com/dolfinx-tutorial/chapter3/robin_neumann_dirichlet.html?highlight=sorted_facets#implementation # noqa: E501
 
     Args:
-      mesh: The computational domain.
-      boundaries: The definition of boundaries where each key is a string
-        and each value is a tuple of an integer and a marker function.
+        mesh: The computational domain.
+        boundaries: The definition of boundaries where each key is a string
+          and each value is a tuple of an integer and a marker function.
 
     Returns:
       A tuple (facet_tags, marked_boundary) where facet_tags is an array

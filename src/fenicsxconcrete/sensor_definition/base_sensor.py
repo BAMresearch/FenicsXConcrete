@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 from abc import ABC, abstractmethod
 
 import pint
@@ -43,6 +44,16 @@ class BaseSensor(ABC, LogMixin):
     @abstractmethod
     def base_unit():
         """Defines the base unit of this sensor"""
+
+    def report_metadata(self) -> dict:
+        """Generates dictionary with the metadata of this sensor"""
+        metadata = {}
+        metadata["id"] = self.name
+        metadata["type"] = self.__class__.__name__
+        metadata["sensor_file"] = os.path.splitext(os.path.basename(__file__))[0]
+        metadata["units"] = f"{self.units._units}"
+        metadata["dimensionality"] = f"{self.units.dimensionality}"
+        return metadata
 
     def get_data_list(self) -> pint.Quantity[list]:
         """Returns the measured data with respective unit
@@ -141,3 +152,13 @@ class PointSensor(BaseSensor):
     @abstractmethod
     def base_unit():
         """Defines the base unit of this sensor, must be specified by child"""
+
+    def report_metadata(self) -> dict:
+        """Generates dictionary with the metadata of this sensor"""
+        metadata = super().report_metadata()
+        metadata["sensor_file"] = os.path.splitext(os.path.basename(__file__))[0]
+        if isinstance(self.where, list):
+            metadata["where"] = self.where
+        else:
+            metadata["where"] = list(self.where)
+        return metadata

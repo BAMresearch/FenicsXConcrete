@@ -104,7 +104,9 @@ class LinearElasticity(MaterialProblem):
     def sigma(self, u: ufl.argument.Argument) -> ufl.core.expr.Expr:
         return self.lambda_ * ufl.nabla_div(u) * ufl.Identity(self.p["dim"]) + 2 * self.mu * self.epsilon(u)
 
-    def solve(self, t: float = 1.0) -> None:
+    def solve(self) -> None:
+        self.update_time()
+        self.logger.info(f"solving t={self.time}")
         self.weak_form_problem.solve()
 
         # TODO Defined as abstractmethod. Should it depend on sensor instead of material?
@@ -113,19 +115,15 @@ class LinearElasticity(MaterialProblem):
         # get sensor data
         for sensor_name in self.sensors:
             # go through all sensors and measure
-            self.sensors[sensor_name].measure(self, t)
+            self.sensors[sensor_name].measure(self)
 
     def compute_residuals(self) -> None:
         self.residual = ufl.action(self.a, self.fields.displacement) - self.L
 
     # paraview output
     # TODO move this to sensor definition!?!?!
-    def pv_plot(self, t: int = 0) -> None:
-        # TODO add possibility for multiple time steps???
+    def pv_plot(self) -> None:
         # Displacement Plot
 
-        # "Displacement.xdmf"
-        # pv_output_file
-        with df.io.XDMFFile(self.mesh.comm, self.pv_output_file, "w") as xdmf:
-            xdmf.write_mesh(self.mesh)
-            xdmf.write_function(self.fields.displacement)
+        with df.io.XDMFFile(self.mesh.comm, self.pv_output_file, "a") as f:
+            f.write_function(self.fields.displacement, self.time)

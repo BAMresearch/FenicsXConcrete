@@ -1,3 +1,8 @@
+import json
+import os
+from copy import deepcopy
+from pathlib import Path
+
 import pytest
 
 from fenicsxconcrete.experimental_setup.cantilever_beam import CantileverBeam
@@ -63,7 +68,26 @@ def test_sensor_options() -> None:
     problem.solve()
 
     # check that some data is in sensor
-    assert problem.sensors[sensor.name].data != []
+    measure = deepcopy(problem.sensors[sensor.name].data)
+    assert measure != []
+
+    # check export sensor data
+    problem.export_sensors_metadata(Path("sensors_metadata.json"))
+    expected_metadata = {
+        "sensors": [
+            {
+                "id": "DisplacementSensor",
+                "type": "DisplacementSensor",
+                "sensor_file": "displacement_sensor",
+                "units": "meter",
+                "dimensionality": "[length]",
+                "where": [1, 0.0, 0.0],
+            }
+        ]
+    }
+    with open("sensors_metadata.json", "r") as f:
+        sensor_metadata = json.load(f)
+    assert sensor_metadata == expected_metadata
 
     # check cleaning of sensor data
     problem.clean_sensor_data()
@@ -72,3 +96,14 @@ def test_sensor_options() -> None:
     # delete sensor
     problem.delete_sensor()
     assert problem.sensors == {}
+
+    # check import sensor data
+    problem.import_sensors_from_metadata(Path("sensors_metadata.json"))
+
+    os.remove("sensors_metadata.json")
+
+    # repeat solving and plotting
+    problem.solve()
+
+    # repeat check that some data is in imported sensor
+    assert problem.sensors[sensor.name].data[0] == pytest.approx(measure[0])
