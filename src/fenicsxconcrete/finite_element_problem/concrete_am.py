@@ -1,5 +1,6 @@
 import copy
 from collections.abc import Callable
+from typing import Type
 
 import dolfinx as df
 import numpy as np
@@ -7,7 +8,6 @@ import pint
 import ufl
 from mpi4py import MPI
 from petsc4py import PETSc
-from typing import Type
 
 from fenicsxconcrete.experimental_setup import AmMultipleLayers, Experiment
 from fenicsxconcrete.finite_element_problem.base_material import MaterialProblem, QuadratureFields, SolutionFields
@@ -76,7 +76,7 @@ class ConcreteAM(MaterialProblem):
                 "nu": "Poissons Ratio",
                 "degree": "Polynomial degree for the FEM model",
                 "q_degree": "Polynomial degree for which the quadrature rule integrates correctly",
-                "load_time": "load applied in 1 s",
+                "load_time": "time in which the load is applied",
                 "stress_state": "for 2D plain stress or plane strain",
                 "dt": "time step",  # default set in material base class
             },
