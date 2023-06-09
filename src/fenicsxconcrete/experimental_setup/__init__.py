@@ -1,5 +1,5 @@
 from .am_multiple_layers import AmMultipleLayers
-from .base_experiment import Experiment
+from .base_experiment import Experiment, ThermalExperimentMixin
 from .cantilever_beam import CantileverBeam
 from .compression_cylinder import CompressionCylinder
 from .minimal_cube import MinimalCubeExperiment

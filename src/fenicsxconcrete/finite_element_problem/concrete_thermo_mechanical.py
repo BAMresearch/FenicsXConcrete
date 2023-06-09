@@ -116,7 +116,6 @@ class ConcreteThermoMechanical(MaterialProblem):
         pass
 
     def setup(self) -> None:
-        print(self.p["degree"])
         self.rule = QuadratureRule(cell_type=self.mesh.ufl_cell(), degree=self.p["q_degree"])
         self.displacement_space = df.fem.VectorFunctionSpace(self.experiment.mesh, ("P", self.p["degree"]))
         self.temperature_space = df.fem.FunctionSpace(self.experiment.mesh, ("P", self.p["degree"]))

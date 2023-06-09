@@ -170,3 +170,21 @@ class Experiment(ABC, LogMixin):
         """
         if self.p["dim"] == 3:
             return plane_at(self.p["width"], "y")
+
+
+class ThermalExperimentMixin(ABC):
+    @abstractmethod
+    def create_temperature_boundary(self, V: df.fem.FunctionSpace) -> list[df.fem.bcs.DirichletBCMetaClass]:
+        """defines empty temperature boundary conditions (to be done in child)
+
+        this function is abstract until there is a need for a material that does need a temperature boundary
+        once that is required, just make this a normal function that returns an empty list
+
+        Args:
+            V: function space
+
+        Returns:
+            a list with temperature boundary conditions
+
+        """
+        pass

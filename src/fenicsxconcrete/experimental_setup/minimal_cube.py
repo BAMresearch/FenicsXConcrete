@@ -10,11 +10,11 @@ from mpi4py import MPI
 from petsc4py.PETSc import ScalarType
 
 from fenicsxconcrete.boundary_conditions import BoundaryConditions, plane_at
-from fenicsxconcrete.experimental_setup import Experiment
+from fenicsxconcrete.experimental_setup import Experiment, ThermalExperimentMixin
 from fenicsxconcrete.util import Parameters, ureg
 
 
-class MinimalCubeExperiment(Experiment):
+class MinimalCubeExperiment(Experiment, ThermalExperimentMixin):
     """A cylinder mesh for a uni-axial displacement load"""
 
     def __init__(self, parameters: dict[str, pint.Quantity] | None = None) -> None:
@@ -101,8 +101,7 @@ class MinimalCubeExperiment(Experiment):
 
         return bc_generator.bcs
 
-    def create_temperature_bcs(self, V: df.fem.FunctionSpace):
-
+    def create_temperature_bcs(self, V: df.fem.FunctionSpace) -> list[df.fem.bcs.DirichletBCMetaClass]:
         return []
 
     def apply_displ_load(self, top_displacement: pint.Quantity | float) -> None:
