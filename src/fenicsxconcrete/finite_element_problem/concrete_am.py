@@ -449,7 +449,7 @@ class ConcreteThixElasticModel(df.fem.petsc.NonlinearProblem):
         Returns:
             ufl expression for strain
         """
-        return ufl.tensoralgebra.Sym(ufl.grad(v))
+        return ufl.sym(ufl.grad(v))
 
     def form(self, x: PETSc.Vec) -> None:
         """This function is called before the residual or Jacobian is
