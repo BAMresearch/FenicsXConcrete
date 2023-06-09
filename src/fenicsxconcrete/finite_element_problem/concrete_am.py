@@ -215,7 +215,7 @@ class ConcreteAM(MaterialProblem):
         """update path for next time increment"""
         self.mechanics_problem.q_array_path += self.p["dt"] * np.ones_like(self.mechanics_problem.q_array_path)
 
-    def set_initial_path(self, path: list[float] | float):
+    def set_initial_path(self, path: list[float] | float) -> None:
         """set initial path for problem
 
         Args:
