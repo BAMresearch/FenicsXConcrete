@@ -32,7 +32,7 @@ class ConcreteAM(MaterialProblem):
         self,
         experiment: Experiment,
         parameters: dict[str, pint.Quantity],
-        nonlinear_problem: df.fem.petsc.NonlinearProblem | None = None,
+        nonlinear_problem: Type[df.fem.petsc.NonlinearProblem] | None = None,
         pv_name: str = "pv_output_full",
         pv_path: str | None = None,
     ) -> None:
