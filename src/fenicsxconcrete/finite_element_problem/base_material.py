@@ -1,13 +1,17 @@
+import importlib
+import json
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from pathlib import Path, PosixPath
 
 import dolfinx as df
+import jsonschema
 import pint
 import ufl
 
 from fenicsxconcrete.experimental_setup.base_experiment import Experiment
 from fenicsxconcrete.sensor_definition.base_sensor import BaseSensor
+from fenicsxconcrete.sensor_definition.sensor_schema import generate_sensor_schema
 from fenicsxconcrete.util import LogMixin, Parameters, ureg
 
 
@@ -84,6 +88,7 @@ class MaterialProblem(ABC, LogMixin):
         # setting up default material parameters
         default_fem_parameters = Parameters()
         default_fem_parameters["g"] = 9.81 * ureg("m/s^2")
+        default_fem_parameters["dt"] = 1.0 * ureg("s")
 
         # adding experimental parameters to dictionary to combine to one
         default_fem_parameters.update(self.experiment.parameters)
@@ -96,7 +101,7 @@ class MaterialProblem(ABC, LogMixin):
 
         self.sensors = self.SensorDict()  # list to hold attached sensors
 
-        # settin gup path for paraview output
+        # setting up path for paraview output
         if not pv_path:
             pv_path = "."
         self.pv_output_file = Path(pv_path) / (pv_name + ".xdmf")
@@ -106,6 +111,13 @@ class MaterialProblem(ABC, LogMixin):
         self.q_fields = None
 
         self.residual = None  # initialize residual
+
+        # initialize time
+        self.time = 0.0
+
+        # set up xdmf file with mesh info
+        with df.io.XDMFFile(self.mesh.comm, self.pv_output_file, "w") as f:
+            f.write_mesh(self.mesh)
 
         # setup the material object to access the function
         self.setup()
@@ -123,8 +135,9 @@ class MaterialProblem(ABC, LogMixin):
 
     @abstractmethod
     def solve(self) -> None:
-        # define what to do, to solve this problem
         """Implemented in child if needed"""
+        self.update_time()
+        # define what to do, to solve this problem
 
     @abstractmethod
     def compute_residuals(self) -> None:
@@ -144,6 +157,64 @@ class MaterialProblem(ABC, LogMixin):
     def delete_sensor(self) -> None:
         del self.sensors
         self.sensors = self.SensorDict()
+
+    def update_time(self):
+        """update time"""
+        self.time += self.p["dt"]
+
+    def export_sensors_metadata(self, path: Path) -> None:
+        """Exports sensor metadata to JSON file according to the appropriate schema.
+
+        Args:
+            path : Path
+                Path where the metadata should be stored
+
+        """
+
+        sensors_metadata_dict = {"sensors": []}
+
+        for key, value in self.sensors.items():
+            sensors_metadata_dict["sensors"].append(value.report_metadata())
+            # sensors_metadata_dict[key]["name"] = key
+
+        with open(path, "w") as f:
+            json.dump(sensors_metadata_dict, f)
+
+    def import_sensors_from_metadata(self, path: Path) -> None:
+        """Import sensor metadata to JSON file and validate with the appropriate schema.
+
+        Args:
+            path : Path
+                Path where the metadata file is
+
+        """
+
+        # Load and validate
+        sensors_metadata_dict = {}
+        with open(path, "r") as f:
+            sensors_metadata_dict = json.load(f)
+        schema = generate_sensor_schema()
+        jsonschema.validate(instance=sensors_metadata_dict, schema=schema)
+
+        for sensor in sensors_metadata_dict["sensors"]:
+            # Dynamically import the module containing the class
+            module_name = "fenicsxconcrete.sensor_definition." + sensor["sensor_file"].lower()
+            module = importlib.import_module(module_name)
+
+            # Create a dictionary of keyword arguments from the remaining properties in the dictionary
+            kwargs = {
+                k: v for k, v in sensor.items() if k not in ["id", "type", "sensor_file", "units", "dimensionality"]
+            }
+
+            # Dynamically retrieve the class by its name
+            class_name = sensor["type"]
+            MySensorClass = getattr(module, class_name)
+
+            # Instantiate an object of the class with the given properties
+            sensor_i = MySensorClass(name=sensor["id"], **kwargs)
+            sensor_i.set_units(units=sensor["units"])
+
+            self.add_sensor(sensor_i)
 
     class SensorDict(dict):
         """

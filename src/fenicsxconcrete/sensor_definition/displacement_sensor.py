@@ -1,3 +1,5 @@
+import os
+
 import dolfinx as df
 
 from fenicsxconcrete.finite_element_problem.base_material import MaterialProblem
@@ -16,7 +18,7 @@ class DisplacementSensor(PointSensor):
         where: location where the value is measured
     """
 
-    def measure(self, problem: MaterialProblem, t: float = 1.0) -> None:
+    def measure(self, problem: MaterialProblem) -> None:
         """
         The displacement value at the defined point is added to the data list,
         as well as the time t to the time list
@@ -43,7 +45,13 @@ class DisplacementSensor(PointSensor):
         displacement_data = problem.fields.displacement.eval([self.where], cells)
 
         self.data.append(displacement_data)
-        self.time.append(t)
+        self.time.append(problem.time)
+
+    def report_metadata(self) -> dict:
+        """Generates dictionary with the metadata of this sensor"""
+        metadata = super().report_metadata()
+        metadata["sensor_file"] = os.path.splitext(os.path.basename(__file__))[0]
+        return metadata
 
     @staticmethod
     def base_unit() -> ureg:
