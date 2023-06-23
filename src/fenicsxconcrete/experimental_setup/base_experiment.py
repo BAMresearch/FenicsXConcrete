@@ -107,6 +107,8 @@ class Experiment(ABC, LogMixin):
 
         Args:
             v: test function
+            q_fd: quadrature function given the loading increment where elements are active
+            rule: rule for the quadrature function
 
         Returns:
             if defined a form for the body force otherwise None
