@@ -14,6 +14,19 @@ from fenicsxconcrete.sensor_definition.base_sensor import BaseSensor
 from fenicsxconcrete.sensor_definition.sensor_schema import generate_sensor_schema
 from fenicsxconcrete.util import LogMixin, Parameters, ureg
 
+# structure for a singleton class
+# class PostProcessingProjector(object):
+#    _instance = None
+#    def __init__(self):
+#        raise RuntimeError('Call instance() instead')
+#
+#    @classmethod
+#    def instance(cls, type:tuple[str, int], shape: int | tuple[int, int]):
+#        if cls._instance is None:
+#            cls._instance = cls.__new__(cls)
+#            # Put any initialization here.
+#        return cls._instance
+
 
 @dataclass
 class SolutionFields:

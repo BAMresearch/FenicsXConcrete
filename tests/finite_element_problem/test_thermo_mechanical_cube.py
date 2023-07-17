@@ -1,68 +1,57 @@
 import os
 from pathlib import Path
 
-# import numpy as np
-# import pytest
+import numpy as np
+import pytest
 
-# from fenicsxconcrete.experimental_setup.uniaxial_cube import UniaxialCubeExperiment
-# from fenicsxconcrete.finite_element_problem.concrete_thermo_mechanical import ConcreteTemperatureHydrationModel
-# from fenicsxconcrete.sensor_definition.displacement_sensor import DisplacementSensor
-# from fenicsxconcrete.sensor_definition.strain_sensor import StrainSensor
-# from fenicsxconcrete.sensor_definition.stress_sensor import StressSensor
-# from fenicsxconcrete.unit_registry import ureg
+from fenicsxconcrete.experimental_setup import MinimalCubeExperiment
+from fenicsxconcrete.finite_element_problem import ConcreteThermoMechanical, LinearElasticity
+from fenicsxconcrete.sensor_definition import DisplacementSensor, StrainSensor, StressSensor
+from fenicsxconcrete.sensor_definition.strain_sensor import StrainSensor
+from fenicsxconcrete.sensor_definition.stress_sensor import StressSensor
+from fenicsxconcrete.util import ureg
 
 
-# @pytest.mark.parametrize("dim", [2, 3])
-# def test_disp(dim: int) -> None:
+@pytest.mark.parametrize("dim", [2, 3])
+def test_mechanical_only(dim: int) -> None:
 
-#     # setup paths and directories
-#     data_dir = "data_files"
-#     data_path = Path(__file__).parent / data_dir
+    # defining experiment parameters
+    parameters = {}
 
-#     # define file name and path for paraview output
-#     file_name = f"test_linear_uniaxial_{dim}d"
-#     files = [data_path / (file_name + ".xdmf"), data_path / (file_name + ".h5")]
-#     # delete file if it exisits (only relevant for local tests)
-#     for file in files:
-#         if file.is_file():
-#             os.remove(file)
+    parameters["dim"] = dim * ureg("")
+    parameters["num_elements_length"] = 2 * ureg("")
+    parameters["num_elements_height"] = 2 * ureg("")
+    parameters["num_elements_width"] = 2 * ureg("")
 
-#     # defining experiment parameters
-#     parameters = {}
+    displacement = 0.01 * ureg("m")
 
-#     parameters["dim"] = dim * ureg("")
-#     parameters["num_elements_length"] = 2 * ureg("")
-#     parameters["num_elements_height"] = 2 * ureg("")
-#     parameters["num_elements_width"] = 2 * ureg("")
+    parameters["rho"] = 7750 * ureg("kg/m^3")
+    parameters["E"] = 210e9 * ureg("N/m^2")
+    parameters["nu"] = 0.28 * ureg("")
 
-#     displacement = 0.01 * ureg("m")
+    # setting up the problem
+    experiment = MinimalCubeExperiment(parameters)
+    problem_elastic = LinearElasticity(experiment, parameters, pv_name=file_name, pv_path=data_path)
 
-#     parameters["rho"] = 7750 * ureg("kg/m^3")
-#     parameters["E"] = 210e9 * ureg("N/m^2")
-#     parameters["nu"] = 0.28 * ureg("")
-#     parameters["strain_state"] = "uniaxial" * ureg("")
+    parameters_thermo = ConcreteThermoMechanical.default_parameters()
+    parameters_thermo["nu"] = parameters["nu"]
+    parameters_thermo["E_28"] = parameters["E"]
+    problem_thermo_mechanical = ConcreteThermoMechanical(experiment, parameters, pv_name=file_name, pv_path=data_path)
 
-#     if dim == 2:
-#         # change default stress_state
-#         parameters["stress_state"] = "plane_stress" * ureg("")
+    if dim == 2:
+        sensor_location = [0.5, 0.5, 0.0]
+    elif dim == 3:
+        sensor_location = [0.5, 0.5, 0.5]
 
-#     # setting up the problem
-#     experiment = UniaxialCubeExperiment(parameters)
-#     problem = LinearElasticity(experiment, parameters, pv_name=file_name, pv_path=data_path)
+    # add sensors
+    problem.add_sensor(StressSensor(sensor_location))
+    problem.add_sensor(StrainSensor(sensor_location))
 
-#     if dim == 2:
-#         sensor_location = [0.5, 0.5, 0.0]
-#     elif dim == 3:
-#         sensor_location = [0.5, 0.5, 0.5]
+    # apply displacement load and solve
+    problem.experiment.apply_displ_load(displacement)
+    problem.solve()
+    problem.pv_plot()
 
-#     # add sensors
-#     problem.add_sensor(StressSensor(sensor_location))
-#     problem.add_sensor(StrainSensor(sensor_location))
-
-#     # apply displacement load and solve
-#     problem.experiment.apply_displ_load(displacement)
-#     problem.solve()
-#     problem.pv_plot()
 
 #     # checks
 #     analytic_eps = (displacement.to_base_units() / (1.0 * ureg("m"))).magnitude
