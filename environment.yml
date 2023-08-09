@@ -2,6 +2,7 @@ name: fenicsxconcrete
 channels:
   - conda-forge
 dependencies:
+  - python>=3.10
   # runtime
   - fenics-dolfinx
   - scipy
@@ -26,4 +27,4 @@ dependencies:
   - isort
   - pip
   - pip:
-      - -e .
+    - -e .
