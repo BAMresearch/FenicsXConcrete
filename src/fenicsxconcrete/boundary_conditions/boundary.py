@@ -184,7 +184,10 @@ def _show_marked(
         filename: Save figure to this path.
           If None, the figure is shown (default).
     """
-    import matplotlib.pyplot as plt
+    try:
+        import matplotlib.pyplot as plt
+    except ImportError:
+        raise ImportError("matplotlib is required to show marked dofs.")
 
     tdim = domain.topology.dim
     if tdim in (1, 3):
