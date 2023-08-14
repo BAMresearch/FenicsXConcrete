@@ -163,7 +163,7 @@ def point_at(coord: typing.Iterable[int] | typing.Iterable[float]) -> Callable:
     return boundary
 
 
-def show_marked(
+def _show_marked(
     domain: dolfinx.mesh.Mesh,
     marker: Callable,
     filename: str | None = None,
