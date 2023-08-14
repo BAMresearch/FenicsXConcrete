@@ -3,28 +3,8 @@ channels:
   - conda-forge
 dependencies:
   - python>=3.10
-  # runtime
-  - fenics-dolfinx
-  - scipy
-  - pint
-  - matplotlib
-  - python-gmsh
-  - meshio
-  - jsonschema
-  # tests
-  - pytest
-  - coverage
-  - toml
-  # docs
-  - sphinx
-  - sphinx-gallery
-  - myst-parser
-  - sphinx_rtd_theme
-  # environment
-  - conda-ecosystem-user-package-isolation
-  # formatting
-  - black
-  - isort
   - pip
+  - conda-ecosystem-user-package-isolation
+  - fenics-dolfinx
   - pip:
-    - -e .
+    - -e .[tests,docs]
