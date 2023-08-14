@@ -167,7 +167,7 @@ def show_marked(
     domain: dolfinx.mesh.Mesh,
     marker: Callable,
     filename: str | None = None,
-) -> None:
+) -> None:  # pragma: no cover
     """Shows dof coordinates marked by `marker`.
 
     Notes:
@@ -207,7 +207,7 @@ def show_marked(
     if filename is not None:
         plt.savefig(filename)
     else:
-        plt.show()  # pragma: no cover
+        plt.show()
 
 
 def to_floats(x: typing.Iterable[int] | typing.Iterable[float]) -> list[float]:
