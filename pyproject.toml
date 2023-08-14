@@ -27,7 +27,7 @@ version = "0.0.5a1"
 
 [project.optional-dependencies]
 tests = ["pytest", "coverage", "toml"]
-docs = ["sphinx", "sphinx-gallery", "sphinx-rtd-theme", "myst-parser"]
+docs = ["sphinx", "sphinx-gallery", "sphinx-rtd-theme", "myst-parser", "matplotlib"]
 
 [project.urls]
 repository = "https://github.com/BAMresearch/FenicsXConcrete.git"
