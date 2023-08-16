@@ -97,6 +97,9 @@ class ConcreteAM(MaterialProblem):
     ) -> tuple[Experiment, dict[str, pint.Quantity]]:
         """Static method that returns a set of default parameters for the selected nonlinear problem.
 
+        Args:
+            non_linear_problem: the nonlinear problem class of used material law
+
         Returns:
             The default experiment instance and the default parameters as a dictionary.
 
@@ -229,11 +232,8 @@ class ConcreteAM(MaterialProblem):
             self.mechanics_problem.q_array_path = path
 
     def pv_plot(self) -> None:
-        """creates paraview output at given time step
+        """creates paraview output at given time step"""
 
-        Args:
-            t: time point of output (default = 1)
-        """
         self.logger.info(f"create pv plot for t: {self.time}")
 
         # write further fields

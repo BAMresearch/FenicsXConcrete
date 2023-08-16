@@ -144,6 +144,7 @@ class AmMultipleLayers(Experiment):
         Args:
             v: test function
             q_fd: quadrature function given the loading increment where elements are active
+            rule: rule for the quadrature function
 
         Returns:
             form for body force

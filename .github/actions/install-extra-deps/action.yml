@@ -1,0 +1,6 @@
+name: install-extra-deps
+runs:
+  using: "composite"
+  steps:
+    - run: sudo apt-get update && sudo apt-get install --no-install-recommends --yes libglu1-mesa libgl1-mesa-dev
+      shell: bash

@@ -16,7 +16,7 @@ dependencies = [
   "fenics-dolfinx",
   "pint",
   "gmsh",
-  "meshio"
+  "jsonschema",
 ]
 description = "Implementation of structural problems for concrete structures using FEniCSx"
 license = {file = "LICENSE"}
@@ -27,6 +27,7 @@ version = "0.0.5a1"
 
 [project.optional-dependencies]
 tests = ["pytest", "coverage", "toml"]
+docs = ["sphinx", "sphinx-gallery", "sphinx-rtd-theme", "myst-parser", "matplotlib"]
 
 [project.urls]
 repository = "https://github.com/BAMresearch/FenicsXConcrete.git"

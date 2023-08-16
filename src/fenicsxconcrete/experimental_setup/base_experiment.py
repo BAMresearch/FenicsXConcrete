@@ -6,7 +6,7 @@ import pint
 import ufl
 
 from fenicsxconcrete.boundary_conditions.boundary import plane_at, point_at
-from fenicsxconcrete.util import LogMixin, Parameters, ureg
+from fenicsxconcrete.util import LogMixin, Parameters, QuadratureRule, ureg
 
 
 class Experiment(ABC, LogMixin):
@@ -101,12 +101,17 @@ class Experiment(ABC, LogMixin):
         pass
 
     def create_body_force_am(
-        self, v: ufl.argument.Argument | None = None, q_fd=None, rule=None
+        self,
+        v: ufl.argument.Argument | None = None,
+        q_fd: df.fem.Function | None = None,
+        rule: QuadratureRule | None = None,
     ) -> ufl.form.Form | None:
         """defines empty body force function for am case
 
         Args:
             v: test function
+            q_fd: quadrature function given the loading increment where elements are active
+            rule: rule for the quadrature function
 
         Returns:
             if defined a form for the body force otherwise None

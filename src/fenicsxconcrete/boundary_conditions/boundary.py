@@ -163,11 +163,11 @@ def point_at(coord: typing.Iterable[int] | typing.Iterable[float]) -> Callable:
     return boundary
 
 
-def show_marked(
+def _show_marked(
     domain: dolfinx.mesh.Mesh,
     marker: Callable,
     filename: str | None = None,
-) -> None:
+) -> None:  # pragma: no cover
     """Shows dof coordinates marked by `marker`.
 
     Notes:
@@ -184,7 +184,10 @@ def show_marked(
         filename: Save figure to this path.
           If None, the figure is shown (default).
     """
-    import matplotlib.pyplot as plt
+    try:
+        import matplotlib.pyplot as plt
+    except ImportError:
+        raise ImportError("matplotlib is required to show marked dofs.")
 
     tdim = domain.topology.dim
     if tdim in (1, 3):
@@ -207,7 +210,7 @@ def show_marked(
     if filename is not None:
         plt.savefig(filename)
     else:
-        plt.show()  # pragma: no cover
+        plt.show()
 
 
 def to_floats(x: typing.Iterable[int] | typing.Iterable[float]) -> list[float]:
