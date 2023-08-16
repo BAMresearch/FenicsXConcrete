@@ -7,8 +7,6 @@ import pytest
 from fenicsxconcrete.experimental_setup import MinimalCubeExperiment
 from fenicsxconcrete.finite_element_problem import ConcreteThermoMechanical, LinearElasticity
 from fenicsxconcrete.sensor_definition import DisplacementSensor, StrainSensor, StressSensor
-from fenicsxconcrete.sensor_definition.strain_sensor import StrainSensor
-from fenicsxconcrete.sensor_definition.stress_sensor import StressSensor
 from fenicsxconcrete.util import ureg
 
 

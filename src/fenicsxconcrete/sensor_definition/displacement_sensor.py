@@ -18,6 +18,7 @@ class DisplacementSensor(PointSensor):
         where: location where the value is measured
     """
 
+    # Type hints don't work here because they create a circular import :(
     def measure(self, problem: MaterialProblem) -> None:
         """
         The displacement value at the defined point is added to the data list,

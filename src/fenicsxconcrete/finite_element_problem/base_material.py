@@ -10,7 +10,7 @@ import pint
 import ufl
 
 from fenicsxconcrete.experimental_setup.base_experiment import Experiment
-from fenicsxconcrete.sensor_definition.base_sensor import BaseSensor
+from fenicsxconcrete.sensor_definition.base_sensor import BaseSensor, SensorDict
 from fenicsxconcrete.sensor_definition.sensor_schema import generate_sensor_schema
 from fenicsxconcrete.util import LogMixin, Parameters, ureg
 
@@ -116,7 +116,7 @@ class MaterialProblem(ABC, LogMixin):
         self.p = self.parameters.to_magnitude()
         self.experiment.p = self.p  # update experimental parameter list for use in e.g. boundary definition
 
-        self.sensors = self.SensorDict()  # list to hold attached sensors
+        self.sensors = SensorDict()  # list to hold attached sensors
 
         # setting up path for paraview output
         if not pv_path:
@@ -173,7 +173,7 @@ class MaterialProblem(ABC, LogMixin):
 
     def delete_sensor(self) -> None:
         del self.sensors
-        self.sensors = self.SensorDict()
+        self.sensors = SensorDict()
 
     def update_time(self) -> None:
         """update time"""
@@ -233,26 +233,26 @@ class MaterialProblem(ABC, LogMixin):
 
             self.add_sensor(sensor_i)
 
-    class SensorDict(dict):
-        """
-        Dict that also allows to access the parameter p["parameter"] via the matching attribute p.parameter
-        to make access shorter
+    # class SensorDict(dict):
+    #     """
+    #     Dict that also allows to access the parameter p["parameter"] via the matching attribute p.parameter
+    #     to make access shorter
 
-        When to sensors with the same name are defined, the next one gets a number added to the name
-        """
+    #     When to sensors with the same name are defined, the next one gets a number added to the name
+    #     """
 
-        def __getattr__(self, key: str) -> BaseSensor:
-            return self[key]
+    #     def __getattr__(self, key: str):# -> BaseSensor:
+    #         return self[key]
 
-        def __setitem__(self, initial_key: str, value: BaseSensor) -> None:
-            # check if key exists, if so, add a number to the name
-            i = 2
-            key = initial_key
-            if key in self:
-                while key in self:
-                    key = initial_key + str(i)
-                    i += 1
-                # rename the sensor object
-                value.name = key
+    #     def __setitem__(self, initial_key: str, value: BaseSensor) -> None:
+    #         # check if key exists, if so, add a number to the name
+    #         i = 2
+    #         key = initial_key
+    #         if key in self:
+    #             while key in self:
+    #                 key = initial_key + str(i)
+    #                 i += 1
+    #             # rename the sensor object
+    #             value.name = key
 
-            super().__setitem__(key, value)
+    #         super().__setitem__(key, value)
