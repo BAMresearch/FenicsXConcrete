@@ -31,12 +31,14 @@ def test_mechanical_only(dim: int) -> None:
 
     # setting up the problem
     experiment = MinimalCubeExperiment(parameters)
-    problem_elastic = LinearElasticity(experiment, parameters, pv_name=file_name, pv_path=data_path)
+    problem_elastic = LinearElasticity(experiment, parameters, pv_name="pure_mechanical_test.xdmf", pv_path="")
 
     parameters_thermo = ConcreteThermoMechanical.default_parameters()
     parameters_thermo["nu"] = parameters["nu"]
     parameters_thermo["E_28"] = parameters["E"]
-    problem_thermo_mechanical = ConcreteThermoMechanical(experiment, parameters, pv_name=file_name, pv_path=data_path)
+    problem_thermo_mechanical = ConcreteThermoMechanical(
+        experiment, parameters, pv_name="thermo_echanical_test.xdmf", pv_path=""
+    )
 
     if dim == 2:
         sensor_location = [0.5, 0.5, 0.0]
@@ -44,13 +46,17 @@ def test_mechanical_only(dim: int) -> None:
         sensor_location = [0.5, 0.5, 0.5]
 
     # add sensors
-    problem.add_sensor(StressSensor(sensor_location))
-    problem.add_sensor(StrainSensor(sensor_location))
+    problem_elastic.add_sensor(StressSensor(sensor_location))
+    problem_thermo_mechanical.add_sensor(StrainSensor(sensor_location))
 
     # apply displacement load and solve
-    problem.experiment.apply_displ_load(displacement)
-    problem.solve()
-    problem.pv_plot()
+    problem_elastic.experiment.apply_displ_load(displacement)
+    problem_elastic.solve()
+
+    problem_thermo_mechanical.experiment.apply_displ_load(displacement)
+    problem_thermo_mechanical.mechanics_problem.q_values.degree_of_hydration.vector.array[:] = 1.0
+    problem_thermo_mechanical.solve()
+    # problem_elastic.pv_plot()
 
 
 #     # checks
