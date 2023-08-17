@@ -1,6 +1,7 @@
 import importlib
 import json
 from abc import ABC, abstractmethod
+from copy import deepcopy
 from dataclasses import dataclass
 from pathlib import Path, PosixPath
 
@@ -239,3 +240,6 @@ class MaterialProblem(ABC, LogMixin):
                 value.name = key
 
             super().__setitem__(key, value)
+
+        def __deepcopy__(self, memo):
+            return self.__class__({k: deepcopy(v, memo) for k, v in self.items()})
