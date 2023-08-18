@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import importlib
 import json
 from abc import ABC, abstractmethod
@@ -241,5 +243,5 @@ class MaterialProblem(ABC, LogMixin):
 
             super().__setitem__(key, value)
 
-        def __deepcopy__(self, memo):
+        def __deepcopy__(self, memo: dict) -> SensorDict:
             return self.__class__({k: deepcopy(v, memo) for k, v in self.items()})
