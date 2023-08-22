@@ -28,6 +28,14 @@ fenicsxconcrete.sensor\_definition.reaction\_force\_sensor module
    :undoc-members:
    :show-inheritance:
 
+fenicsxconcrete.sensor\_definition.sensor\_schema module
+--------------------------------------------------------
+
+.. automodule:: fenicsxconcrete.sensor_definition.sensor_schema
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 fenicsxconcrete.sensor\_definition.strain\_sensor module
 --------------------------------------------------------
 

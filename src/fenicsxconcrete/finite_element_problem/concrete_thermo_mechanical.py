@@ -7,7 +7,7 @@ import scipy
 import ufl
 from petsc4py import PETSc
 
-from fenicsxconcrete.experimental_setup import Experiment, MinimalCubeExperiment
+from fenicsxconcrete.experimental_setup import Experiment, SimpleCube
 from fenicsxconcrete.finite_element_problem import MaterialProblem, QuadratureFields, SolutionFields
 from fenicsxconcrete.util import LogMixin, Parameters, QuadratureEvaluator, QuadratureRule, project, ureg
 
@@ -81,7 +81,7 @@ class ConcreteThermoMechanical(MaterialProblem, LogMixin):
         Returns:
             The default parameters as a dictionary.
         """
-        experiment = MinimalCubeExperiment(MinimalCubeExperiment.default_parameters())
+        experiment = SimpleCube(SimpleCube.default_parameters())
         # Material parameter for concrete model with temperature and hydration
         default_parameters = {
             "igc": 8.3145 * ureg("J/K/mol"),
@@ -154,7 +154,7 @@ class ConcreteThermoMechanical(MaterialProblem, LogMixin):
         self.q_fields = QuadratureFields(
             measure=self.rule.dx,
             plot_space_type=plot_space_type,
-            stress=self.mechanics_problem.sigma(self.fields.displacement),
+            stress=self.mechanics_problem.sigma_voigt(self.mechanics_problem.sigma(self.fields.displacement)),
             degree_of_hydration=self.temperature_problem.q_alpha,
             youngs_modulus=self.mechanics_problem.q_E,
             compressive_strength=self.mechanics_problem.q_fc,
@@ -164,12 +164,17 @@ class ConcreteThermoMechanical(MaterialProblem, LogMixin):
 
         # setting up the solvers
         self.temperature_solver = df.nls.petsc.NewtonSolver(self.experiment.mesh.comm, self.temperature_problem)
-        self.temperature_solver.atol = 1e-9
+        self.temperature_solver.atol = 1e-8
         self.temperature_solver.rtol = 1e-8
+        self.temperature_solver.max_it = 10
+        self.temperature_solver.error_on_nonconvergence = False
 
         self.mechanics_solver = df.nls.petsc.NewtonSolver(self.experiment.mesh.comm, self.mechanics_problem)
-        self.mechanics_solver.atol = 1e-9
+        self.mechanics_solver.atol = 1e-8
         self.mechanics_solver.rtol = 1e-8
+        self.mechanics_solver.max_it = 5
+        self.mechanics_solver.error_on_nonconvergence = False
+
         # if self.wrapper:
         #     self.wrapper.set_geometry(self.mechanics_problem.V, [])
 
@@ -247,15 +252,13 @@ class ConcreteThermoMechanical(MaterialProblem, LogMixin):
             # mechanics
             f.write_function(self.fields.displacement, t)
 
-            sigma_plot = project(
-                self.mechanics_problem.sigma(self.fields.displacement), self.plot_space_stress, self.rule.dx
-            )
+            sigma_plot = project(self.q_fields.stress, self.plot_space_stress, self.rule.dx)
             E_plot = project(self.q_fields.youngs_modulus, self.plot_space, self.rule.dx)
             fc_plot = project(self.q_fields.compressive_strength, self.plot_space, self.rule.dx)
             ft_plot = project(self.q_fields.tensile_strength, self.plot_space, self.rule.dx)
             yield_plot = project(self.q_fields.yield_values, self.plot_space, self.rule.dx)
 
-            E_plot.name = "Young's_Modulus"
+            E_plot.name = "Youngs_Modulus"
             fc_plot.name = "Compressive_strength"
             ft_plot.name = "Tensile_strength"
             yield_plot.name = "Yield_surface"
@@ -631,7 +634,7 @@ class ConcreteMechanicsModel(df.fem.petsc.NonlinearProblem):
         self.x_mu = 1.0 / (2.0 * (1.0 + self.p["nu"]))
         self.x_lambda = 1.0 * self.p["nu"] / ((1.0 + self.p["nu"]) * (1.0 - 2.0 * self.p["nu"]))
 
-        R_ufl = ufl.inner(self.sigma(u), ufl.sym(ufl.grad(v))) * self.rule.dx
+        R_ufl = ufl.inner(self.sigma(u), self.eps(v)) * self.rule.dx
         R_ufl += body_forces
 
         self.R = R_ufl
@@ -651,6 +654,9 @@ class ConcreteMechanicsModel(df.fem.petsc.NonlinearProblem):
 
     def sigma(self, v: ufl.core.expr.Expr) -> ufl.core.expr.Expr:
         return self.q_E * self._x_sigma(v)
+
+    def eps(self, v: ufl.core.expr.Expr) -> ufl.core.expr.Expr:
+        return ufl.sym(ufl.grad(v))
 
     def E_fkt(self, alpha: float, parameters: dict) -> float:
 
@@ -702,7 +708,7 @@ class ConcreteMechanicsModel(df.fem.petsc.NonlinearProblem):
 
     def evaluate_material(self) -> None:
         # convert quadrature spaces to numpy vector
-
+        # TODO: Why these new parameters?
         parameters = {}
         parameters["alpha_t"] = self.p["alpha_t"]
         parameters["E_inf"] = self.p["E_28"]
@@ -711,8 +717,7 @@ class ConcreteMechanicsModel(df.fem.petsc.NonlinearProblem):
         # vectorize the function for speed up
         # TODO: remove vectorization. It does nothing for speed-up
         E_fkt_vectorized = np.vectorize(self.E_fkt)
-        E_array = E_fkt_vectorized(self.q_array_alpha, parameters)
-        self.q_E.vector.array[:] = E_array
+        self.q_E.vector.array[:] = E_fkt_vectorized(self.q_array_alpha, parameters)
         self.q_E.x.scatter_forward()
 
         # from here postprocessing
@@ -750,7 +755,7 @@ class ConcreteMechanicsModel(df.fem.petsc.NonlinearProblem):
         if n == 1:
             principal_stresses = stresses
         # 2D problem
-        elif n == 2:
+        elif n == 3:
             # the following uses
             # lambda**2 - tr(sigma)lambda + det(sigma) = 0, solve for lambda using pq formula
             p = -(stresses[:, 0] + stresses[:, 1])

@@ -36,14 +36,6 @@ fenicsxconcrete.experimental\_setup.compression\_cylinder module
    :undoc-members:
    :show-inheritance:
 
-fenicsxconcrete.experimental\_setup.minimal\_cube module
---------------------------------------------------------
-
-.. automodule:: fenicsxconcrete.experimental_setup.minimal_cube
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
 fenicsxconcrete.experimental\_setup.simple\_beam module
 -------------------------------------------------------
 
@@ -64,14 +56,6 @@ fenicsxconcrete.experimental\_setup.tensile\_beam module
 --------------------------------------------------------
 
 .. automodule:: fenicsxconcrete.experimental_setup.tensile_beam
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-fenicsxconcrete.experimental\_setup.uniaxial\_cube module
----------------------------------------------------------
-
-.. automodule:: fenicsxconcrete.experimental_setup.uniaxial_cube
    :members:
    :undoc-members:
    :show-inheritance:

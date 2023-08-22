@@ -38,6 +38,7 @@ class SimpleCube(Experiment):
         default_p["height"] = 1 * ureg("m")
         default_p["width"] = 1 * ureg("m")
         default_p["length"] = 1 * ureg("m")
+        default_p["T_0"] = 20.0 * ureg.dC
 
         default_p.update(parameters)
 
@@ -179,3 +180,27 @@ class SimpleCube(Experiment):
         """
         top_displacement.ito_base_units()
         self.top_displacement.value = top_displacement.magnitude
+
+    def create_temperature_bcs(self, V: df.fem.FunctionSpace) -> list[df.fem.bcs.DirichletBCMetaClass]:
+        """defines empty temperature boundary conditions (to be done in child)
+
+        this function is abstract until there is a need for a material that does need a temperature boundary
+        once that is required, just make this a normal function that returns an empty list
+
+        Args:
+            V: function space
+
+        Returns:
+            a list with temperature boundary conditions
+
+        """
+        return []
+
+    def create_body_force(self, v: ufl.argument.Argument) -> ufl.form.Form:
+        force_vector = np.zeros(self.p["dim"])
+        force_vector[-1] = -self.p["rho"] * self.p["g"]  # works for 2D and 3D
+
+        f = df.fem.Constant(self.mesh, force_vector)
+        L = ufl.dot(f, v) * ufl.dx
+
+        return L

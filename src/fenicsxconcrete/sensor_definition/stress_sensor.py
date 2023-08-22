@@ -1,9 +1,14 @@
+from __future__ import annotations
+
 import os
+from typing import TYPE_CHECKING
 
 import dolfinx as df
 import ufl
 
-from fenicsxconcrete.finite_element_problem.base_material import MaterialProblem
+if TYPE_CHECKING:
+    from fenicsxconcrete.finite_element_problem.base_material import MaterialProblem
+
 from fenicsxconcrete.sensor_definition.base_sensor import PointSensor
 from fenicsxconcrete.util import project, ureg
 

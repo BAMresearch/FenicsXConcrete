@@ -12,6 +12,14 @@ fenicsxconcrete.finite\_element\_problem.base\_material module
    :undoc-members:
    :show-inheritance:
 
+fenicsxconcrete.finite\_element\_problem.concrete\_am module
+------------------------------------------------------------
+
+.. automodule:: fenicsxconcrete.finite_element_problem.concrete_am
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 fenicsxconcrete.finite\_element\_problem.concrete\_thermo\_mechanical module
 ----------------------------------------------------------------------------
 
