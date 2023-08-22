@@ -100,6 +100,7 @@ class SimpleCube(Experiment):
 
         # initialize variable top_displacement
         self.top_displacement = df.fem.Constant(domain=self.mesh, c=0.0)  # applied via fkt: apply_displ_load(...)
+        self.use_body_force = False
 
     def create_displacement_boundary(self, V: df.fem.FunctionSpace) -> list[df.fem.bcs.DirichletBCMetaClass]:
         """Defines the displacement boundary conditions
@@ -181,6 +182,9 @@ class SimpleCube(Experiment):
         top_displacement.ito_base_units()
         self.top_displacement.value = top_displacement.magnitude
 
+    def apply_body_force(self) -> None:
+        self.use_body_force = True
+
     def create_temperature_bcs(self, V: df.fem.FunctionSpace) -> list[df.fem.bcs.DirichletBCMetaClass]:
         """defines empty temperature boundary conditions (to be done in child)
 
@@ -196,11 +200,14 @@ class SimpleCube(Experiment):
         """
         return []
 
-    def create_body_force(self, v: ufl.argument.Argument) -> ufl.form.Form:
-        force_vector = np.zeros(self.p["dim"])
-        force_vector[-1] = -self.p["rho"] * self.p["g"]  # works for 2D and 3D
+    def create_body_force(self, v: ufl.argument.Argument) -> ufl.form.Form | None:
+        if self.use_body_force:
+            force_vector = np.zeros(self.p["dim"])
+            force_vector[-1] = -self.p["rho"] * self.p["g"]  # works for 2D and 3D
 
-        f = df.fem.Constant(self.mesh, force_vector)
-        L = ufl.dot(f, v) * ufl.dx
+            f = df.fem.Constant(self.mesh, force_vector)
+            L = ufl.dot(f, v) * ufl.dx
 
-        return L
+            return L
+        else:
+            return None

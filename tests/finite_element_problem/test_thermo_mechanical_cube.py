@@ -43,7 +43,9 @@ def test_mechanical_only(dim: int) -> None:
     )
 
     # apply displacement load and solve
-    problem_elastic.experiment.apply_displ_load(displacement)
+    experiment.apply_displ_load(displacement)
+    experiment.apply_body_force()
+
     problem_elastic.solve()
     problem_elastic.pv_plot()
 

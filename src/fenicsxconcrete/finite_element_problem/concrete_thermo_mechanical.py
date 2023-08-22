@@ -601,7 +601,7 @@ class ConcreteMechanicsModel(df.fem.petsc.NonlinearProblem):
         rule: QuadratureRule,
         u: df.fem.Function,
         bcs: list[df.fem.DirichletBCMetaClass],
-        body_forces: ufl.form.Form,
+        body_forces: ufl.form.Form | None,
     ):
         self.p = parameters
         dim_to_stress_dim = {1: 1, 2: 3, 3: 6}
@@ -635,7 +635,8 @@ class ConcreteMechanicsModel(df.fem.petsc.NonlinearProblem):
         self.x_lambda = 1.0 * self.p["nu"] / ((1.0 + self.p["nu"]) * (1.0 - 2.0 * self.p["nu"]))
 
         R_ufl = ufl.inner(self.sigma(u), self.eps(v)) * self.rule.dx
-        R_ufl += body_forces
+        if body_forces is not None:
+            R_ufl += body_forces
 
         self.R = R_ufl
 
