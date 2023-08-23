@@ -39,6 +39,7 @@ class SimpleCube(Experiment):
         default_p["width"] = 1 * ureg("m")
         default_p["length"] = 1 * ureg("m")
         default_p["T_0"] = 20.0 * ureg.dC
+        default_p["T_bc"] = 20.0 * ureg.dC
 
         default_p.update(parameters)
 
@@ -101,6 +102,7 @@ class SimpleCube(Experiment):
         # initialize variable top_displacement
         self.top_displacement = df.fem.Constant(domain=self.mesh, c=0.0)  # applied via fkt: apply_displ_load(...)
         self.use_body_force = False
+        self.temperature_bc = df.fem.Constant(domain=self.mesh, c=self.p["T_bc"])
 
     def create_displacement_boundary(self, V: df.fem.FunctionSpace) -> list[df.fem.bcs.DirichletBCMetaClass]:
         """Defines the displacement boundary conditions
@@ -182,6 +184,17 @@ class SimpleCube(Experiment):
         top_displacement.ito_base_units()
         self.top_displacement.value = top_displacement.magnitude
 
+    def apply_temp_bc(self, T_bc: pint.Quantity | float) -> None:
+        """Updates the applied temperature boundary condition
+
+        Args:
+            T_bc1: Temperature of the top boundary in degree Celsius
+
+        """
+        T_bc.ito_base_units()
+        self.temperature_bc.value = T_bc.magnitude
+        self.p["T_bc"] = T_bc.magnitude
+
     def apply_body_force(self) -> None:
         self.use_body_force = True
 
@@ -198,7 +211,26 @@ class SimpleCube(Experiment):
             a list with temperature boundary conditions
 
         """
-        return []
+
+        def full_boundary(x):
+            return (
+                self.boundary_back()(x)
+                or self.boundary_bottom()(x)
+                or self.boundary_front()(x)
+                or self.boundary_left()(x)
+                or self.boundary_right()(x)
+                or self.boundary_top()(x)
+            )
+
+        bc_generator = BoundaryConditions(self.mesh, V)
+        bc_generator.add_dirichlet_bc(
+            self.temperature_bc,
+            boundary=full_boundary,
+            sub=0,
+            method="geometrical",
+            entity_dim=self.mesh.topology.dim - 1,
+        )
+        return bc_generator.bcs
 
     def create_body_force(self, v: ufl.argument.Argument) -> ufl.form.Form | None:
         if self.use_body_force:
