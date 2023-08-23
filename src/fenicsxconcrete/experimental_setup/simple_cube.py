@@ -213,20 +213,27 @@ class SimpleCube(Experiment):
         """
 
         def full_boundary(x):
-            return (
-                self.boundary_back()(x)
-                or self.boundary_bottom()(x)
-                or self.boundary_front()(x)
-                or self.boundary_left()(x)
-                or self.boundary_right()(x)
-                or self.boundary_top()(x)
-            )
+            if self.p["dim"] == 2:
+                return (
+                    self.boundary_bottom()(x)
+                    or self.boundary_left()(x)
+                    or self.boundary_right()(x)
+                    or self.boundary_top()(x)
+                )
+            elif self.p["dim"] == 3:
+                return (
+                    self.boundary_back()(x)
+                    or self.boundary_bottom()(x)
+                    or self.boundary_front()(x)
+                    or self.boundary_left()(x)
+                    or self.boundary_right()(x)
+                    or self.boundary_top()(x)
+                )
 
         bc_generator = BoundaryConditions(self.mesh, V)
         bc_generator.add_dirichlet_bc(
             self.temperature_bc,
             boundary=full_boundary,
-            sub=0,
             method="geometrical",
             entity_dim=self.mesh.topology.dim - 1,
         )
