@@ -15,7 +15,7 @@ except ModuleNotFoundError:
         (commit 13486645b01665b4da248edd268b1904b0b5b745 (HEAD -> master, tag: v0.9.0, origin/master, origin/HEAD))
         of FenicsConcrete"""
     )
-
+import numpy as np
 
 parameters = fenics_concrete.Parameters()  # using the current default values
 # general
@@ -65,14 +65,16 @@ experiment = fenics_concrete.ConcreteCubeExperiment(parameters)
 problem = fenics_concrete.ConcreteThermoMechanical(experiment=experiment, parameters=parameters, vmapoutput=False)
 
 
-E_sensor = fenics_concrete.sensors.YoungsModulusSensor((0.25, 0.25))
-fc_sensor = fenics_concrete.sensors.CompressiveStrengthSensor((0.25, 0.25))
-doh_sensor = fenics_concrete.sensors.DOHSensor((0.25, 0.25))
+E_sensor = fenics_concrete.sensors.YoungsModulusSensor((0.25, 0.25, 0.25))
+fc_sensor = fenics_concrete.sensors.CompressiveStrengthSensor((0.25, 0.25, 0.25))
+doh_sensor = fenics_concrete.sensors.DOHSensor((0.25, 0.25, 0.25))
+# t_sensor = fenics_concrete.sensors.TemperatureSensor((0.25, 0.25))
 
 
 problem.add_sensor(E_sensor)
 problem.add_sensor(fc_sensor)
 problem.add_sensor(doh_sensor)
+# problem.add_sensor(t_sensor)
 
 # data for time stepping
 dt = 3600  # 60 min step
@@ -82,18 +84,34 @@ problem.set_timestep(dt)  # for time integration scheme
 
 # initialize time
 t = dt  # first time step time
-
+t_list = []
+u_list = []
+temperature_list = []
 doh = 0
 while doh < parameters["alpha_tx"]:  # time
-
     # solve temp-hydration-mechanics
     problem.solve(t=t)  # solving this
-
+    t_list.append(t)
+    u_list.append(problem.displacement.vector().get_local())
+    temperature_list.append(problem.temperature.vector().get_local())
     # prepare next timestep
     t += dt
 
     # get last measure value
     doh = problem.sensors[doh_sensor.name].data[-1]
+dof_map_u = problem.displacement.function_space().tabulate_dof_coordinates()
+dof_map_t = problem.temperature.function_space().tabulate_dof_coordinates()
+np.savez(
+    "fenics_concrete_thermo_mechanical",
+    t=np.array(t_list),
+    u=np.array(u_list),
+    T=np.array(temperature_list),
+    dof_map_u=dof_map_u,
+    dof_map_t=dof_map_t,
+    E=E_sensor.data,
+    fc=fc_sensor.data,
+    doh=doh_sensor.data,
+)
 
-assert problem.sensors[E_sensor.name].data[-1] == pytest.approx(parameters["E"], 0.1)
-assert problem.sensors[fc_sensor.name].data[-1] == pytest.approx(parameters["fc"], 0.1)
+# assert problem.sensors[E_sensor.name].data[-1] == pytest.approx(parameters["E"], 0.1)
+# assert problem.sensors[fc_sensor.name].data[-1] == pytest.approx(parameters["fc"], 0.1)

@@ -38,8 +38,8 @@ class SimpleCube(Experiment):
         default_p["height"] = 1 * ureg("m")
         default_p["width"] = 1 * ureg("m")
         default_p["length"] = 1 * ureg("m")
-        default_p["T_0"] = 20.0 * ureg.dC
-        default_p["T_bc"] = 20.0 * ureg.dC
+        default_p["T_0"] = ureg.Quantity(20.0, ureg.degC)
+        default_p["T_bc"] = ureg.Quantity(20.0, ureg.degC)
 
         default_p.update(parameters)
 
@@ -60,7 +60,6 @@ class SimpleCube(Experiment):
         setup_parameters["num_elements_length"] = 2 * ureg("")
         setup_parameters["num_elements_width"] = 2 * ureg("")
         setup_parameters["num_elements_height"] = 2 * ureg("")
-        setup_parameters["strain_state"] = "uniaxial" * ureg("")
         setup_parameters["strain_state"] = "uniaxial" * ureg("")
 
         return setup_parameters
@@ -216,18 +215,18 @@ class SimpleCube(Experiment):
             if self.p["dim"] == 2:
                 return (
                     self.boundary_bottom()(x)
-                    or self.boundary_left()(x)
-                    or self.boundary_right()(x)
-                    or self.boundary_top()(x)
+                    | self.boundary_left()(x)
+                    | self.boundary_right()(x)
+                    | self.boundary_top()(x)
                 )
             elif self.p["dim"] == 3:
                 return (
                     self.boundary_back()(x)
-                    or self.boundary_bottom()(x)
-                    or self.boundary_front()(x)
-                    or self.boundary_left()(x)
-                    or self.boundary_right()(x)
-                    or self.boundary_top()(x)
+                    | self.boundary_bottom()(x)
+                    | self.boundary_front()(x)
+                    | self.boundary_left()(x)
+                    | self.boundary_right()(x)
+                    | self.boundary_top()(x)
                 )
 
         bc_generator = BoundaryConditions(self.mesh, V)
@@ -240,9 +239,11 @@ class SimpleCube(Experiment):
         return bc_generator.bcs
 
     def create_body_force(self, v: ufl.argument.Argument) -> ufl.form.Form | None:
+        # TODO: The sign of the body force is not clear.
+
         if self.use_body_force:
             force_vector = np.zeros(self.p["dim"])
-            force_vector[-1] = -self.p["rho"] * self.p["g"]  # works for 2D and 3D
+            force_vector[-1] = self.p["rho"] * self.p["g"]  # works for 2D and 3D
 
             f = df.fem.Constant(self.mesh, force_vector)
             L = ufl.dot(f, v) * ufl.dx
