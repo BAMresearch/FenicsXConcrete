@@ -122,31 +122,6 @@ class BaseSensor(ABC, LogMixin):
         self.units = new_unit
 
 
-class SensorDict(dict):
-    """
-    Dict that also allows to access the parameter p["parameter"] via the matching attribute p.parameter
-    to make access shorter
-
-    When to sensors with the same name are defined, the next one gets a number added to the name
-    """
-
-    def __getattr__(self, key: str) -> BaseSensor:
-        return self[key]
-
-    def __setitem__(self, initial_key: str, value: BaseSensor) -> None:
-        # check if key exists, if so, add a number to the name
-        i = 2
-        key = initial_key
-        if key in self:
-            while key in self:
-                key = initial_key + str(i)
-                i += 1
-            # rename the sensor object
-            value.name = key
-
-        super().__setitem__(key, value)
-
-
 class PointSensor(BaseSensor):
     """
     Abstract class for a sensor that measures values at a specific point

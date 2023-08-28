@@ -13,22 +13,9 @@ import pint
 import ufl
 
 from fenicsxconcrete.experimental_setup.base_experiment import Experiment
-from fenicsxconcrete.sensor_definition.base_sensor import BaseSensor, SensorDict
+from fenicsxconcrete.sensor_definition.base_sensor import BaseSensor
 from fenicsxconcrete.sensor_definition.sensor_schema import generate_sensor_schema
 from fenicsxconcrete.util import LogMixin, Parameters, ureg
-
-# structure for a singleton class
-# class PostProcessingProjector(object):
-#    _instance = None
-#    def __init__(self):
-#        raise RuntimeError('Call instance() instead')
-#
-#    @classmethod
-#    def instance(cls, type:tuple[str, int], shape: int | tuple[int, int]):
-#        if cls._instance is None:
-#            cls._instance = cls.__new__(cls)
-#            # Put any initialization here.
-#        return cls._instance
 
 
 @dataclass
@@ -119,7 +106,7 @@ class MaterialProblem(ABC, LogMixin):
         self.p = self.parameters.to_magnitude()
         self.experiment.p = self.p  # update experimental parameter list for use in e.g. boundary definition
 
-        self.sensors = SensorDict()  # list to hold attached sensors
+        self.sensors = self.SensorDict()  # list to hold attached sensors
 
         # setting up path for paraview output
         if not pv_path:
@@ -176,7 +163,7 @@ class MaterialProblem(ABC, LogMixin):
 
     def delete_sensor(self) -> None:
         del self.sensors
-        self.sensors = SensorDict()
+        self.sensors = self.SensorDict()
 
     def update_time(self) -> None:
         """update time"""

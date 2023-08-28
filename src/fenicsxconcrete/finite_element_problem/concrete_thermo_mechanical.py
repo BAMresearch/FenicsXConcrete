@@ -56,7 +56,7 @@ class ConcreteThermoMechanical(MaterialProblem, LogMixin):
             "alpha_max": "TODO: also possible to approximate based on equation with w/c",
             "E_act": "activation energy per mol",
             "T_ref": "reference temperature",
-            "T_0": "initial temperature",
+            # "T_0": "initial temperature",
             "temp_adjust_law": "TODO",
             "degree": "Polynomial degree for the FEM model",
             "q_degree": "Polynomial degree for which the quadrature rule integrates correctly",
@@ -96,7 +96,7 @@ class ConcreteThermoMechanical(MaterialProblem, LogMixin):
             "eta": 5.554 * ureg(""),
             "alpha_max": 0.875 * ureg(""),
             "T_ref": ureg.Quantity(25.0, ureg.degC),
-            "T_0": ureg.Quantity(20.0, ureg.degC),
+            # "T_0": ureg.Quantity(20.0, ureg.degC),
             "temp_adjust_law": "exponential" * ureg(""),
             # "degree": 2 * ureg(""), defined in Experiment
             "q_degree": 2 * ureg(""),

@@ -1,11 +1,18 @@
+from __future__ import annotations
+
 import os
-from typing import TypedDict
+from typing import TYPE_CHECKING, TypedDict
+
+import dolfinx as df
+import ufl
+
+if TYPE_CHECKING:
+    from fenicsxconcrete.finite_element_problem.base_material import MaterialProblem
 
 import dolfinx as df
 import ufl
 
 from fenicsxconcrete.boundary_conditions.bcs import BoundaryConditions
-from fenicsxconcrete.finite_element_problem.base_material import MaterialProblem
 from fenicsxconcrete.sensor_definition.base_sensor import BaseSensor
 from fenicsxconcrete.util import ureg
 
