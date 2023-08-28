@@ -56,6 +56,7 @@ class ConcreteThermoMechanical(MaterialProblem, LogMixin):
             "alpha_max": "TODO: also possible to approximate based on equation with w/c",
             "E_act": "activation energy per mol",
             "T_ref": "reference temperature",
+            "T_0": "initial temperature",
             "temp_adjust_law": "TODO",
             "degree": "Polynomial degree for the FEM model",
             "q_degree": "Polynomial degree for which the quadrature rule integrates correctly",
@@ -95,6 +96,7 @@ class ConcreteThermoMechanical(MaterialProblem, LogMixin):
             "eta": 5.554 * ureg(""),
             "alpha_max": 0.875 * ureg(""),
             "T_ref": ureg.Quantity(25.0, ureg.degC),
+            "T_0": ureg.Quantity(20.0, ureg.degC),
             "temp_adjust_law": "exponential" * ureg(""),
             # "degree": 2 * ureg(""), defined in Experiment
             "q_degree": 2 * ureg(""),
@@ -151,7 +153,7 @@ class ConcreteThermoMechanical(MaterialProblem, LogMixin):
         # initialize concrete temperature as given in experimental setup
         self.set_inital_T(self.p["T_0"])
         # TODO: this is not supposed to be set here
-        self.temperature_problem.set_timestep(10)
+        # self.temperature_problem.set_timestep(10)
 
         # set q_fields now that the solvers are initialized
         plot_space_type = ("DG", 0) if self.p["degree"] == 1 else ("CG", self.p["degree"] - 1)
@@ -170,7 +172,7 @@ class ConcreteThermoMechanical(MaterialProblem, LogMixin):
         self.temperature_solver = df.nls.petsc.NewtonSolver(self.experiment.mesh.comm, self.temperature_problem)
         self.temperature_solver.atol = 1e-8
         self.temperature_solver.rtol = 1e-8
-        self.temperature_solver.max_it = 10
+        self.temperature_solver.max_it = 20
         self.temperature_solver.error_on_nonconvergence = False
 
         self.mechanics_solver = df.nls.petsc.NewtonSolver(self.experiment.mesh.comm, self.mechanics_problem)
@@ -283,7 +285,6 @@ class ConcreteThermoMechanical(MaterialProblem, LogMixin):
         self.temperature_problem.set_timestep(dt)
 
     def get_heat_of_hydration_ftk(self) -> Callable:
-        raise NotImplementedError("Heat of hydration not implemented for this model")
         return self.temperature_problem.heat_of_hydration_ftk
 
     def get_E_alpha_fkt(self) -> Callable:
@@ -325,9 +326,10 @@ class ConcreteTemperatureHydrationModel(df.fem.petsc.NonlinearProblem, LogMixin)
             self.mesh
         )  # df.fem.Function(q_V, name="degree of hydration last time step")
         # empfy list for newton iteration to compute delta alpha using the last value as starting point
-        self.q_array_delta_alpha_n = np.full(np.shape(self.q_array_T), 0.2)
+        self.q_array_delta_alpha_n = np.full(np.shape(self.q_array_T), 0.005)
         # empfy list for newton iteration to compute delta alpha using the last value as starting point
-        self.q_array_delta_alpha_guess = np.full(np.shape(self.q_array_T), 0.5)
+        # self.q_array_delta_alpha_guess = np.full(np.shape(self.q_array_T), 0.5)
+        self.delta_alpha_guess = [0.5, 1.0]
 
         # scalars for the analysis of the heat of hydration
         self.alpha = 0
@@ -360,103 +362,103 @@ class ConcreteTemperatureHydrationModel(df.fem.petsc.NonlinearProblem, LogMixin)
         super().__init__(self.R, self.T, self.bcs, self.dR)
 
     def delta_alpha_fkt(self, delta_alpha: np.ndarray, alpha_n: np.ndarray, T: np.ndarray) -> np.ndarray:
+        # print("AAAHHHHHHHHHHHHHHHHHHHHHHHH", self.dt)
         return delta_alpha - self.dt * self.affinity(delta_alpha, alpha_n) * self.temp_adjust(T)
 
     def delta_alpha_prime(self, delta_alpha: np.ndarray, alpha_n: np.ndarray, T: np.ndarray) -> np.ndarray:
         return 1 - self.dt * self.daffinity_ddalpha(delta_alpha, alpha_n) * self.temp_adjust(T)
 
-    # def heat_of_hydration_ftk(
-    #     self, T: np.ndarray, time_list: list[float], dt: float, parameter: dict
-    # ) -> tuple[np.ndarray, np.ndarray]:
-    #     print("UWU")
-    #     def interpolate(x, x_list, y_list):
-    #         # assuming ordered x list
+    def heat_of_hydration_ftk(
+        self, T: np.ndarray, time_list: list[float], dt: float, parameter: dict
+    ) -> tuple[np.ndarray, np.ndarray]:
+        def interpolate(x, x_list, y_list):
+            # assuming ordered x list
 
-    #         i = 0
-    #         # check if x is in the dataset
-    #         if x > x_list[-1]:
-    #             print(" * Warning!!!: Extrapolation!!!")
-    #             point1 = (x_list[-2], y_list[-2])
-    #             point2 = (x_list[-1], y_list[-1])
-    #         elif x < x_list[0]:
-    #             print(" * Warning!!!: Extrapolation!!!")
-    #             point1 = (x_list[0], y_list[0])
-    #             point2 = (x_list[1], y_list[1])
-    #         else:
-    #             while x_list[i] < x:
-    #                 i += 1
-    #             point1 = (x_list[i - 1], y_list[i - 1])
-    #             point2 = (x_list[i], y_list[i])
+            i = 0
+            # check if x is in the dataset
+            if x > x_list[-1]:
+                print(" * Warning!!!: Extrapolation!!!")
+                point1 = (x_list[-2], y_list[-2])
+                point2 = (x_list[-1], y_list[-1])
+            elif x < x_list[0]:
+                print(" * Warning!!!: Extrapolation!!!")
+                point1 = (x_list[0], y_list[0])
+                point2 = (x_list[1], y_list[1])
+            else:
+                while x_list[i] < x:
+                    i += 1
+                point1 = (x_list[i - 1], y_list[i - 1])
+                point2 = (x_list[i], y_list[i])
 
-    #         slope = (point2[1] - point1[1]) / (point2[0] - point1[0])
-    #         x_increment = x - point1[0]
-    #         y_increment = slope * x_increment
-    #         y = point1[1] + y_increment
+            slope = (point2[1] - point1[1]) / (point2[0] - point1[0])
+            x_increment = x - point1[0]
+            y_increment = slope * x_increment
+            y = point1[1] + y_increment
 
-    #         return y
+            return y
 
-    #     # get tmax, identify number of time steps, then interpolate data
-    #     # assuming time list is ordered!!!
-    #     tmax = time_list[-1]
+        # get tmax, identify number of time steps, then interpolate data
+        # assuming time list is ordered!!!
+        tmax = time_list[-1]
 
-    #     # set paramters
-    #     self.p["B1"] = parameter["B1"]
-    #     self.p["B2"] = parameter["B2"]
-    #     self.p["eta"] = parameter["eta"]
-    #     self.p["alpha_max"] = parameter["alpha_max"]
-    #     self.p["E_act"] = parameter["E_act"]
-    #     self.p["T_ref"] = parameter["T_ref"]
-    #     self.p["Q_pot"] = parameter["Q_pot"]
+        # set paramters
+        self.p["B1"] = parameter["B1"]
+        self.p["B2"] = parameter["B2"]
+        self.p["eta"] = parameter["eta"]
+        self.p["alpha_max"] = parameter["alpha_max"]
+        self.p["E_act"] = parameter["E_act"]
+        self.p["T_ref"] = parameter["T_ref"]
+        self.p["Q_pot"] = parameter["Q_pot"]
 
-    #     # set time step
-    #     self.dt = dt
+        # set time step
+        self.dt = dt
 
-    #     t = 0
-    #     time = [0.0]
-    #     heat = [0.0]
-    #     alpha_list = [0.0]
-    #     alpha = 0
-    #     delta_alpha_list = [0.0, 0.2, 0.5, 1.0]
-    #     delta_alpha_opt = -1.0
-    #     error_flag = False
+        t = 0
+        time = [0.0]
+        heat = [0.0]
+        alpha_list = [0.0]
+        alpha = 0
+        delta_alpha_list = [0.0, 0.2, 0.5, 1.0]
+        delta_alpha_opt = -1.0
+        error_flag = False
 
-    #     while t < tmax:
-    #         for delta_alpha in delta_alpha_list:
-    #             delta_alpha_opt = scipy.optimize.newton(
-    #                 self.delta_alpha_fkt,
-    #                 args=(alpha, T),
-    #                 fprime=self.delta_alpha_prime,
-    #                 x0=delta_alpha,
-    #             )
-    #             if delta_alpha_opt >= 0.0:
-    #                 # success
-    #                 break
-    #         if delta_alpha_opt < 0.0:
-    #             error_flag = True
+        while t < tmax:
+            for delta_alpha in delta_alpha_list:
+                delta_alpha_opt = scipy.optimize.newton(
+                    self.delta_alpha_fkt,
+                    args=(alpha, T),
+                    fprime=self.delta_alpha_prime,
+                    x0=delta_alpha,
+                )
+                if delta_alpha_opt >= 0.0:
+                    # success
+                    break
+            if delta_alpha_opt < 0.0:
+                error_flag = True
 
-    #         # update alpha
-    #         alpha = delta_alpha_opt + alpha
-    #         # save heat of hydration
-    #         alpha_list.append(alpha)
-    #         heat.append(alpha * self.p["Q_pot"])
+            # update alpha
+            alpha = delta_alpha_opt + alpha
+            # save heat of hydration
+            alpha_list.append(alpha)
+            heat.append(alpha * self.p["Q_pot"])
 
-    #         # timeupdate
-    #         t = t + self.dt
-    #         time.append(t)
+            # timeupdate
+            t = t + self.dt
+            time.append(t)
 
-    #     # if there was a probem with the computation (bad input values), return zero
-    #     if error_flag:
-    #         heat_interpolated = np.zeros_like(time_list)
-    #         alpha_interpolated = np.zeros_like(time_list)
-    #     else:
-    #         # interpolate heat to match time_list
-    #         heat_interpolated = []
-    #         alpha_interpolated = []
-    #         for value in time_list:
-    #             heat_interpolated.append(interpolate(value, time, heat))
-    #             alpha_interpolated.append(interpolate(value, time, alpha_list))
+        # if there was a probem with the computation (bad input values), return zero
+        if error_flag:
+            heat_interpolated = np.zeros_like(time_list)
+            alpha_interpolated = np.zeros_like(time_list)
+        else:
+            # interpolate heat to match time_list
+            heat_interpolated = []
+            alpha_interpolated = []
+            for value in time_list:
+                heat_interpolated.append(interpolate(value, time, heat))
+                alpha_interpolated.append(interpolate(value, time, alpha_list))
 
-    #     return np.asarray(heat_interpolated) / 1000, np.asarray(alpha_interpolated)
+        return np.asarray(heat_interpolated) / 1000, np.asarray(alpha_interpolated)
 
     def get_affinity(self) -> tuple[np.ndarray, np.ndarray]:
         alpha_list = []
@@ -476,29 +478,46 @@ class ConcreteTemperatureHydrationModel(df.fem.petsc.NonlinearProblem, LogMixin)
         # here the newton raphson method of the scipy package is used
         # the zero value of the delta_alpha_fkt is found for each entry in alpha_n_list is found. the corresponding
         # temparature is given in temperature_list and as starting point the value of last step used from delta_alpha_n
-        try:
-            delta_alpha = scipy.optimize.newton(
-                self.delta_alpha_fkt,
-                args=(self.q_array_alpha_n, self.q_array_T),
-                fprime=self.delta_alpha_prime,
-                x0=self.q_array_delta_alpha_n,
-            )
+        delta_alpha = scipy.optimize.newton(
+            self.delta_alpha_fkt,
+            args=(self.q_array_alpha_n, self.q_array_T),
+            fprime=self.delta_alpha_prime,
+            x0=self.q_array_delta_alpha_n,
+        )
+        if np.any(delta_alpha < 0.0):
+            self.logger.info("Newton method failed, trying different starting points")
             # I dont trust the algorithim!!! check if only applicable results are obtained
-        except:
-            self.logger.info("HydrationModel: Newton method failed, trying different starting point")
-            delta_alpha = scipy.optimize.newton(
-                self.delta_alpha_fkt,
-                args=(self.q_array_alpha_n, self.q_array_T),
-                fprime=self.delta_alpha_prime,
-                x0=self.q_array_delta_alpha_guess,
+            for guess in self.delta_alpha_guess:
+                delta_alpha = scipy.optimize.newton(
+                    self.delta_alpha_fkt,
+                    args=(self.q_array_alpha_n, self.q_array_T),
+                    fprime=self.delta_alpha_prime,
+                    x0=np.full_like(self.q_array_alpha_n, guess),
+                )
+                if np.any(delta_alpha >= 0.0):
+                    break
+        if np.any(delta_alpha < 0.0):
+            self.logger.error("HydrationModel: Newton Method failed with new starting points. Negative delta alpha.")
+            raise Exception(
+                "There is a problem with the alpha computation/initial guess, computed delta alpha is negative."
             )
-            if np.any(delta_alpha < 0.0):
-                self.logger.error(
-                    "HydrationModel: Newton Method failed with new starting point. Negative delta alpha."
-                )
-                raise Exception(
-                    "There is a problem with the alpha computation/initial guess, computed delta alpha is negative."
-                )
+        self.logger.info(f"delta alpha max: {delta_alpha.max()}")
+        self.logger.info(f"delta alpha min: {delta_alpha.min()}")
+        # except:
+        #     self.logger.info("HydrationModel: Newton method failed, trying different starting point")
+        #     delta_alpha = scipy.optimize.newton(
+        #         self.delta_alpha_fkt,
+        #         args=(self.q_array_alpha_n, self.q_array_T),
+        #         fprime=self.delta_alpha_prime,
+        #         x0=self.q_array_delta_alpha_guess,
+        #     )
+        #     if np.any(delta_alpha < 0.0):
+        #         self.logger.error(
+        #             "HydrationModel: Newton Method failed with new starting point. Negative delta alpha."
+        #         )
+        #         raise Exception(
+        #             "There is a problem with the alpha computation/initial guess, computed delta alpha is negative."
+        #         )
 
         # save the delta alpha for next iteration as starting guess
         self.q_array_delta_alpha_n = delta_alpha

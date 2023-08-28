@@ -82,20 +82,31 @@ dt = 3600  # 60 min step
 # set time step
 problem.set_timestep(dt)  # for time integration scheme
 
+# print(problem.p)
 # initialize time
 t = dt  # first time step time
 t_list = []
 u_list = []
 temperature_list = []
 doh = 0
+
+# import matplotlib.pyplot as plt
+# delta_alpha = np.linspace(0,0.006, 1000)
+
+# plt.plot(delta_alpha,[problem.temperature_problem.delta_alpha_fkt(delta_alpha_i, 0., 293.15) for delta_alpha_i in delta_alpha])
+# plt.show()
+
 while doh < parameters["alpha_tx"]:  # time
     # solve temp-hydration-mechanics
+    print("solving at t=", t)
     problem.solve(t=t)  # solving this
     t_list.append(t)
     u_list.append(problem.displacement.vector().get_local())
     temperature_list.append(problem.temperature.vector().get_local())
     # prepare next timestep
     t += dt
+    # import sys
+    # sys.exit()
 
     # get last measure value
     doh = problem.sensors[doh_sensor.name].data[-1]
@@ -112,6 +123,3 @@ np.savez(
     fc=fc_sensor.data,
     doh=doh_sensor.data,
 )
-
-# assert problem.sensors[E_sensor.name].data[-1] == pytest.approx(parameters["E"], 0.1)
-# assert problem.sensors[fc_sensor.name].data[-1] == pytest.approx(parameters["fc"], 0.1)

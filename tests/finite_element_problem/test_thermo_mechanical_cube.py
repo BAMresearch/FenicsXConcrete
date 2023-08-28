@@ -173,6 +173,7 @@ def test_hydration_with_body_forces(dim: int):
     u_list = []
     temperature_list = []
     doh = 0
+    print(problem.p)
     while doh < parameters["alpha_tx"]:  # time
         # for i in range(6):
         # solve temp-hydration-mechanics
@@ -180,19 +181,23 @@ def test_hydration_with_body_forces(dim: int):
         problem.solve()  # solving this
         u_list.append(problem.fields.displacement.vector.array[:])
         temperature_list.append(problem.fields.temperature.vector.array[:])
-        try:
-            problem.pv_plot()
-        except:
-            print("Plotting failed")
+        problem.pv_plot()
         # prepare next timestep
-        print(problem.time)
+        # print(problem.time)
         # get last measure value
         doh = problem.sensors[doh_sensor.name].data[-1]
-        print(doh, parameters["alpha_tx"])
+        # print(doh, parameters["alpha_tx"])
+        # import sys
+        # sys.exit()
     dof_map_u = problem.fields.displacement.function_space.tabulate_dof_coordinates()
     dof_map_t = problem.fields.temperature.function_space.tabulate_dof_coordinates()
+
+    data = np.load(Path(__file__).parent / "fenics_concrete_thermo_mechanical.npz")
+
+    np.testing.assert_allclose(data["t"], t_list)
+    np.testing.assert_allclose(data["u"], u_list)
     np.savez(
-        "fenics_concrete_thermo_mechanical",
+        "fenicsx_concrete_thermo_mechanical",
         t=np.array(t_list),
         u=np.array(u_list),
         T=np.array(temperature_list),
