@@ -1,6 +1,9 @@
+from __future__ import annotations
+
 import importlib
 import json
 from abc import ABC, abstractmethod
+from copy import deepcopy
 from dataclasses import dataclass
 from pathlib import Path, PosixPath
 
@@ -233,26 +236,29 @@ class MaterialProblem(ABC, LogMixin):
 
             self.add_sensor(sensor_i)
 
-    # class SensorDict(dict):
-    #     """
-    #     Dict that also allows to access the parameter p["parameter"] via the matching attribute p.parameter
-    #     to make access shorter
+    class SensorDict(dict):
+        """
+        Dict that also allows to access the parameter p["parameter"] via the matching attribute p.parameter
+        to make access shorter
 
-    #     When to sensors with the same name are defined, the next one gets a number added to the name
-    #     """
+        When to sensors with the same name are defined, the next one gets a number added to the name
+        """
 
-    #     def __getattr__(self, key: str):# -> BaseSensor:
-    #         return self[key]
+        def __getattr__(self, key: str):  # -> BaseSensor:
+            return self[key]
 
-    #     def __setitem__(self, initial_key: str, value: BaseSensor) -> None:
-    #         # check if key exists, if so, add a number to the name
-    #         i = 2
-    #         key = initial_key
-    #         if key in self:
-    #             while key in self:
-    #                 key = initial_key + str(i)
-    #                 i += 1
-    #             # rename the sensor object
-    #             value.name = key
+        def __setitem__(self, initial_key: str, value: BaseSensor) -> None:
+            # check if key exists, if so, add a number to the name
+            i = 2
+            key = initial_key
+            if key in self:
+                while key in self:
+                    key = initial_key + str(i)
+                    i += 1
+                # rename the sensor object
+                value.name = key
 
-    #         super().__setitem__(key, value)
+            super().__setitem__(key, value)
+
+        def __deepcopy__(self, memo: dict) -> SensorDict:
+            return self.__class__({k: deepcopy(v, memo) for k, v in self.items()})
