@@ -638,7 +638,6 @@ class ConcreteMechanicsModel(df.fem.petsc.NonlinearProblem):
         # generic quadrature function space
         q_V = self.rule.create_quadrature_space(mesh)
 
-        # q_VT = self.rule.create_quadrature_vector_space(mesh, dim=self.stress_strain_dim)
 
         # quadrature functions
         self.q_E = df.fem.Function(q_V, name="youngs_modulus")
