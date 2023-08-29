@@ -57,7 +57,6 @@ class ConcreteThermoMechanical(MaterialProblem, LogMixin):
             "E_act": "activation energy per mol",
             "T_ref": "reference temperature",
             # "T_0": "initial temperature",
-            "temp_adjust_law": "TODO",
             "degree": "Polynomial degree for the FEM model",
             "q_degree": "Polynomial degree for which the quadrature rule integrates correctly",
             "E_28": "Youngs Modulus of concrete",
