@@ -64,7 +64,7 @@ class ConcreteThermoMechanical(MaterialProblem, LogMixin):
             "alpha_t": "value of DOH where linear function changes to exponential, approx 0.1-0.2",
             "alpha_0": "offset for Young's modulus as a function of DOH, to allow for a dormant phase",
             "a_E": "exponential parameter to change the shape of the function E(DOH)",
-            "fc_inf": "TODO",
+            "fc_inf": "reference value for the compressive strength, default infinity, otherwise at alpha_tx",
             "a_fc": "TODO",
             "ft_inf": "TODO",
             "a_ft": "TODO",
