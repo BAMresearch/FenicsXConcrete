@@ -67,7 +67,7 @@ class ConcreteThermoMechanical(MaterialProblem, LogMixin):
             "fc_inf": "reference value for the compressive strength, default infinity, otherwise at alpha_tx",
             "a_fc": "exponential parameter to change the shape of the function fc(DOH)",
             "ft_inf": "reference value for the tensile strength, default infinity, otherwise at alpha_tx",
-            "a_ft": "TODO",
+            "a_ft": ""exponential parameter to change the shape of the function ft(DOH)",
             "evolution_ft": "flag to turn off the evolution of the tensile strength",
         }
 
