@@ -225,19 +225,14 @@ class ConcreteThermoMechanical(MaterialProblem, LogMixin):
 
     def _pv_plot_temperature(self, t) -> None:
         with df.io.XDMFFile(self.mesh.comm, self.pv_output_file, "a") as f:
-            # temperature plots
             f.write_function(self.fields.temperature, t)
 
             alpha_plot = project(self.q_fields.degree_of_hydration, self.plot_space, self.q_fields.measure)
             alpha_plot.name = "alpha"
             f.write_function(alpha_plot, t)
 
-            # mechanics
-            # f.write_function(self.fields.displacement, t)
-
     def _pv_plot_mechanics(self, t) -> None:
         with df.io.XDMFFile(self.mesh.comm, self.pv_output_file, "a") as f:
-            # mechanics
             f.write_function(self.fields.displacement, t)
 
             sigma_plot = project(self.q_fields.stress, self.plot_space_stress, self.rule.dx)
@@ -257,9 +252,6 @@ class ConcreteThermoMechanical(MaterialProblem, LogMixin):
             f.write_function(fc_plot, t)
             f.write_function(ft_plot, t)
             f.write_function(yield_plot, t)
-
-    def set_inital_T(self, T: float) -> None:
-        self.temperature_problem.set_initial_T(T)
 
     def set_timestep(self, dt: float) -> None:
         self.temperature_problem.set_timestep(dt)
@@ -301,14 +293,11 @@ class ConcreteTemperatureHydrationModel(df.fem.petsc.NonlinearProblem, LogMixin)
         self.q_ddalpha_dT = df.fem.Function(q_V, name="derivative_of_delta_alpha_wrt_temperature")
 
         # quadrature arrays
-        self.q_array_T = self.rule.create_quadrature_array(self.mesh)  # df.fem.Function(q_V, name="temperature")
-        self.q_array_alpha_n = self.rule.create_quadrature_array(
-            self.mesh
-        )  # df.fem.Function(q_V, name="degree of hydration last time step")
+        self.q_array_T = self.rule.create_quadrature_array(self.mesh)
+        self.q_array_alpha_n = self.rule.create_quadrature_array(self.mesh)
         # empfy list for newton iteration to compute delta alpha using the last value as starting point
         self.q_array_delta_alpha_n = np.full(np.shape(self.q_array_T), 0.2)
         # empfy list for newton iteration to compute delta alpha using the last value as starting point
-        # self.q_array_delta_alpha_guess = np.full(np.shape(self.q_array_T), 0.5)
         self.delta_alpha_guess = [0.5, 1.0]
 
         # scalars for the analysis of the heat of hydration
@@ -579,9 +568,9 @@ class ConcreteMechanicsModel(df.fem.petsc.NonlinearProblem):
         # quadrature functions
         self.q_E = df.fem.Function(q_V, name="youngs_modulus")
 
-        self.q_fc = df.fem.Function(q_V)  # self.rule.create_quadrature_array(self.mesh, shape=1)
-        self.q_ft = df.fem.Function(q_V)  # self.rule.create_quadrature_array(self.mesh, shape=1)
-        self.q_yield = df.fem.Function(q_V)  # self.rule.create_quadrature_array(self.mesh, shape=1)
+        self.q_fc = df.fem.Function(q_V)
+        self.q_ft = df.fem.Function(q_V)
+        self.q_yield = df.fem.Function(q_V)
         self.q_array_alpha = self.rule.create_quadrature_array(self.mesh, shape=1)
         self.q_array_sigma = self.rule.create_quadrature_array(self.mesh, shape=self.stress_strain_dim)
 
@@ -589,7 +578,6 @@ class ConcreteMechanicsModel(df.fem.petsc.NonlinearProblem):
         self.q_array_alpha[:] = 1.0
 
         # Define variational problem
-        # self.u = df.fem.Function(self.V, name="Displacements")
         v = ufl.TestFunction(u.function_space)
 
         # Elasticity parameters without multiplication with E
@@ -643,10 +631,6 @@ class ConcreteMechanicsModel(df.fem.petsc.NonlinearProblem):
 
     def general_hydration_fkt(self, alpha: np.ndarray, parameters: dict) -> np.ndarray:
         return parameters["X_inf"] * alpha ** parameters["a_X"]
-
-    def _set_bcs(self, bcs: list[df.fem.DirichletBCMetaClass]) -> None:
-        # this function is not really needed
-        self.bcs = bcs
 
     def form(self, x: PETSc.Vec) -> None:
         """This function is called before the residual or Jacobian is
