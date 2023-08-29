@@ -219,6 +219,7 @@ def test_hydration_with_body_forces(dim: int):
         # solve temp-hydration-mechanics
         t_list.append(problem.time)
         problem.solve()  # solving this
+        doh = doh_sensor.data[-1]
         u_list.append(problem.fields.displacement.vector.array[:])
         temperature_list.append(problem.fields.temperature.vector.array[:])
         problem.pv_plot()
