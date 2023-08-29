@@ -827,6 +827,11 @@ class ConcreteMechanicsModel(df.fem.petsc.NonlinearProblem):
         return principal_stresses
 
     def yield_surface(self, stresses: np.ndarray, ft: np.ndarray, fc: float) -> np.ndarray:
+    # TODO: it does not make sense anymore to include this postprocessing step in the material class
+    #             I would suggest to create a sensor, that reads stress and outputs this yield value
+    #             but I would maybe add that to future problems if you agree, otherwise leave it and ignore this
+    
+    
         # function for approximated yield surface
         # first approximation, could be changed if we have numbers/information
         fc2 = fc
