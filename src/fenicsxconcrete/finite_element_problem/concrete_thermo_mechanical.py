@@ -222,14 +222,6 @@ class ConcreteThermoMechanical(MaterialProblem, LogMixin):
         # history update
         self.temperature_problem.update_history()
 
-        # self.degree_of_hydration = project(
-        #    self.q_fields.degree_of_hydration, self.plot_space, self.rule.dx
-        # )
-
-        # self.q_degree_of_hydration = self.temperature_problem.q_alpha
-        # self.q_yield = self.mechanics_problem.q_yield
-        # self.stress = self.mechanics_problem.sigma_ufl
-
         # get sensor data
         for sensor_name in self.sensors:
             # go through all sensors and measure
