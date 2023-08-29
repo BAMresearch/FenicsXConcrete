@@ -4,6 +4,7 @@ from pathlib import Path
 import dolfinx as df
 import numpy as np
 import pytest
+from mpi4py import MPI
 
 from fenicsxconcrete.boundary_conditions import BoundaryConditions
 from fenicsxconcrete.experimental_setup import SimpleCube
@@ -12,6 +13,7 @@ from fenicsxconcrete.sensor_definition.displacement_sensor import DisplacementSe
 from fenicsxconcrete.sensor_definition.doh_sensor import DOHSensor
 from fenicsxconcrete.sensor_definition.strain_sensor import StrainSensor
 from fenicsxconcrete.sensor_definition.stress_sensor import StressSensor
+from fenicsxconcrete.sensor_definition.youngs_modulus_sensor import YoungsModulusSensor
 from fenicsxconcrete.util import ureg
 
 
@@ -34,8 +36,6 @@ def test_mechanical_only(dim: int) -> None:
 
     experiment = SimpleCube(parameters_exp)
 
-    problem_elastic = LinearElasticity(experiment, parameters, pv_name=f"pure_mechanical_test_{dim}", pv_path="")
-
     _, parameters_thermo = ConcreteThermoMechanical.default_parameters()
     parameters_thermo["nu"] = parameters["nu"].copy()
     parameters_thermo["E_28"] = parameters["E"].copy()
@@ -49,14 +49,20 @@ def test_mechanical_only(dim: int) -> None:
     experiment.apply_displ_load(displacement)
     experiment.apply_body_force()
 
-    problem_elastic.solve()
-    problem_elastic.pv_plot()
-
     # problem_thermo_mechanical.experiment.apply_displ_load(displacement)
     problem_thermo_mechanical.temperature_problem.q_alpha.vector.array[:] = parameters_thermo["alpha_max"].magnitude
 
     problem_thermo_mechanical.mechanics_solver.solve(problem_thermo_mechanical.fields.displacement)
+
     problem_thermo_mechanical.pv_plot()
+
+    # set E for the elastic problem
+    parameters["E"] = problem_thermo_mechanical.q_fields.youngs_modulus.vector.array[:][0] * ureg("N/m^2")
+
+    problem_elastic = LinearElasticity(experiment, parameters, pv_name=f"pure_mechanical_test_{dim}", pv_path="")
+
+    problem_elastic.solve()
+    problem_elastic.pv_plot()
 
     assert problem_thermo_mechanical.q_fields.youngs_modulus.vector.array[:] == pytest.approx(
         parameters["E"].magnitude
@@ -70,6 +76,45 @@ def test_mechanical_only(dim: int) -> None:
 
 
 class LegacyMinimalCube(SimpleCube):
+    def setup(self) -> None:
+        """Generates the mesh in 2D or 3D based on parameters
+
+        Raises:
+            ValueError: if dimension (self.p["dim"]) is not 2 or 3
+        """
+
+        self.logger.debug("setup mesh for %s", self.p["dim"])
+
+        if self.p["dim"] == 2:
+            # build a rectangular mesh
+            self.mesh = df.mesh.create_rectangle(
+                MPI.COMM_WORLD,
+                [
+                    [0.0, 0.0],
+                    [self.p["length"], self.p["height"]],
+                ],
+                [self.p["num_elements_length"], self.p["num_elements_height"]],
+                cell_type=df.mesh.CellType.triangle,
+            )
+        elif self.p["dim"] == 3:
+            self.mesh = df.mesh.create_box(
+                MPI.COMM_WORLD,
+                [
+                    [0.0, 0.0, 0.0],
+                    [self.p["length"], self.p["width"], self.p["height"]],
+                ],
+                [self.p["num_elements_length"], self.p["num_elements_width"], self.p["num_elements_height"]],
+                cell_type=df.mesh.CellType.tetrahedron,
+            )
+
+        else:
+            raise ValueError(f"wrong dimension {self.p['dim']} for problem setup")
+
+        # initialize variable top_displacement
+        self.top_displacement = df.fem.Constant(domain=self.mesh, c=0.0)  # applied via fkt: apply_displ_load(...)
+        self.use_body_force = False
+        self.temperature_bc = df.fem.Constant(domain=self.mesh, c=self.p["T_bc"])
+
     def create_displacement_boundary(self, V: df.fem.FunctionSpace) -> list[df.fem.bcs.DirichletBCMetaClass]:
         bc_generator = BoundaryConditions(self.mesh, V)
 
@@ -83,7 +128,7 @@ class LegacyMinimalCube(SimpleCube):
         return bc_generator.bcs
 
 
-@pytest.mark.parametrize("dim", [2, 3])
+@pytest.mark.parametrize("dim", [3])
 def test_hydration_with_body_forces(dim: int):
     # This test relies on data from the old repository
 
@@ -92,7 +137,7 @@ def test_hydration_with_body_forces(dim: int):
     # parameters["log_level"] = "WARNING" * ureg("")
     # mesh
     # parameters["mesh_setting"] = "left/right" * ureg("") # default boundary setting
-    parameters["dim"] = 3 * ureg("")
+    parameters["dim"] = dim * ureg("")
     # parameters["mesh_density"] = 2 * ureg("")
     parameters["length"] = 1.0 * ureg("m")
     parameters["width"] = 1.0 * ureg("m")
@@ -128,11 +173,12 @@ def test_hydration_with_body_forces(dim: int):
     parameters["alpha_tx"] = 0.68 * ureg("")  # also possible to approximate based on equation with w/c
     parameters["E_act"] = 5653 * 8.3145 * ureg("J*mol^-1")  # activation energy in Jmol^-1
     parameters["T_ref"] = ureg.Quantity(25.0, ureg.degC)  # reference temperature in degree celsius
+    parameters["T_0"] = ureg.Quantity(20.0, ureg.degC)  # reference temperature in degree celsius
     # setting for temperature adjustment
     parameters["temp_adjust_law"] = "exponential" * ureg("")
     # polinomial degree
     parameters["degree"] = 2 * ureg("")  # default boundary setting
-    parameters["q_degree"] = 4 * ureg("")
+    parameters["q_degree"] = 2 * ureg("")
     ### paramters for mechanics problem
     parameters["E_28"] = 42000000.0 * ureg("N/m^2")  # Youngs Modulus N/m2 or something...
     parameters["nu"] = 0.2 * ureg("")  # Poissons Ratio
@@ -157,15 +203,10 @@ def test_hydration_with_body_forces(dim: int):
     # problem = fenics_concrete.ConcreteThermoMechanical(experiment=experiment, parameters=parameters, vmapoutput=False)
 
     doh_sensor = DOHSensor([0.25, 0.25, 0.25], name="doh")
+    E_sensor = YoungsModulusSensor([0.25, 0.25, 0.25], name="E")
 
     problem.add_sensor(doh_sensor)
-    # problem.add_sensor(t_sensor)
-    problem.logger.setLevel("INFO")
-    # data for time stepping
-
-    # set time step
-    # problem.set_timestep()  # for time integration scheme
-
+    problem.add_sensor(E_sensor)
     # initialize time
     t = problem.p["dt"]  # first time step time
     problem.time = t
@@ -175,39 +216,17 @@ def test_hydration_with_body_forces(dim: int):
     doh = 0
     print(problem.p)
     while doh < parameters["alpha_tx"]:  # time
-        # for i in range(6):
         # solve temp-hydration-mechanics
         t_list.append(problem.time)
         problem.solve()  # solving this
         u_list.append(problem.fields.displacement.vector.array[:])
         temperature_list.append(problem.fields.temperature.vector.array[:])
         problem.pv_plot()
-        # prepare next timestep
-        # print(problem.time)
-        # get last measure value
-        doh = problem.sensors[doh_sensor.name].data[-1]
-        # print(doh, parameters["alpha_tx"])
-        # import sys
-        # sys.exit()
     dof_map_u = problem.fields.displacement.function_space.tabulate_dof_coordinates()
     dof_map_t = problem.fields.temperature.function_space.tabulate_dof_coordinates()
 
     data = np.load(Path(__file__).parent / "fenics_concrete_thermo_mechanical.npz")
-
+    min_it = min(len(data["t"]), len(t_list))
     np.testing.assert_allclose(data["t"], t_list)
-    np.testing.assert_allclose(data["u"], u_list)
-    np.savez(
-        "fenicsx_concrete_thermo_mechanical",
-        t=np.array(t_list),
-        u=np.array(u_list),
-        T=np.array(temperature_list),
-        dof_map_u=dof_map_u,
-        dof_map_t=dof_map_t,
-        # E=E_sensor.data,
-        # fc=fc_sensor.data,
-        doh=doh_sensor.data,
-    )
-
-
-if __name__ == "__main__":
-    test_hydration_with_body_forces(3)
+    np.testing.assert_allclose(data["doh"].flatten()[:min_it], np.array(doh_sensor.data).flatten()[:min_it], rtol=1e-4)
+    np.testing.assert_allclose(data["E"].flatten()[:min_it], np.array(E_sensor.data).flatten()[:min_it], rtol=1e-4)

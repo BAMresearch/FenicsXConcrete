@@ -15,6 +15,8 @@ except ModuleNotFoundError:
         (commit 13486645b01665b4da248edd268b1904b0b5b745 (HEAD -> master, tag: v0.9.0, origin/master, origin/HEAD))
         of FenicsConcrete"""
     )
+from pathlib import Path
+
 import numpy as np
 
 parameters = fenics_concrete.Parameters()  # using the current default values
@@ -113,7 +115,7 @@ while doh < parameters["alpha_tx"]:  # time
 dof_map_u = problem.displacement.function_space().tabulate_dof_coordinates()
 dof_map_t = problem.temperature.function_space().tabulate_dof_coordinates()
 np.savez(
-    "fenics_concrete_thermo_mechanical",
+    Path(__file__).parent / "fenics_concrete_thermo_mechanical.npz",
     t=np.array(t_list),
     u=np.array(u_list),
     T=np.array(temperature_list),

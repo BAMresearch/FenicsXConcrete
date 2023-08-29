@@ -95,6 +95,7 @@ class ConcreteThermoMechanical(MaterialProblem, LogMixin):
             "B2": 0.0024229 * ureg("1/s"),
             "eta": 5.554 * ureg(""),
             "alpha_max": 0.875 * ureg(""),
+            "alpha_tx": 0.68 * ureg(""),
             "T_ref": ureg.Quantity(25.0, ureg.degC),
             # "T_0": ureg.Quantity(20.0, ureg.degC),
             "temp_adjust_law": "exponential" * ureg(""),
@@ -172,7 +173,7 @@ class ConcreteThermoMechanical(MaterialProblem, LogMixin):
         self.temperature_solver = df.nls.petsc.NewtonSolver(self.experiment.mesh.comm, self.temperature_problem)
         self.temperature_solver.atol = 1e-8
         self.temperature_solver.rtol = 1e-8
-        self.temperature_solver.max_it = 20
+        self.temperature_solver.max_it = 100
         self.temperature_solver.error_on_nonconvergence = False
 
         self.mechanics_solver = df.nls.petsc.NewtonSolver(self.experiment.mesh.comm, self.mechanics_problem)
@@ -326,7 +327,7 @@ class ConcreteTemperatureHydrationModel(df.fem.petsc.NonlinearProblem, LogMixin)
             self.mesh
         )  # df.fem.Function(q_V, name="degree of hydration last time step")
         # empfy list for newton iteration to compute delta alpha using the last value as starting point
-        self.q_array_delta_alpha_n = np.full(np.shape(self.q_array_T), 0.005)
+        self.q_array_delta_alpha_n = np.full(np.shape(self.q_array_T), 0.2)
         # empfy list for newton iteration to compute delta alpha using the last value as starting point
         # self.q_array_delta_alpha_guess = np.full(np.shape(self.q_array_T), 0.5)
         self.delta_alpha_guess = [0.5, 1.0]
@@ -357,7 +358,7 @@ class ConcreteTemperatureHydrationModel(df.fem.petsc.NonlinearProblem, LogMixin)
         # setup projector to project continuous funtionspace to quadrature
         self.temperature_evaluator = QuadratureEvaluator(self.T, self.mesh, self.rule)
 
-        self.set_initial_T(self.p["T_ref"])
+        self.set_initial_T(self.p["T_0"])
 
         super().__init__(self.R, self.T, self.bcs, self.dR)
 
@@ -486,7 +487,6 @@ class ConcreteTemperatureHydrationModel(df.fem.petsc.NonlinearProblem, LogMixin)
         )
         if np.any(delta_alpha < 0.0):
             self.logger.info("Newton method failed, trying different starting points")
-            # I dont trust the algorithim!!! check if only applicable results are obtained
             for guess in self.delta_alpha_guess:
                 delta_alpha = scipy.optimize.newton(
                     self.delta_alpha_fkt,
@@ -501,8 +501,6 @@ class ConcreteTemperatureHydrationModel(df.fem.petsc.NonlinearProblem, LogMixin)
             raise Exception(
                 "There is a problem with the alpha computation/initial guess, computed delta alpha is negative."
             )
-        self.logger.info(f"delta alpha max: {delta_alpha.max()}")
-        self.logger.info(f"delta alpha min: {delta_alpha.min()}")
         # except:
         #     self.logger.info("HydrationModel: Newton method failed, trying different starting point")
         #     delta_alpha = scipy.optimize.newton(
@@ -688,6 +686,10 @@ class ConcreteMechanicsModel(df.fem.petsc.NonlinearProblem):
         return ufl.sym(ufl.grad(v))
 
     def E_fkt(self, alpha: float, parameters: dict) -> float:
+        parameters["E_inf"] = (
+            parameters["E"]
+            / ((parameters["alpha_tx"] - parameters["alpha_0"]) / (1 - parameters["alpha_0"])) ** parameters["a_E"]
+        )
 
         if alpha < parameters["alpha_t"]:
             E = (
@@ -740,9 +742,10 @@ class ConcreteMechanicsModel(df.fem.petsc.NonlinearProblem):
         # TODO: Why these new parameters?
         parameters = {}
         parameters["alpha_t"] = self.p["alpha_t"]
-        parameters["E_inf"] = self.p["E_28"]
+        parameters["E"] = self.p["E_28"]
         parameters["alpha_0"] = self.p["alpha_0"]
         parameters["a_E"] = self.p["a_E"]
+        parameters["alpha_tx"] = self.p["alpha_tx"]
         # vectorize the function for speed up
         # TODO: remove vectorization. It does nothing for speed-up
         E_fkt_vectorized = np.vectorize(self.E_fkt)
