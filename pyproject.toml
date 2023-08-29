@@ -17,6 +17,7 @@ dependencies = [
   "pint",
   "gmsh",
   "jsonschema",
+  "scipy",
 ]
 description = "Implementation of structural problems for concrete structures using FEniCSx"
 license = {file = "LICENSE"}
