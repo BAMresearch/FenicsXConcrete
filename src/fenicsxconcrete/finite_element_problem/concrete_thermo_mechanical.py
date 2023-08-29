@@ -56,7 +56,6 @@ class ConcreteThermoMechanical(MaterialProblem, LogMixin):
             "alpha_max": "maximum degree of hydration, must be <= 1",
             "E_act": "activation energy per mol",
             "T_ref": "reference temperature",
-            # "T_0": "initial temperature",
             "degree": "Polynomial degree for the FEM model",
             "q_degree": "Polynomial degree for which the quadrature rule integrates correctly",
             "E_28": "Youngs Modulus of concrete",
@@ -67,7 +66,7 @@ class ConcreteThermoMechanical(MaterialProblem, LogMixin):
             "fc_inf": "reference value for the compressive strength, default infinity, otherwise at alpha_tx",
             "a_fc": "exponential parameter to change the shape of the function fc(DOH)",
             "ft_inf": "reference value for the tensile strength, default infinity, otherwise at alpha_tx",
-            "a_ft": ""exponential parameter to change the shape of the function ft(DOH)",
+            "a_ft": "exponential parameter to change the shape of the function ft(DOH)",
             "evolution_ft": "flag to turn off the evolution of the tensile strength",
         }
 
@@ -96,9 +95,6 @@ class ConcreteThermoMechanical(MaterialProblem, LogMixin):
             "alpha_max": 0.875 * ureg(""),
             "alpha_tx": 0.68 * ureg(""),
             "T_ref": ureg.Quantity(25.0, ureg.degC),
-            # "T_0": ureg.Quantity(20.0, ureg.degC),
-            "temp_adjust_law": "exponential" * ureg(""),
-            # "degree": 2 * ureg(""), defined in Experiment
             "q_degree": 2 * ureg(""),
             "E_28": 15 * ureg("MPa"),
             "nu": 0.2 * ureg(""),
@@ -150,11 +146,6 @@ class ConcreteThermoMechanical(MaterialProblem, LogMixin):
             body_forces,
         )
 
-        # initialize concrete temperature as given in experimental setup
-        self.set_inital_T(self.p["T_0"])
-        # TODO: this is not supposed to be set here
-        # self.temperature_problem.set_timestep(10)
-
         # set q_fields now that the solvers are initialized
         plot_space_type = ("DG", 0) if self.p["degree"] == 1 else ("CG", self.p["degree"] - 1)
         self.q_fields = QuadratureFields(
@@ -180,7 +171,6 @@ class ConcreteThermoMechanical(MaterialProblem, LogMixin):
         self.mechanics_solver.rtol = 1e-8
         self.mechanics_solver.max_it = 5
         self.mechanics_solver.error_on_nonconvergence = False
-
 
         self.plot_space = df.fem.FunctionSpace(self.experiment.mesh, self.q_fields.plot_space_type)
         self.plot_space_stress = df.fem.VectorFunctionSpace(
@@ -347,12 +337,12 @@ class ConcreteTemperatureHydrationModel(df.fem.petsc.NonlinearProblem, LogMixin)
         # setup projector to project continuous funtionspace to quadrature
         self.temperature_evaluator = QuadratureEvaluator(self.T, self.mesh, self.rule)
 
-        self.set_initial_T(self.p["T_0"])
+        self.T_n.x.array[:] = self.p["T_0"]
+        self.T.x.array[:] = self.p["T_0"]
 
         super().__init__(self.R, self.T, self.bcs, self.dR)
 
     def delta_alpha_fkt(self, delta_alpha: np.ndarray, alpha_n: np.ndarray, T: np.ndarray) -> np.ndarray:
-        # print("AAAHHHHHHHHHHHHHHHHHHHHHHHH", self.dt)
         return delta_alpha - self.dt * self.affinity(delta_alpha, alpha_n) * self.temp_adjust(T)
 
     def delta_alpha_prime(self, delta_alpha: np.ndarray, alpha_n: np.ndarray, T: np.ndarray) -> np.ndarray:
@@ -503,10 +493,7 @@ class ConcreteTemperatureHydrationModel(df.fem.petsc.NonlinearProblem, LogMixin)
             * self.temp_adjust_tangent(self.q_array_T)
         )
 
-        # project lists onto quadrature spaces
-        # set_q(self.q_alpha, alpha_list)
         self.q_delta_alpha.vector.array[:] = delta_alpha
-        # self.q_ddalpha_dT.vector.aray[:] = ddalpha_dT
 
     def update_history(self) -> None:
         self.T_n.x.array[:] = self.T.x.array  # save temparature field
@@ -515,15 +502,6 @@ class ConcreteTemperatureHydrationModel(df.fem.petsc.NonlinearProblem, LogMixin)
     def set_timestep(self, dt: float) -> None:
         self.dt = dt
         self.dt_form.value = dt
-
-    def set_initial_T(self, T: float) -> None:
-        # set initial temperature, in kelvin
-        self.T_n.x.array[:] = T
-        self.T.x.array[:] = T
-
-    def _set_bcs(self, bcs) -> None:
-        # not actually needed
-        self.bcs = bcs
 
     def form(self, x: PETSc.Vec) -> None:
         if self.dt <= 0:
@@ -534,25 +512,12 @@ class ConcreteTemperatureHydrationModel(df.fem.petsc.NonlinearProblem, LogMixin)
 
     # needed for evaluation
     def temp_adjust(self, T: np.ndarray) -> np.ndarray:
-        val = 1
-        if self.p["temp_adjust_law"] == "exponential":
-            val = np.exp(-self.p["E_act"] / self.p["igc"] * (1 / T - 1 / (self.p["T_ref"])))
-        elif self.p["temp_adjust_law"] == "off":
-            pass
-        else:
-            # TODO throw correct error
-            raise Exception(
-                f'Warning: Incorrect temp_adjust_law {self.p["temp_adjust_law"]} given, only "exponential" and "off" implemented'
-            )
-        return val
+        return np.exp(-self.p["E_act"] / self.p["igc"] * (1 / T - 1 / (self.p["T_ref"])))
 
         # derivative of the temperature adjustment factor with respect to the temperature
 
     def temp_adjust_tangent(self, T: np.ndarray) -> np.ndarray:
-        val = 0
-        if self.p["temp_adjust_law"] == "exponential":
-            val = self.temp_adjust(T) * self.p["E_act"] / self.p["igc"] / T**2
-        return val
+        return self.temp_adjust(T) * self.p["E_act"] / self.p["igc"] / T**2
 
     # affinity function, needed for material_evaluation
     def affinity(self, delta_alpha: np.ndarray, alpha_n: np.ndarray) -> np.ndarray:
@@ -610,7 +575,6 @@ class ConcreteMechanicsModel(df.fem.petsc.NonlinearProblem):
 
         # generic quadrature function space
         q_V = self.rule.create_quadrature_space(mesh)
-
 
         # quadrature functions
         self.q_E = df.fem.Function(q_V, name="youngs_modulus")
@@ -799,11 +763,10 @@ class ConcreteMechanicsModel(df.fem.petsc.NonlinearProblem):
         return principal_stresses
 
     def yield_surface(self, stresses: np.ndarray, ft: np.ndarray, fc: float) -> np.ndarray:
-    # TODO: it does not make sense anymore to include this postprocessing step in the material class
-    #             I would suggest to create a sensor, that reads stress and outputs this yield value
-    #             but I would maybe add that to future problems if you agree, otherwise leave it and ignore this
-    
-    
+        # TODO: it does not make sense anymore to include this postprocessing step in the material class
+        #             I would suggest to create a sensor, that reads stress and outputs this yield value
+        #             but I would maybe add that to future problems if you agree, otherwise leave it and ignore this
+
         # function for approximated yield surface
         # first approximation, could be changed if we have numbers/information
         fc2 = fc
