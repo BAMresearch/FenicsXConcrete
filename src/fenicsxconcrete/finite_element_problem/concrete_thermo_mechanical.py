@@ -68,7 +68,7 @@ class ConcreteThermoMechanical(MaterialProblem, LogMixin):
             "a_fc": "TODO",
             "ft_inf": "reference value for the tensile strength, default infinity, otherwise at alpha_tx",
             "a_ft": "TODO",
-            "evolution_ft": "TODO",
+            "evolution_ft": "flag to turn off the evolution of the tensile strength",
         }
 
         return description
