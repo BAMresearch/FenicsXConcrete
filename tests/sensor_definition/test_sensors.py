@@ -2,10 +2,6 @@ import pytest
 
 from fenicsxconcrete.finite_element_problem.linear_elasticity import LinearElasticity
 
-# from fenicsxconcrete.sensor_definition.displacement_sensor import DisplacementSensor
-# from fenicsxconcrete.sensor_definition.reaction_force_sensor import ReactionForceSensor
-# from fenicsxconcrete.sensor_definition.strain_sensor import StrainSensor
-# from fenicsxconcrete.sensor_definition.stress_sensor import StressSensorV
 from fenicsxconcrete.sensor_definition import (
     DisplacementSensor,
     DOHSensor,
