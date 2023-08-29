@@ -181,8 +181,6 @@ class ConcreteThermoMechanical(MaterialProblem, LogMixin):
         self.mechanics_solver.max_it = 5
         self.mechanics_solver.error_on_nonconvergence = False
 
-        # if self.wrapper:
-        #     self.wrapper.set_geometry(self.mechanics_problem.V, [])
 
         self.plot_space = df.fem.FunctionSpace(self.experiment.mesh, self.q_fields.plot_space_type)
         self.plot_space_stress = df.fem.VectorFunctionSpace(
