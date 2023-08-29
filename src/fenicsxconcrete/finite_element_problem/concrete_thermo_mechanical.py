@@ -62,7 +62,7 @@ class ConcreteThermoMechanical(MaterialProblem, LogMixin):
             "q_degree": "Polynomial degree for which the quadrature rule integrates correctly",
             "E_28": "Youngs Modulus of concrete",
             "nu": "Poissons Ratio",
-            "alpha_t": "TODO",
+            "alpha_t": "value of DOH where linear function changes to exponential, approx 0.1-0.2",
             "alpha_0": "TODO",
             "a_E": "TODO",
             "fc_inf": "TODO",
