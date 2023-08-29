@@ -520,7 +520,6 @@ class ConcreteTemperatureHydrationModel(df.fem.petsc.NonlinearProblem, LogMixin)
 
     def set_initial_T(self, T: float) -> None:
         # set initial temperature, in kelvin
-        # T0 = df.Expression("t_zero", t_zero=T + self.p.zero_C, degree=0)
         self.T_n.x.array[:] = T
         self.T.x.array[:] = T
 
