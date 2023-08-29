@@ -51,7 +51,7 @@ class ConcreteThermoMechanical(MaterialProblem, LogMixin):
             "Q_pot": "potential heat per weight of binder",
             "Q_inf": "potential heat per concrete volume",
             "B1": "numerical shape parameter for heat release function",
-            "B2": "TODO",
+            "B2": "numerical shape parameter for heat release function",
             "eta": "TODO: something about diffusion",
             "alpha_max": "TODO: also possible to approximate based on equation with w/c",
             "E_act": "activation energy per mol",
