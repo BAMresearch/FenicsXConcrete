@@ -53,7 +53,7 @@ class ConcreteThermoMechanical(MaterialProblem, LogMixin):
             "B1": "numerical shape parameter for heat release function",
             "B2": "numerical shape parameter for heat release function",
             "eta": "numerical shape parameter for heat release function, maybe something about diffusion",
-            "alpha_max": "TODO: also possible to approximate based on equation with w/c",
+            "alpha_max": "maximum degree of hydration, must be <= 1",
             "E_act": "activation energy per mol",
             "T_ref": "reference temperature",
             # "T_0": "initial temperature",
