@@ -492,21 +492,6 @@ class ConcreteTemperatureHydrationModel(df.fem.petsc.NonlinearProblem, LogMixin)
             raise Exception(
                 "There is a problem with the alpha computation/initial guess, computed delta alpha is negative."
             )
-        # except:
-        #     self.logger.info("HydrationModel: Newton method failed, trying different starting point")
-        #     delta_alpha = scipy.optimize.newton(
-        #         self.delta_alpha_fkt,
-        #         args=(self.q_array_alpha_n, self.q_array_T),
-        #         fprime=self.delta_alpha_prime,
-        #         x0=self.q_array_delta_alpha_guess,
-        #     )
-        #     if np.any(delta_alpha < 0.0):
-        #         self.logger.error(
-        #             "HydrationModel: Newton Method failed with new starting point. Negative delta alpha."
-        #         )
-        #         raise Exception(
-        #             "There is a problem with the alpha computation/initial guess, computed delta alpha is negative."
-        #         )
 
         # save the delta alpha for next iteration as starting guess
         self.q_array_delta_alpha_n = delta_alpha
