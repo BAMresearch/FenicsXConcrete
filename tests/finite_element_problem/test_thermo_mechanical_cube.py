@@ -13,6 +13,7 @@ from fenicsxconcrete.sensor_definition.displacement_sensor import DisplacementSe
 from fenicsxconcrete.sensor_definition.doh_sensor import DOHSensor
 from fenicsxconcrete.sensor_definition.strain_sensor import StrainSensor
 from fenicsxconcrete.sensor_definition.stress_sensor import StressSensor
+from fenicsxconcrete.sensor_definition.temperature_sensor import TemperatureSensor
 from fenicsxconcrete.sensor_definition.youngs_modulus_sensor import YoungsModulusSensor
 from fenicsxconcrete.util import ureg
 
@@ -204,9 +205,11 @@ def test_hydration_with_body_forces(dim: int):
 
     doh_sensor = DOHSensor([0.25, 0.25, 0.25], name="doh")
     E_sensor = YoungsModulusSensor([0.25, 0.25, 0.25], name="E")
+    T_sensor = TemperatureSensor([0.25, 0.25, 0.25], name="T")
 
     problem.add_sensor(doh_sensor)
     problem.add_sensor(E_sensor)
+    problem.add_sensor(T_sensor)
     # initialize time
     t = problem.p["dt"]  # first time step time
     problem.time = t
@@ -220,14 +223,20 @@ def test_hydration_with_body_forces(dim: int):
         t_list.append(problem.time)
         problem.solve()  # solving this
         doh = doh_sensor.data[-1]
-        u_list.append(problem.fields.displacement.vector.array[:])
-        temperature_list.append(problem.fields.temperature.vector.array[:])
+        # u_list.append(problem.fields.displacement.vector.array[:])
+        # temperature_list.append(problem.fields.temperature.vector.array[:])
         problem.pv_plot()
-    dof_map_u = problem.fields.displacement.function_space.tabulate_dof_coordinates()
-    dof_map_t = problem.fields.temperature.function_space.tabulate_dof_coordinates()
 
     data = np.load(Path(__file__).parent / "fenics_concrete_thermo_mechanical.npz")
-    min_it = min(len(data["t"]), len(t_list))
+
+    # find dofs of point [0.25, 0.25, 0.25] in legacy data for comparison
+    T_dofs = np.argwhere(np.sum(np.abs(data["dof_map_t"] - np.array([0.25, 0.25, 0.25])), axis=1) < 1e-4)
+
+    if T_dofs.size > 0:
+        T_dof = T_dofs[0]
+        T_list = data["T"][:, T_dof]
+        np.testing.assert_allclose(np.array(T_sensor.data).flatten(), T_list.flatten(), rtol=1e-4)
+
     np.testing.assert_allclose(data["t"], t_list)
-    np.testing.assert_allclose(data["doh"].flatten()[:min_it], np.array(doh_sensor.data).flatten()[:min_it], rtol=1e-4)
-    np.testing.assert_allclose(data["E"].flatten()[:min_it], np.array(E_sensor.data).flatten()[:min_it], rtol=1e-4)
+    np.testing.assert_allclose(data["doh"].flatten(), np.array(doh_sensor.data).flatten(), rtol=1e-4)
+    np.testing.assert_allclose(data["E"].flatten(), np.array(E_sensor.data).flatten(), rtol=1e-4)

@@ -17,6 +17,7 @@ def generate_sensor_schema() -> dict:
                         {"$ref": "#/definitions/BaseSensor"},
                         {"$ref": "#/definitions/PointSensor"},
                         {"$ref": "#/definitions/DisplacementSensor"},
+                        {"$ref": "#/definitions/TemperatureSensor"},
                         {"$ref": "#/definitions/ReactionForceSensor"},
                         {"$ref": "#/definitions/StrainSensor"},
                         {"$ref": "#/definitions/StressSensor"},
@@ -80,6 +81,16 @@ def generate_sensor_schema() -> dict:
                     {
                         "type": "object",
                         "properties": {"type": {"const": "DisplacementSensor", "description": "The type of sensor"}},
+                        "required": ["type"],
+                    },
+                ]
+            },
+            "TemperatureSensor": {
+                "allOf": [
+                    {"$ref": "#/definitions/pointSensorProperties"},
+                    {
+                        "type": "object",
+                        "properties": {"type": {"const": "TemperatureSensor", "description": "The type of sensor"}},
                         "required": ["type"],
                     },
                 ]
