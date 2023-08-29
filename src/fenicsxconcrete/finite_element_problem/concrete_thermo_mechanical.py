@@ -63,7 +63,7 @@ class ConcreteThermoMechanical(MaterialProblem, LogMixin):
             "E_28": "Youngs Modulus of concrete",
             "nu": "Poissons Ratio",
             "alpha_t": "value of DOH where linear function changes to exponential, approx 0.1-0.2",
-            "alpha_0": "TODO",
+            "alpha_0": "offset for Young's modulus as a function of DOH, to allow for a dormant phase",
             "a_E": "TODO",
             "fc_inf": "TODO",
             "a_fc": "TODO",
