@@ -2,13 +2,13 @@ import numpy as np
 import pytest
 
 
-def get_e_nu_from_k_g(K, G):
+def get_e_nu_from_k_g(K: float, G: float) -> tuple[float, float]:
     E = 9 * K * G / (3 * K + G)
     nu = (3 * K - 2 * G) / (2 * (3 * K + G))
     return E, nu
 
 
-def get_k_g_from_e_nu(E, nu):
+def get_k_g_from_e_nu(E: float, nu: float) -> tuple[float, float]:
     K = E / (3 * (1 - 2 * nu))
     G = E / (2 * (1 + nu))
     return K, G
@@ -16,7 +16,16 @@ def get_k_g_from_e_nu(E, nu):
 
 class ConcreteHomogenization:
     # object to compute homogenized parameters for cement matrix and aggregates
-    def __init__(self, E_matrix, nu_matrix, fc_matrix, rho_matrix=1, kappa_matrix=1, C_matrix=1, Q_matrix=1):
+    def __init__(
+        self,
+        E_matrix: float,
+        nu_matrix: float,
+        fc_matrix: float,
+        rho_matrix: float = 1.0,
+        kappa_matrix: float = 1.0,
+        C_matrix: float = 1.0,
+        Q_matrix: float = 1.0,
+    ) -> None:
         """initializes the object
 
         matrix parameters are set
@@ -79,7 +88,9 @@ class ConcreteHomogenization:
         self.alpha_0 = (1 + nu_matrix) / (3 * (1 + nu_matrix))
         self.beta_0 = 2 * (4 - 5 * nu_matrix) / (15 * (1 - nu_matrix))
 
-    def add_uncoated_particle(self, E, nu, volume_fraction, rho=1, kappa=1, C=1):
+    def add_uncoated_particle(
+        self, E: float, nu: float, volume_fraction: float, rho: float = 1.0, kappa: float = 1.0, C: float = 1.0
+    ) -> None:
         """Adds a phase of uncoated material
 
         the particles are assumed to be homogeneous and spherical
@@ -130,7 +141,16 @@ class ConcreteHomogenization:
         self.update_effective_fields()
 
     def add_coated_particle(
-        self, E_inclusion, nu_inclusion, itz_ratio, radius, coat_thickness, volume_fraction, rho=1, kappa=1, C=1
+        self,
+        E_inclusion: float,
+        nu_inclusion: float,
+        itz_ratio: float,
+        radius: float,
+        coat_thickness: float,
+        volume_fraction: float,
+        rho: float = 1.0,
+        kappa: float = 1.0,
+        C: float = 1.0,
     ):
         """Adds a phase of coated material
 
@@ -295,7 +315,7 @@ class ConcreteHomogenization:
 
         self.update_effective_fields()
 
-    def update_effective_fields(self):
+    def update_effective_fields(self) -> None:
         K_eff_numerator = self.vol_frac_matrix * self.K_matrix
         K_eff_denominator = self.vol_frac_matrix
         G_eff_numerator = self.vol_frac_matrix * self.G_matrix
@@ -307,7 +327,6 @@ class ConcreteHomogenization:
         vol_test = self.vol_frac_matrix
 
         for i in range(self.n_incl):
-
             K_eff_numerator += self.vol_frac_incl[i] * self.K_incl[i] * self.A_dill_vol_incl[i]
             K_eff_denominator += self.vol_frac_incl[i] * self.A_dill_vol_incl[i]
             G_eff_numerator += self.vol_frac_incl[i] * self.G_incl[i] * self.A_dill_dev_incl[i]
