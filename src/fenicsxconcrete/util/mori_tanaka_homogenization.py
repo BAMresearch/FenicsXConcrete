@@ -3,19 +3,52 @@ import pytest
 
 
 def get_e_nu_from_k_g(K: float, G: float) -> tuple[float, float]:
+    """
+    Computes Young's modulus and Poisson's ratio from bulk and shear modulus
+
+    Args:
+        K: bulk modulus
+        G: shear modulus
+
+    Returns:
+        Young's modulus and Poisson's ratio
+    """
     E = 9 * K * G / (3 * K + G)
     nu = (3 * K - 2 * G) / (2 * (3 * K + G))
     return E, nu
 
 
 def get_k_g_from_e_nu(E: float, nu: float) -> tuple[float, float]:
+    """
+    Computes bulk and shear modulus from Young's modulus and Poisson's ratio
+
+    Args:
+        E: Young's modulus
+        nu: Poisson's ratio
+
+    Returns:
+        bulk and shear modulus
+    """
     K = E / (3 * (1 - 2 * nu))
     G = E / (2 * (1 + nu))
     return K, G
 
 
 class ConcreteHomogenization:
-    # object to compute homogenized parameters for cement matrix and aggregates
+    """
+    Class to compute homogenized parameters for cement matrix and aggregates
+
+    Args:
+
+        E_matrix: Young's modulus of matrix material
+        nu_matrix: Poisson's Ratio of matrix material
+        fc_matrix: Compressive strength of the matrix
+        rho_matrix: Density of the matrix
+        kappa_matrix: Thermal conductivity of the matrix
+        C_matrix: Specific heat capacity of the matrix in energy per weight
+        Q_matrix: Heat release in energy per weight of binder
+    """
+
     def __init__(
         self,
         E_matrix: float,
@@ -26,27 +59,6 @@ class ConcreteHomogenization:
         C_matrix: float = 1.0,
         Q_matrix: float = 1.0,
     ) -> None:
-        """initializes the object
-
-        matrix parameters are set
-
-        Parameters
-        ----------
-        E_matrix : float
-           Young's modulus of matrix material
-        nu_matrix : float
-            Poisson's Ratio of matrix material
-        fc_matrix : float
-            Conpressive strength of the matrix
-        rho_matrix : float, optional
-            Density of the matrix
-        kappa_matrix : float, optional
-            Thermal conductivity of the matrix
-        C_matrix : float, optional
-            Specific heat capacity of the matrix in energy per weight
-        Q_matrix : float, optional
-            Heat release in energy per weight of binder
-        """
         self.E_matrix = E_matrix
         self.nu_matrix = nu_matrix
         self.fc_matrix = fc_matrix
@@ -91,26 +103,20 @@ class ConcreteHomogenization:
     def add_uncoated_particle(
         self, E: float, nu: float, volume_fraction: float, rho: float = 1.0, kappa: float = 1.0, C: float = 1.0
     ) -> None:
-        """Adds a phase of uncoated material
+        """
+        Adds a phase of uncoated material
 
         the particles are assumed to be homogeneous and spherical
         sets particle properties
         setup function called
 
-        Parameters
-        ----------
-        E : float
-            Young's modulus of particle material
-        nu : float
-            Poisson's Ratio of particle material
-        volume_fraction : float
-            Volume fraction of the particle within the composite
-        rho : float, optional
-            Density
-        kappa : float, optional
-            Thermal conductivity
-        C : float, optional
-            Specific heat capacity in energy per weight
+        Args:
+        E: Young's modulus of particle material
+        nu: Poisson's Ratio of particle material
+        volume_fraction: Volume fraction of the particle within the composite
+        rho: Density
+        kappa: Thermal conductivity
+        C: Specific heat capacity in energy per weight
 
         """
         K, G = get_k_g_from_e_nu(E, nu)
@@ -152,7 +158,8 @@ class ConcreteHomogenization:
         kappa: float = 1.0,
         C: float = 1.0,
     ):
-        """Adds a phase of coated material
+        """
+        Adds a phase of coated material
 
         the particles are assumed to be homogeneous and spherical, coated by degraded matrix material
         the computation is based on the formulation of Herve-Zaoui,???? and taken from the paper of
@@ -161,26 +168,16 @@ class ConcreteHomogenization:
         sets partilce and coating properties
         setup function called
 
-        Parameters
-        ----------
-        E_inclusion : float
-            Young's modulus of particle material
-        nu_inclusion : float
-            Poisson's Ratio of particle material
-        itz_ratio :float
-            value of the reduction of the stiffness of the material surrounding the particles
-        radius : float
-            Radius of particles
-        coat_thickness : float
-            Thickness of the coating
-        volume_fraction : float
-            Volume fraction of the particle within the composite
-        rho : float, optional
-            Density of the inclusion
-        k : float, optional
-            Thermal conductivity of the particle, the coat is ignored
-        C : float, optional
-            Specific heat capacity of the inclusion in energy per weight
+        Args:
+            E_inclusion: Young's modulus of particle material
+            nu_inclusion: Poisson's Ratio of particle material
+            itz_ratio: Value of the reduction of the stiffness of the material surrounding the particles
+            radius: Radius of particles
+            coat_thickness: Thickness of the coating
+            volume_fraction: Volume fraction of the particle within the composite
+            rho:  Density of the inclusion
+            k:  Thermal conductivity of the particle, the coat is ignored
+            C:  Specific heat capacity of the inclusion in energy per weight
         """
         # set values - inclusion, coating, matrix
         E = np.array([E_inclusion, self.E_matrix * itz_ratio, self.E_matrix])
