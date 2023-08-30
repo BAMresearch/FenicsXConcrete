@@ -12,6 +12,14 @@ fenicsxconcrete.util.logger module
    :undoc-members:
    :show-inheritance:
 
+fenicsxconcrete.util.mori\_tanaka\_homogenization module
+--------------------------------------------------------
+
+.. automodule:: fenicsxconcrete.util.mori_tanaka_homogenization
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 fenicsxconcrete.util.parameters module
 --------------------------------------
 

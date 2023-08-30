@@ -38,16 +38,12 @@ class ReactionForceSensor(BaseSensor):
         units : pint definition of the base unit a sensor returns
         name : name of the sensor, default is class name, but can be changed
         surface : dictionary that defines the surface where the reaction force is measured
+    Args:
+        surface : a dictionary that defines the function for the reaction boundary, default is the bottom surface
+        name : name of the sensor, default is class name, but can be changed
     """
 
     def __init__(self, surface: Surface | None = None, name: str | None = None) -> None:
-        """
-        initializes a reaction force sensor, for further details, see base class
-
-        Arguments:
-            surface : a dictionary that defines the function for the reaction boundary, default is the bottom surface
-            name : name of the sensor, default is class name, but can be changed
-        """
         super().__init__(name=name)
         self.surface_dict = surface
 
@@ -56,7 +52,7 @@ class ReactionForceSensor(BaseSensor):
         The reaction force vector of the defined surface is added to the data list,
         as well as the time t to the time list
 
-        Arguments:
+        Args:
             problem : FEM problem object
             t : time of measurement for time dependent problems, default is 1
         """

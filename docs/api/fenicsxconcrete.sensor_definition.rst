@@ -20,6 +20,14 @@ fenicsxconcrete.sensor\_definition.displacement\_sensor module
    :undoc-members:
    :show-inheritance:
 
+fenicsxconcrete.sensor\_definition.doh\_sensor module
+-----------------------------------------------------
+
+.. automodule:: fenicsxconcrete.sensor_definition.doh_sensor
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 fenicsxconcrete.sensor\_definition.reaction\_force\_sensor module
 -----------------------------------------------------------------
 
@@ -48,6 +56,22 @@ fenicsxconcrete.sensor\_definition.stress\_sensor module
 --------------------------------------------------------
 
 .. automodule:: fenicsxconcrete.sensor_definition.stress_sensor
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+fenicsxconcrete.sensor\_definition.temperature\_sensor module
+-------------------------------------------------------------
+
+.. automodule:: fenicsxconcrete.sensor_definition.temperature_sensor
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+fenicsxconcrete.sensor\_definition.youngs\_modulus\_sensor module
+-----------------------------------------------------------------
+
+.. automodule:: fenicsxconcrete.sensor_definition.youngs_modulus_sensor
    :members:
    :undoc-members:
    :show-inheritance:
