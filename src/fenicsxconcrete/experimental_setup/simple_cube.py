@@ -9,7 +9,7 @@ from petsc4py.PETSc import ScalarType
 
 from fenicsxconcrete.boundary_conditions.bcs import BoundaryConditions
 from fenicsxconcrete.experimental_setup.base_experiment import Experiment
-from fenicsxconcrete.util import Parameters, ureg
+from fenicsxconcrete.util import LogMixin, Parameters, ureg
 
 
 class SimpleCube(Experiment):
@@ -33,17 +33,7 @@ class SimpleCube(Experiment):
                         see default_parameters for a first guess
         """
 
-        # initialize a set of default parameters
-        default_p = Parameters()
-        default_p["height"] = 1 * ureg("m")
-        default_p["width"] = 1 * ureg("m")
-        default_p["length"] = 1 * ureg("m")
-        default_p["T_0"] = ureg.Quantity(20.0, ureg.degC)
-        default_p["T_bc"] = ureg.Quantity(20.0, ureg.degC)
-
-        default_p.update(parameters)
-
-        super().__init__(default_p)
+        super().__init__(parameters)
 
     @staticmethod
     def default_parameters() -> dict[str, pint.Quantity]:
@@ -55,7 +45,12 @@ class SimpleCube(Experiment):
         """
 
         setup_parameters = {}
-
+        setup_parameters["degree"] = 2 * ureg("")  # polynomial degree
+        setup_parameters["height"] = 1 * ureg("m")
+        setup_parameters["width"] = 1 * ureg("m")
+        setup_parameters["length"] = 1 * ureg("m")
+        setup_parameters["T_0"] = ureg.Quantity(20.0, ureg.degC)
+        setup_parameters["T_bc"] = ureg.Quantity(20.0, ureg.degC)
         setup_parameters["dim"] = 3 * ureg("")
         setup_parameters["num_elements_length"] = 2 * ureg("")
         setup_parameters["num_elements_width"] = 2 * ureg("")

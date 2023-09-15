@@ -90,12 +90,7 @@ class CompressionCylinder(Experiment):
 
         """
 
-        # initialize a set of default parameters
-        p = Parameters()
-
-        p.update(parameters)
-
-        super().__init__(p)
+        super().__init__(parameters)
 
         # initialize variable top_displacement
         self.top_displacement = df.fem.Constant(domain=self.mesh, c=0.0)  # applied via fkt: apply_displ_load(...)
@@ -169,6 +164,7 @@ class CompressionCylinder(Experiment):
         """
 
         default_parameters = {}
+        default_parameters["degree"] = 2 * ureg("")  # polynomial degree
 
         # boundary setting
         default_parameters["bc_setting"] = "free" * ureg("")  # boundary setting, two options available: fixed and free

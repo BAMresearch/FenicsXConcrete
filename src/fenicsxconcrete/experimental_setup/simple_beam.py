@@ -31,14 +31,7 @@ class SimpleBeam(Experiment):
 
         """
 
-        # initialize default parameters for the setup
-        default_p = Parameters()
-        default_p["degree"] = 2 * ureg("")  # polynomial degree
-
-        # updating parameters, overriding defaults
-        default_p.update(parameters)
-
-        super().__init__(default_p)
+        super().__init__(parameters)
 
     def setup(self):
         """defines the mesh for 2D or 3D
@@ -81,6 +74,8 @@ class SimpleBeam(Experiment):
         """
 
         setup_parameters = {}
+        setup_parameters["degree"] = 2 * ureg("")  # polynomial degree
+
         setup_parameters["load"] = 10000 * ureg("N/m^2")
         setup_parameters["length"] = 1 * ureg("m")
         setup_parameters["height"] = 0.3 * ureg("m")

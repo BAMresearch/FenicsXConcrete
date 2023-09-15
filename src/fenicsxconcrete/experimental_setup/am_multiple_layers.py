@@ -34,13 +34,7 @@ class AmMultipleLayers(Experiment):
 
         """
 
-        # initialize default parameters for the setup
-        default_p = Parameters()
-        # default_p['dummy'] = 'example' * ureg('')  # example default parameter for this class
-
-        # updating parameters, overriding defaults
-        default_p.update(parameters)
-        super().__init__(default_p)
+        super().__init__(parameters)
 
     @staticmethod
     def default_parameters() -> dict[str, pint.Quantity]:
@@ -52,6 +46,7 @@ class AmMultipleLayers(Experiment):
         """
 
         setup_parameters = {}
+        setup_parameters["degree"] = 2 * ureg("")  # polynomial degree
         # geometry
         setup_parameters["dim"] = 2 * ureg("")
         setup_parameters["num_layers"] = 10 * ureg("")  # number of layers in y
