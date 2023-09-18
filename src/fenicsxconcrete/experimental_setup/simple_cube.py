@@ -45,7 +45,7 @@ class SimpleCube(Experiment):
         """
 
         setup_parameters = {}
-        setup_parameters["degree"] = 2 * ureg("")  # polynomial degree
+
         setup_parameters["height"] = 1 * ureg("m")
         setup_parameters["width"] = 1 * ureg("m")
         setup_parameters["length"] = 1 * ureg("m")

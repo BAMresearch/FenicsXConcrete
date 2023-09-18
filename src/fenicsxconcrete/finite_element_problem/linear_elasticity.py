@@ -21,14 +21,14 @@ class LinearElasticity(MaterialProblem):
     ) -> None:
         """defines default parameters, for the rest, see base class"""
 
-        # adding default material parameter, will be overridden by outside input
-        default_p = Parameters()
-        default_p["stress_state"] = "plane_strain" * ureg("")  # default stress state in 2D, optional "plane_stress"
+        # # adding default material parameter, will be overridden by outside input
+        # default_p = Parameters()
+        # default_p["stress_state"] = "plane_strain" * ureg("")  # default stress state in 2D, optional "plane_stress"
+        #
+        # # updating parameters, overriding defaults
+        # default_p.update(parameters)
 
-        # updating parameters, overriding defaults
-        default_p.update(parameters)
-
-        super().__init__(experiment, default_p, pv_name, pv_path)
+        super().__init__(experiment, parameters, pv_name, pv_path)
 
     def setup(self) -> None:
         # compute different set of elastic moduli
@@ -85,15 +85,43 @@ class LinearElasticity(MaterialProblem):
         )
 
     @staticmethod
+    def parameter_description() -> dict[str, str]:
+        """static method returning a description dictionary for required parameters
+
+        Returns:
+            description dictionary
+
+        """
+        description = {
+            "g": "gravity",
+            "dt": "time step",
+            "rho": "density of fresh concrete",
+            "E": "Young's Modulus",
+            "nu": "Poissons Ratio",
+            "stress_state": "for 2D plain stress or plane strain",
+            "degree": "Polynomial degree for the FEM model",
+            "dt": "time step",
+        }
+
+        return description
+
+    @staticmethod
     def default_parameters() -> tuple[Experiment, dict[str, pint.Quantity]]:
         """returns a dictionary with required parameters and a set of working values as example"""
         # default setup for this material
         experiment = CantileverBeam(CantileverBeam.default_parameters())
 
         model_parameters = {}
+        model_parameters["g"] = 9.81 * ureg("m/s^2")
+        model_parameters["dt"] = 1.0 * ureg("s")
+
         model_parameters["rho"] = 7750 * ureg("kg/m^3")
         model_parameters["E"] = 210e9 * ureg("N/m^2")
         model_parameters["nu"] = 0.28 * ureg("")
+
+        model_parameters["stress_state"] = "plane_strain" * ureg("")
+        model_parameters["degree"] = 2 * ureg("")  # polynomial degree
+        model_parameters["dt"] = 1.0 * ureg("s")
 
         return experiment, model_parameters
 

@@ -70,7 +70,7 @@ class CantileverBeam(Experiment):
         """
 
         setup_parameters = {}
-        setup_parameters["degree"] = 2 * ureg("")  # polynomial degree
+
         setup_parameters["length"] = 1 * ureg("m")
         setup_parameters["height"] = 0.3 * ureg("m")
         setup_parameters["width"] = 0.3 * ureg("m")  # only relevant for 3D case

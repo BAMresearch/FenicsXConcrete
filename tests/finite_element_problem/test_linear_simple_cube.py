@@ -153,3 +153,8 @@ def test_multiaxial_strain(dim: int, degree: int) -> None:
 
     assert result_corner == pytest.approx(target)
     assert result_center == pytest.approx(target / 2)
+
+
+# main
+if __name__ == "__main__":
+    test_disp(2)

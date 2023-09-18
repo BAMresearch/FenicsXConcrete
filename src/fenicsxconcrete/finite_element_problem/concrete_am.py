@@ -48,19 +48,19 @@ class ConcreteAM(MaterialProblem):
 
         """
 
-        # adding default material parameter, will be overridden by outside input
-        default_p = Parameters()
-        default_p["stress_state"] = "plane_strain" * ureg("")  # default stress state for 2D optional "plane_stress"
-
-        # updating parameters, overriding defaults
-        default_p.update(parameters)
+        # # adding default material parameter, will be overridden by outside input
+        # default_p = Parameters()
+        #  # default stress state for 2D optional "plane_stress"
+        #
+        # # updating parameters, overriding defaults
+        # default_p.update(parameters)
 
         if nonlinear_problem:
             self.nonlinear_problem = nonlinear_problem
         else:
             self.nonlinear_problem = ConcreteThixElasticModel  # default material
 
-        super().__init__(experiment, default_p, pv_name, pv_path)
+        super().__init__(experiment, parameters, pv_name, pv_path)
 
     @staticmethod
     def parameter_description() -> dict[str, str]:
@@ -73,12 +73,13 @@ class ConcreteAM(MaterialProblem):
         description = {
             "general parameters": {
                 "rho": "density of fresh concrete",
+                "g": "gravity",
                 "nu": "Poissons Ratio",
                 "degree": "Polynomial degree for the FEM model",
                 "q_degree": "Polynomial degree for which the quadrature rule integrates correctly",
                 "load_time": "time in which the load is applied",
                 "stress_state": "for 2D plain stress or plane strain",
-                "dt": "time step",  # default set in material base class
+                "dt": "time step",
             },
             "ThixElasticModel": {
                 "E_0": "Youngs Modulus at age=0",
@@ -112,10 +113,13 @@ class ConcreteAM(MaterialProblem):
         joined_parameters = {
             # Material parameter for concrete model with structural build-up
             "rho": 2070 * ureg("kg/m^3"),  # density of fresh concrete
+            "g": 9.81 * ureg("m/s^2"),  # gravity
             "nu": 0.3 * ureg(""),  # Poissons Ratio
             # other model parameters
-            # "degree": 2 * ureg(""),  # polynomial degree --> default defined in base_experiment!!
+            "degree": 2 * ureg(""),  # polynomial degree
             "q_degree": 2 * ureg(""),  # quadrature rule
+            "stress_state": "plane_strain" * ureg(""),  # for 2D stress state
+            "dt": 1.0 * ureg("s"),  # time step
             "load_time": 60 * ureg("s"),  # body force load applied in s
         }
         if not non_linear_problem or non_linear_problem == ConcreteThixElasticModel:

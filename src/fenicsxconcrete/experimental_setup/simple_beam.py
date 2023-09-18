@@ -74,7 +74,6 @@ class SimpleBeam(Experiment):
         """
 
         setup_parameters = {}
-        setup_parameters["degree"] = 2 * ureg("")  # polynomial degree
 
         setup_parameters["load"] = 10000 * ureg("N/m^2")
         setup_parameters["length"] = 1 * ureg("m")

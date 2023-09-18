@@ -39,6 +39,7 @@ class Experiment(ABC, LogMixin):
         setup_parameters.update(parameters)
 
         # get logger info which parameters are set to default values
+        # plus check dimensionality of input parameters
         keys_set_default = []
         for key in dict(default_p):
             if key not in parameters:
