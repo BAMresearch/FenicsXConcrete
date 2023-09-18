@@ -105,7 +105,8 @@ def test_disp(dim: int) -> None:
 
 @pytest.mark.parametrize("dim", [2, 3])
 def test_strain_state_error(dim: int) -> None:
-    setup_parameters = SimpleCube.default_parameters()
+    # setup_parameters = SimpleCube.default_parameters()
+    setup_parameters = {}  # use default parameters
     setup_parameters["dim"] = dim * ureg("")
     setup_parameters["strain_state"] = "wrong" * ureg("")
     setup = SimpleCube(setup_parameters)
@@ -117,7 +118,8 @@ def test_strain_state_error(dim: int) -> None:
 @pytest.mark.parametrize("dim", [2, 3])
 @pytest.mark.parametrize("degree", [1, 2])
 def test_multiaxial_strain(dim: int, degree: int) -> None:
-    setup_parameters = SimpleCube.default_parameters()
+    # setup_parameters = SimpleCube.default_parameters()
+    setup_parameters = {}  # use default parameters
     setup_parameters["dim"] = dim * ureg("")
     setup_parameters["degree"] = degree * ureg("")
     setup_parameters["strain_state"] = "multiaxial" * ureg("")
@@ -153,8 +155,3 @@ def test_multiaxial_strain(dim: int, degree: int) -> None:
 
     assert result_corner == pytest.approx(target)
     assert result_center == pytest.approx(target / 2)
-
-
-# main
-if __name__ == "__main__":
-    test_disp(2)

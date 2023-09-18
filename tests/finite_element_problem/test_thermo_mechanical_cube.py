@@ -158,8 +158,9 @@ def test_hydration_with_body_forces(dim: int):
     parameters["rho"] = 2350 * ureg("kg/m^3")  # in kg/m^3 density of concrete
 
     parameters["density_binder"] = 1440 * ureg("kg/m^3")  # in kg/m^3 density of the binder
+    # TODO Check with Sjard
     parameters["thermal_cond"] = 2.0 * ureg(
-        "W/(m*K)"
+        "W/(m^3*K)"
     )  # effective thermal conductivity, approx in Wm^-3K^-1, concrete!
     # self.specific_heat_capacity = 9000  # effective specific heat capacity in J kg⁻1 K⁻1
     parameters["vol_heat_cap"] = 2.4e6 * ureg("J/(m^3 * K)")  # volumetric heat cap J/(m3 K)
@@ -240,3 +241,8 @@ def test_hydration_with_body_forces(dim: int):
     np.testing.assert_allclose(data["t"], t_list)
     np.testing.assert_allclose(data["doh"].flatten(), np.array(doh_sensor.data).flatten(), rtol=1e-4)
     np.testing.assert_allclose(data["E"].flatten(), np.array(E_sensor.data).flatten(), rtol=1e-4)
+
+
+# main
+if __name__ == "__main__":
+    test_hydration_with_body_forces(3)

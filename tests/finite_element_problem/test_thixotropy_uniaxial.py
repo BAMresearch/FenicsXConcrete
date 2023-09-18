@@ -64,12 +64,11 @@ def test_disp(dim: int, degree: int):
     # setting up the problem
     experiment = SimpleCube(parameters)
 
-    # get default parameters and change accordingly to cases
+    # get description of parameters
     des = ConcreteAM.parameter_description()
     print(des)
 
-    _, default_params = ConcreteAM.default_parameters(ConcreteThixElasticModel)
-    parameters.update(default_params)
+    # use default parameters (default) and change accordingly to cases
     parameters["degree"] = degree * ureg("")
     if dim == 3:
         parameters["q_degree"] = 4 * ureg("")
@@ -139,6 +138,7 @@ def check_disp_case(problem: ConcreteAM, dt: pint.Quantity, E_o_time: list[float
 
     if problem.p["dim"] == 2:
         # standard uniaxial checks for last time step
+        print("analytic_eps", analytic_eps, problem.p["nu"] * analytic_eps)
         # strain in yy direction
         assert problem.sensors["StrainSensor"].data[-1][-1] == pytest.approx(analytic_eps)
         # strain in xx direction
@@ -195,8 +195,8 @@ def check_disp_case(problem: ConcreteAM, dt: pint.Quantity, E_o_time: list[float
     assert E_o_time[-1] == pytest.approx(E_end)
 
 
-# if __name__ == "__main__":
-#
-#     test_disp(2, 2)
-#
-#     # test_disp(3, 2)
+if __name__ == "__main__":
+
+    test_disp(2, 2)
+
+    # test_disp(3, 1)

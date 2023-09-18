@@ -38,13 +38,8 @@ def set_test_parameters(dim: int, mat_type: str = "thix") -> Parameters:
     if dim == 2:
         setup_parameters["stress_state"] = "plane_stress" * ureg("")
 
-    # default material parameters as start
-    if mat_type == "thix":
-        _, default_params = ConcreteAM.default_parameters(ConcreteThixElasticModel)
-    else:
-        raise ValueError(f"Unknown material type {mat_type}")
+    # default material parameters from material problem
 
-    setup_parameters.update(default_params)
     if dim == 3:
         setup_parameters["q_degree"] = 4 * ureg("")
 
