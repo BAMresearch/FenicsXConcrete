@@ -35,9 +35,22 @@ from fenicsxconcrete.util import ureg
 def test_dimensionality_check(material_model: MaterialProblem) -> None:
 
     default_setup, default_parameters = material_model.default_parameters()
-    fem_problem = material_model(default_setup, default_parameters)
-    fem_problem.solve()
 
     with pytest.raises(ValueError):
         default_parameters["g"] = 3 * ureg("m")  # gravity should be m/s²
         fem_problem = material_model(default_setup, default_parameters)
+
+
+@pytest.mark.parametrize("material_model", [LinearElasticity, ConcreteAM, ConcreteThermoMechanical])
+def test_default_parameters(material_model: MaterialProblem) -> None:
+    """This function tests if the default_parameters are complete"""
+    # default_material = LinearElasticity
+
+    default_setup, default_parameters = material_model.default_parameters()
+
+    try:
+        fem_problem = material_model(default_setup, default_parameters)
+        fem_problem.solve()
+    except KeyError:
+        print("default parameter dictionary is wrong")
+        raise ValueError

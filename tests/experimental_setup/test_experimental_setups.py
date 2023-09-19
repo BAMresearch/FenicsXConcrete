@@ -47,6 +47,30 @@ from fenicsxconcrete.util import ureg
 #             fem_problem.solve()
 
 
+@pytest.mark.parametrize(
+    "setup",
+    [
+        CantileverBeam,
+        TensileBeam,
+        SimpleBeam,
+        CompressionCylinder,
+        AmMultipleLayers,
+        SimpleCube,
+    ],
+)
+def test_default_parameters(setup: Experiment) -> None:
+    """This function tests if the default_parameters are complete"""
+    # default_material = LinearElasticity
+
+    setup_parameters = setup.default_parameters()
+
+    try:
+        experiment = setup(setup_parameters)
+    except KeyError:
+        print("default parameter dictionary is wrong")
+        raise ValueError
+
+
 # to imporve coverage, I want to test the error messages
 @pytest.mark.parametrize(
     "setup",
