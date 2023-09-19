@@ -17,7 +17,7 @@ from fenicsxconcrete.util import ureg
 # Setting up the Beam
 # -------------------
 # First, initialize the setup for the simply supported beam with a distributed load.
-# Define the geometry, the mesh, and the load.
+# Define the geometry, the mesh, and the load. Not defined parameters are set to default values (from class function default_parameters).
 # Note, all parameters must be pint objects:
 
 parameters = {}
@@ -36,6 +36,7 @@ beam_setup = SimpleBeam(parameters)
 # Initializing the Linear Elasticity Problem
 # ------------------------------------------
 # Second, initialize the linear elastic problem using the setup object and further material parameters:
+# Again not defined parameters are set to default values (from class function default_parameters).
 
 parameters["rho"] = 7750 * ureg("kg/m^3")
 parameters["E"] = 210e9 * ureg("N/m^2")

@@ -112,8 +112,10 @@ class ConcreteThermoMechanical(MaterialProblem, LogMixin):
             "evolution_ft": "True" * ureg(""),
             "dt": 1.0 * ureg("s"),
         }
-        default_parameters["E_act"] = 5653.0 * default_parameters["igc"] * ureg("J/mol")
-        print("CHECK", default_parameters["E_act"])
+        default_parameters["E_act"] = (
+            5653.0 * default_parameters["igc"].magnitude * ureg("J/mol")
+        )  # TODO Check with Sjard
+
         return experiment, default_parameters
 
     def compute_residuals(self) -> None:

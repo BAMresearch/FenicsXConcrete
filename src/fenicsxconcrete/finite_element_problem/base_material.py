@@ -112,23 +112,13 @@ class MaterialProblem(ABC, LogMixin):
                 # check if units are compatible
                 dim_given = parameters[key].dimensionality
                 dim_default = default_p[key].dimensionality
-                print(f"check {key} {dim_given} {dim_default}")
                 if dim_given != dim_default:
                     raise ValueError(
                         f"given units for {key} are not compatible with default units: {dim_given} != {dim_default}"
                     )
-        print(f"for the following parameters, the default values are used: {keys_set_default}")
         self.logger.info(f"for the following parameters, the default values are used: {keys_set_default}")
 
-        # # setting up default material parameters
-        # default_fem_parameters = Parameters()
-        # default_fem_parameters["g"] = 9.81 * ureg("m/s^2")
-        # default_fem_parameters["dt"] = 1.0 * ureg("s")
-        #
-        # # adding experimental parameters to dictionary to combine to one
-        # default_fem_parameters.update(self.experiment.parameters)
-        # # update with input parameters
-        # default_fem_parameters.update(parameters)
+        # set parameters as attribute
         self.parameters = setup_parameters
         # remove units for use in fem model
         self.p = self.parameters.to_magnitude()

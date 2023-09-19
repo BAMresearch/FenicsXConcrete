@@ -48,12 +48,10 @@ class Experiment(ABC, LogMixin):
                 # check if units are compatible
                 dim_given = parameters[key].dimensionality
                 dim_default = default_p[key].dimensionality
-                print(f"check {key} {dim_given} {dim_default}")
                 if dim_given != dim_default:
                     raise ValueError(
                         f"given units for {key} are not compatible with default units: {dim_given} != {dim_default}"
                     )
-        print(f"for the following parameters, the default values are used: {keys_set_default}")
         self.logger.info(f"for the following parameters, the default values are used: {keys_set_default}")
 
         # as attribute

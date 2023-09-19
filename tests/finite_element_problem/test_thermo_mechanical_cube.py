@@ -241,8 +241,3 @@ def test_hydration_with_body_forces(dim: int):
     np.testing.assert_allclose(data["t"], t_list)
     np.testing.assert_allclose(data["doh"].flatten(), np.array(doh_sensor.data).flatten(), rtol=1e-4)
     np.testing.assert_allclose(data["E"].flatten(), np.array(E_sensor.data).flatten(), rtol=1e-4)
-
-
-# main
-if __name__ == "__main__":
-    test_hydration_with_body_forces(3)

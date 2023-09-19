@@ -21,6 +21,7 @@ The material model used is a linear elastic constitutive model.
 # * `mesh_density` (mesh density) in 1/m
 #
 # The parameters must be defined as `pint` objects
+# Parameters required but not defined are set to default values (from class function default_parameters).
 #
 # Example code
 # ------------
