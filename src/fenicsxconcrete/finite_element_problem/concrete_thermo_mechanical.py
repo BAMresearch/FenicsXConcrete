@@ -88,7 +88,7 @@ class ConcreteThermoMechanical(MaterialProblem, LogMixin):
             "igc": 8.3145 * ureg("J/K/mol"),
             "rho": 2350.0 * ureg("kg/m^3"),
             "g": 9.81 * ureg("m/s^2"),
-            "thermal_cond": 2.0 * ureg("W/(m^3*K)"),  # TODO Check with Sjard
+            "thermal_cond": 2.0 * ureg("W/(m*K)"),  # TODO Check with Sjard
             "vol_heat_cap": 2.4e6 * ureg("J/(m^3 * K)"),
             # "Q_pot": 500e3 * ureg("J/kg"), only needed for postprocessing
             "Q_inf": 144000000 * ureg("J/m^3"),
