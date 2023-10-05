@@ -47,7 +47,7 @@ class ConcreteThermoMechanical(MaterialProblem, LogMixin):
             "igc": "Ideal gas constant",
             "rho": "Density of concrete",
             "g": "Gravitational acceleration",
-            "themal_cond": "effective thermal conductivity",
+            "thermal_cond": "effective thermal conductivity",
             "vol_heat_cap": "volumetric heat capacity",
             "Q_pot": "potential heat per weight of binder",
             "Q_inf": "potential heat per concrete volume",
