@@ -88,7 +88,7 @@ class ConcreteThermoMechanical(MaterialProblem, LogMixin):
             "igc": 8.3145 * ureg("J/K/mol"),
             "rho": 2350.0 * ureg("kg/m^3"),
             "g": 9.81 * ureg("m/s^2"),
-            "thermal_cond": 2.0 * ureg("W/(m*K)"),  # TODO Check with Sjard
+            "thermal_cond": 2.0 * ureg("W/(m*K)"),
             "vol_heat_cap": 2.4e6 * ureg("J/(m^3 * K)"),
             # "Q_pot": 500e3 * ureg("J/kg"), only needed for postprocessing
             "Q_inf": 144000000 * ureg("J/m^3"),
@@ -112,9 +112,7 @@ class ConcreteThermoMechanical(MaterialProblem, LogMixin):
             "evolution_ft": "True" * ureg(""),
             "dt": 1.0 * ureg("s"),
         }
-        default_parameters["E_act"] = (
-            5653.0 * ureg("K") * default_parameters["igc"] 
-        )  # TODO Check with Sjard
+        default_parameters["E_act"] = 5653.0 * ureg("K") * default_parameters["igc"]
 
         return experiment, default_parameters
 
@@ -122,8 +120,8 @@ class ConcreteThermoMechanical(MaterialProblem, LogMixin):
         pass
 
     def setup(self) -> None:
-        # TODO: the next line only makes a test pass. I don't like it either
-        _ = self.p["rho"]
+        # # TODO: the next line only makes a test pass. I don't like it either
+        # _ = self.p["rho"]
         self.t = 0.0
 
         self.rule = QuadratureRule(cell_type=self.mesh.ufl_cell(), degree=self.p["q_degree"])
