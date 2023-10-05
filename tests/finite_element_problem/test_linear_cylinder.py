@@ -21,6 +21,7 @@ def simple_setup(
     parameters["height"] = 0.012 * ureg("m")
     parameters["dim"] = 3 * ureg("")
     parameters["bc_setting"] = bc_setting * ureg("")
+    parameters["element_order"] = 2 * ureg("")
     parameters["degree"] = 2 * ureg("")
 
     parameters.update(p)
