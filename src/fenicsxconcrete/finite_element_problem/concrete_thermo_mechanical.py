@@ -120,8 +120,6 @@ class ConcreteThermoMechanical(MaterialProblem, LogMixin):
         pass
 
     def setup(self) -> None:
-        # # TODO: the next line only makes a test pass. I don't like it either
-        # _ = self.p["rho"]
         self.t = 0.0
 
         self.rule = QuadratureRule(cell_type=self.mesh.ufl_cell(), degree=self.p["q_degree"])
@@ -199,7 +197,6 @@ class ConcreteThermoMechanical(MaterialProblem, LogMixin):
 
         # set current DOH for computation of Young's modulus
         self.mechanics_problem.q_array_alpha[:] = self.temperature_problem.q_alpha.vector.array
-        # print('Solving: u') # TODO ouput only a certain log level INFO
 
         # mechanics paroblem is not required for temperature, could crash in frist time steps but then be useful
         try:
