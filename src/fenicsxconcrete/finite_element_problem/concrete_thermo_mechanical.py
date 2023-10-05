@@ -113,7 +113,7 @@ class ConcreteThermoMechanical(MaterialProblem, LogMixin):
             "dt": 1.0 * ureg("s"),
         }
         default_parameters["E_act"] = (
-            5653.0 * default_parameters["igc"].magnitude * ureg("J/mol")
+            5653.0 * ureg("K") * default_parameters["igc"] 
         )  # TODO Check with Sjard
 
         return experiment, default_parameters
