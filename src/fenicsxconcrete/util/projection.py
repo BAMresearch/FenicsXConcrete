@@ -3,7 +3,7 @@ import ufl
 
 
 def project(
-    v: df.fem.Function | ufl.core.expr.Expr, V: df.fem.FunctionSpace, dx: ufl.Measure, u: df.fem.Function | None = None
+    v: df.fem.Function | ufl.core.expr.Expr, V: df.fem.FunctionSpaceBase, dx: ufl.Measure, u: df.fem.Function | None = None
 ) -> None | df.fem.Function:
     """
     Calculates an approximation of `v` on the space `V`
