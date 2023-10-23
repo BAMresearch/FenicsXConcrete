@@ -3,6 +3,7 @@
 import dolfinx
 import numpy as np
 from mpi4py import MPI
+from basix.ufl import element
 
 from fenicsxconcrete.boundary_conditions.bcs import BoundaryConditions, get_boundary_dofs
 from fenicsxconcrete.boundary_conditions.boundary import plane_at
@@ -44,7 +45,8 @@ def test_whole_boundary() -> None:
     dim = 2
 
     domain = dolfinx.mesh.create_unit_square(MPI.COMM_WORLD, n, n, dolfinx.mesh.CellType.quadrilateral)
-    V = dolfinx.fem.VectorFunctionSpace(domain, ("Lagrange", degree), dim=dim)
+    el = element("Lagrange", domain.basix_cell(), degree, shape=(dim,))
+    V = dolfinx.fem.functionspace(domain, el)
 
     # option (a)
     bc_handler = BoundaryConditions(domain, V)
@@ -70,7 +72,8 @@ def test_xy_plane() -> None:
     dim = 3
 
     domain = dolfinx.mesh.create_unit_cube(MPI.COMM_WORLD, n, n, n, dolfinx.mesh.CellType.hexahedron)
-    V = dolfinx.fem.VectorFunctionSpace(domain, ("Lagrange", degree), dim=dim)
+    el = element("Lagrange", domain.basix_cell(), degree, shape=(dim,))
+    V = dolfinx.fem.functionspace(domain, el)
     xy_plane = plane_at(0.0, "z")
 
     # option (a)

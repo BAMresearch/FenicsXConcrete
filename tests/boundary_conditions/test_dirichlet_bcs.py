@@ -44,7 +44,8 @@ fix_uy = dirichletbc(ScalarType(0), bottom_boundary_dofs_y, V.sub(1))
 
 def test_vector_geom() -> None:
     domain = dolfinx.mesh.create_unit_square(MPI.COMM_WORLD, 8, 8, dolfinx.mesh.CellType.quadrilateral)
-    V = dolfinx.fem.VectorFunctionSpace(domain, ("Lagrange", 2))
+    ve = element("Lagrange", domain.basix_cell(), 2, shape=(2,))
+    V = dolfinx.fem.functionspace(domain, ve)
 
     bc_handler = BoundaryConditions(domain, V)
 
@@ -81,7 +82,8 @@ def test_vector_geom() -> None:
 
 def test_vector_geom_component_wise() -> None:
     domain = dolfinx.mesh.create_unit_square(MPI.COMM_WORLD, 8, 8, dolfinx.mesh.CellType.quadrilateral)
-    V = dolfinx.fem.VectorFunctionSpace(domain, ("Lagrange", 2))
+    ve = element("Lagrange", domain.basix_cell(), 2, shape=(2,))
+    V = dolfinx.fem.functionspace(domain, ve)
 
     bc_handler = BoundaryConditions(domain, V)
 
@@ -105,7 +107,8 @@ def test_vector_geom_component_wise() -> None:
 
 def test_scalar_geom() -> None:
     domain = dolfinx.mesh.create_unit_square(MPI.COMM_WORLD, 8, 8)
-    V = dolfinx.fem.FunctionSpace(domain, ("Lagrange", 2))
+    ve = element("Lagrange", domain.basix_cell(), 2, shape=(2,))
+    V = dolfinx.fem.functionspace(domain, ve)
 
     bc_handler = BoundaryConditions(domain, V)
 
@@ -126,7 +129,7 @@ def test_scalar_geom() -> None:
 def test_scalar_topo() -> None:
     n = 20
     domain = dolfinx.mesh.create_unit_square(MPI.COMM_WORLD, n, n)
-    V = dolfinx.fem.FunctionSpace(domain, ("Lagrange", 2))
+    V = dolfinx.fem.functionspace(domain, ("Lagrange", 2))
 
     bc_handler = BoundaryConditions(domain, V)
 
@@ -151,7 +154,7 @@ def test_dirichletbc() -> None:
     """add instance of dolfinx.fem.dirichletbc"""
     n = 20
     domain = dolfinx.mesh.create_unit_square(MPI.COMM_WORLD, n, n)
-    V = dolfinx.fem.FunctionSpace(domain, ("Lagrange", 2))
+    V = dolfinx.fem.functionspace(domain, ("Lagrange", 2))
     bc_handler = BoundaryConditions(domain, V)
     dofs = dolfinx.fem.locate_dofs_geometrical(V, plane_at(0.0, "x"))
     bc = dolfinx.fem.dirichletbc(ScalarType(0), dofs, V)
@@ -165,7 +168,8 @@ def test_runtimeerror_geometrical() -> None:
     is not None"""
     n = 20
     domain = dolfinx.mesh.create_unit_square(MPI.COMM_WORLD, n, n)
-    V = dolfinx.fem.VectorFunctionSpace(domain, ("Lagrange", 2))
+    ve = element("Lagrange", domain.basix_cell(), 2, shape=(2,))
+    V = dolfinx.fem.functionspace(domain, ve)
     Vsub = V.sub(0)
     bottom = plane_at(0.0, "y")
     with pytest.raises(RuntimeError):
@@ -175,7 +179,9 @@ def test_runtimeerror_geometrical() -> None:
 def test_boundary_as_int() -> None:
     n = 5
     domain = dolfinx.mesh.create_unit_square(MPI.COMM_WORLD, n, n)
-    V = dolfinx.fem.VectorFunctionSpace(domain, ("Lagrange", 2))
+    ve = element("Lagrange", domain.basix_cell(), 2, shape=(2,))
+    V = dolfinx.fem.functionspace(domain, ve)
+
     marker = 1011
     bottom = {"bottom": (marker, plane_at(0.0, "y"))}
     ft, marked = create_facet_tags(domain, bottom)
@@ -196,7 +202,7 @@ def test_boundary_as_int() -> None:
 def test_value_interpolation() -> None:
     n = 50
     domain = dolfinx.mesh.create_unit_interval(MPI.COMM_WORLD, n)
-    V = dolfinx.fem.FunctionSpace(domain, ("Lagrange", 2))
+    V = dolfinx.fem.functionspace(domain, ("Lagrange", 2))
     my_value = 17.2
 
     def expression(x):
@@ -215,7 +221,7 @@ def test_value_interpolation() -> None:
 def test_clear() -> None:
     n = 2
     domain = dolfinx.mesh.create_unit_interval(MPI.COMM_WORLD, n)
-    V = dolfinx.fem.FunctionSpace(domain, ("Lagrange", 2))
+    V = dolfinx.fem.functionspace(domain, ("Lagrange", 2))
     bc_handler = BoundaryConditions(domain, V)
     dofs = dolfinx.fem.locate_dofs_geometrical(V, plane_at(0.0, "x"))
     bc = dolfinx.fem.dirichletbc(ScalarType(0), dofs, V)

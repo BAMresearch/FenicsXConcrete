@@ -10,7 +10,7 @@ from fenicsxconcrete.boundary_conditions.boundary import within_range
 def test_1d() -> None:
     n = 10
     domain = dolfinx.mesh.create_unit_interval(MPI.COMM_WORLD, n)
-    V = dolfinx.fem.FunctionSpace(domain, ("Lagrange", 1))
+    V = dolfinx.fem.functionspace(domain, ("Lagrange", 1))
     # test reordering of start and end
     subdomain = within_range([0.75, 0.0, 0.0], [0.35, 0.0, 0.0])
     dofs = dolfinx.fem.locate_dofs_geometrical(V, subdomain)
@@ -22,7 +22,7 @@ def test_1d() -> None:
 def test_2d() -> None:
     n = 200
     domain = dolfinx.mesh.create_unit_square(MPI.COMM_WORLD, n, n, dolfinx.mesh.CellType.quadrilateral)
-    V = dolfinx.fem.FunctionSpace(domain, ("Lagrange", 1))
+    V = dolfinx.fem.functionspace(domain, ("Lagrange", 1))
 
     Δx = Δy = 1 / (n + 1)  # exclude the right and top boundary, Δ must be smaller than cell size
     boundary = within_range([0.0, 0.0, 0.0], [1.0 - Δx, 1.0 - Δy, 0.0])

@@ -193,7 +193,7 @@ def _show_marked(
     if tdim in (1, 3):
         raise NotImplementedError(f"Not implemented for mesh of topological dimension {tdim=}.")
 
-    V = dolfinx.fem.FunctionSpace(domain, ("Lagrange", 1))
+    V = dolfinx.fem.functionspace(domain, ("Lagrange", 1))
     dofs = dolfinx.fem.locate_dofs_geometrical(V, marker)
     u = dolfinx.fem.Function(V)
     bc = dolfinx.fem.dirichletbc(u, dofs)

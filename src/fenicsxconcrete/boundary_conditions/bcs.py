@@ -9,7 +9,7 @@ import ufl
 from fenicsxconcrete.util import LogMixin
 
 
-def get_boundary_dofs(V: dolfinx.fem.FunctionSpace, marker: Callable) -> np.ndarray:
+def get_boundary_dofs(V: dolfinx.fem.FunctionSpaceBase, marker: Callable) -> np.ndarray:
     """Returns dofs on the boundary specified by geometrical `marker`.
 
     Args:
@@ -78,7 +78,7 @@ class BoundaryConditions(LogMixin):
     def add_dirichlet_bc(
         self,
         value: (
-            dolfinx.fem.Function | dolfinx.fem.Constant | dolfinx.fem.DirichletBCMetaClass | np.ndarray | Callable
+            dolfinx.fem.Function | dolfinx.fem.Constant | dolfinx.fem.DirichletBC | np.ndarray | Callable
         ),
         boundary: int | np.ndarray | Callable | None = None,
         sub: int = None,
@@ -103,7 +103,7 @@ class BoundaryConditions(LogMixin):
                         topologically. Note that `entity_dim` is required if `sub`
                         is not None and `method=geometrical`.
         """
-        if isinstance(value, dolfinx.fem.DirichletBCMetaClass):
+        if isinstance(value, dolfinx.fem.DirichletBC):
             self._bcs.append(value)
         else:
             assert method in ("topological", "geometrical")
@@ -180,7 +180,7 @@ class BoundaryConditions(LogMixin):
         return len(self._bcs) > 0
 
     @property
-    def bcs(self) -> list[dolfinx.fem.DirichletBCMetaClass]:
+    def bcs(self) -> list[dolfinx.fem.DirichletBC]:
         """returns the list of Dirichlet BCs
 
         Returns:
