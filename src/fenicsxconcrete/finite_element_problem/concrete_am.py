@@ -243,7 +243,9 @@ class ConcreteAM(MaterialProblem):
         # write further fields
         sigma_plot = project(
             self.mechanics_problem.sigma(self.fields.displacement),
-            df.fem.functionspace(self.mesh, self.q_fields.plot_space_type+(self.q_fields.stress.ufl_element().value_shape(), True)),
+            df.fem.functionspace(
+                self.mesh, self.q_fields.plot_space_type + (self.q_fields.stress.ufl_element().value_shape(), True)
+            ),
             self.rule.dx,
         )
 
