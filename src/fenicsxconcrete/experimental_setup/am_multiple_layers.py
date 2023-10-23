@@ -96,7 +96,7 @@ class AmMultipleLayers(Experiment):
         else:
             raise ValueError(f'wrong dimension: {self.p["dim"]} is not implemented for problem setup')
 
-    def create_displacement_boundary(self, V: df.fem.FunctionSpace) -> list[df.fem.bcs.DirichletBCMetaClass]:
+    def create_displacement_boundary(self, V: df.fem.FunctionSpaceBase) -> list[df.fem.bcs.DirichletBC]:
         """defines displacement boundary as fixed at bottom
 
         Args:

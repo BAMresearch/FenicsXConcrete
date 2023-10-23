@@ -5,8 +5,8 @@ import dolfinx as df
 import pint
 import ufl
 
-from fenicsxconcrete.boundary_conditions.boundary import plane_at, point_at
-from fenicsxconcrete.util import LogMixin, Parameters, QuadratureRule, ureg
+from fenicsxconcrete.boundary_conditions.boundary import plane_at
+from fenicsxconcrete.util import LogMixin, Parameters, QuadratureRule
 
 
 class Experiment(ABC, LogMixin):
@@ -81,7 +81,7 @@ class Experiment(ABC, LogMixin):
         pass
 
     @abstractmethod
-    def create_displacement_boundary(self, V: df.fem.FunctionSpace) -> list[df.fem.bcs.DirichletBCMetaClass] | None:
+    def create_displacement_boundary(self, V: df.fem.FunctionSpaceBase) -> list[df.fem.bcs.DirichletBC] | None:
         """defines empty displacement boundary conditions (to be done in child)
 
         this function is abstract until there is a need for a material that does not need a displacement boundary
