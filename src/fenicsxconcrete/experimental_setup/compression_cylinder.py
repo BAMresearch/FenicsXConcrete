@@ -184,7 +184,7 @@ class CompressionCylinder(Experiment):
 
         return default_parameters
 
-    def create_displacement_boundary(self, V: df.fem.FunctionSpace) -> list[df.fem.bcs.DirichletBCMetaClass]:
+    def create_displacement_boundary(self, V: df.fem.FunctionSpaceBase) -> list[df.fem.bcs.DirichletBC]:
         """Defines the displacement boundary conditions
 
         Args:

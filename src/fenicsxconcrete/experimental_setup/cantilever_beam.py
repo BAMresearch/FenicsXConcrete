@@ -6,7 +6,7 @@ from mpi4py import MPI
 from petsc4py.PETSc import ScalarType
 
 from fenicsxconcrete.experimental_setup.base_experiment import Experiment
-from fenicsxconcrete.util import Parameters, ureg
+from fenicsxconcrete.util import ureg
 
 
 class CantileverBeam(Experiment):
@@ -81,7 +81,7 @@ class CantileverBeam(Experiment):
 
         return setup_parameters
 
-    def create_displacement_boundary(self, V) -> list:
+    def create_displacement_boundary(self, V: df.fem.FunctionSpaceBase) -> list:
         """defines displacement boundary as fixed at bottom
 
         Args:
