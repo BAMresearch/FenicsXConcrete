@@ -9,8 +9,8 @@ dependencies:
   - scipy
   - pint
   - matplotlib
-  - python-gmsh
-  - meshio
+  - python-gmsh=4.11.1
+  - meshio=5.3.4
   - jsonschema
   # tests
   - pytest
