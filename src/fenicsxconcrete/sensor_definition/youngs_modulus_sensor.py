@@ -48,11 +48,11 @@ class YoungsModulusSensor(PointSensor):
         # project stress onto visualization space
 
         # finding the cells corresponding to the point
-        bb_tree = df.geometry.BoundingBoxTree(problem.experiment.mesh, problem.experiment.mesh.topology.dim)
+        bb_tree = df.geometry.bb_tree(problem.experiment.mesh, problem.experiment.mesh.topology.dim)
         cells = []
 
         # Find cells whose bounding-box collide with the points
-        cell_candidates = df.geometry.compute_collisions(bb_tree, [self.where])
+        cell_candidates = df.geometry.compute_collisions_points(bb_tree, [self.where])
 
         # Choose one of the cells that contains the point
         colliding_cells = df.geometry.compute_colliding_cells(problem.experiment.mesh, cell_candidates, [self.where])

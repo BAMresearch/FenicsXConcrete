@@ -98,7 +98,7 @@ class SimpleCube(Experiment):
         self.use_body_force = False
         self.temperature_bc = df.fem.Constant(domain=self.mesh, c=self.p["T_bc"])
 
-    def create_displacement_boundary(self, V: df.fem.FunctionSpace) -> list[df.fem.bcs.DirichletBCMetaClass]:
+    def create_displacement_boundary(self, V: df.fem.FunctionSpaceBase) -> list[df.fem.bcs.DirichletBC]:
         """Defines the displacement boundary conditions
 
         Args:
@@ -192,7 +192,7 @@ class SimpleCube(Experiment):
     def apply_body_force(self) -> None:
         self.use_body_force = True
 
-    def create_temperature_bcs(self, V: df.fem.FunctionSpace) -> list[df.fem.bcs.DirichletBCMetaClass]:
+    def create_temperature_bcs(self, V: df.fem.FunctionSpaceBase) -> list[df.fem.bcs.DirichletBC]:
         """defines empty temperature boundary conditions (to be done in child)
 
         this function is abstract until there is a need for a material that does need a temperature boundary

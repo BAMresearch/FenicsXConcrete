@@ -3,6 +3,7 @@ import numpy as np
 import pytest
 from mpi4py import MPI
 from petsc4py import PETSc
+from basix.ufl import element
 
 from fenicsxconcrete.boundary_conditions.bcs import BoundaryConditions
 from fenicsxconcrete.boundary_conditions.boundary import create_facet_tags, plane_at
@@ -11,7 +12,8 @@ from fenicsxconcrete.boundary_conditions.boundary import create_facet_tags, plan
 def test_constant_traction() -> None:
     n = 10
     domain = dolfinx.mesh.create_unit_square(MPI.COMM_WORLD, n, n, dolfinx.mesh.CellType.quadrilateral)
-    V = dolfinx.fem.VectorFunctionSpace(domain, ("Lagrange", 1))
+    ve = element("Lagrange", domain.basix_cell(), degree, shape=(2,))
+    V = dolfinx.fem.functionspace(domain, ve)
     rmarker = 12
     my_boundaries = {"right": (rmarker, plane_at(0.0, "x"))}
     ft, mb = create_facet_tags(domain, my_boundaries)

@@ -6,7 +6,7 @@ from petsc4py.PETSc import ScalarType
 
 from fenicsxconcrete.experimental_setup import CantileverBeam, Experiment
 from fenicsxconcrete.finite_element_problem.base_material import MaterialProblem, QuadratureFields, SolutionFields
-from fenicsxconcrete.util import Parameters, ureg
+from fenicsxconcrete.util import ureg
 
 
 class LinearElasticity(MaterialProblem):
@@ -44,8 +44,8 @@ class LinearElasticity(MaterialProblem):
             )
 
         # define function space ets.
-        self.V = df.fem.VectorFunctionSpace(self.mesh, ("Lagrange", self.p["degree"]))  # 2 for quadratic elements
-        self.V_scalar = df.fem.FunctionSpace(self.mesh, ("Lagrange", self.p["degree"]))
+        self.V = df.fem.functionspace(self.mesh, ("Lagrange", self.p["degree"], (self.mesh.geometry.dim,)))  # 2 for quadratic elements
+        self.V_scalar = df.fem.functionspace(self.mesh, ("Lagrange", self.p["degree"], (1,)))
 
         # Define variational problem
         self.u_trial = ufl.TrialFunction(self.V)
@@ -100,7 +100,6 @@ class LinearElasticity(MaterialProblem):
             "nu": "Poissons Ratio",
             "stress_state": "for 2D plain stress or plane strain",
             "degree": "Polynomial degree for the FEM model",
-            "dt": "time step",
         }
 
         return description
@@ -134,7 +133,7 @@ class LinearElasticity(MaterialProblem):
 
     def solve(self) -> None:
         self.update_time()
-        self.logger.info(f"solving t={self.time}")
+        self.logger.info("solving t=%s", self.time)
         self.weak_form_problem.solve()
 
         # TODO Defined as abstractmethod. Should it depend on sensor instead of material?
