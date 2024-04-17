@@ -6,6 +6,7 @@ import dolfinx as df
 import numpy as np
 import pint
 import ufl
+from fenics_constitutive import Constraint, IncrSmallStrainModel, VonMises3D, build_history, ufl_mandel_strain
 from mpi4py import MPI
 from petsc4py import PETSc
 
@@ -124,7 +125,7 @@ class ConcreteAMFC(MaterialProblem):
         )
 
         # material law
-        law = VonMises3D(self.p)
+        law = self.material_law(self.p)
 
         # boundaries
         bcs = self.experiment.create_displacement_boundary(self.V)
@@ -151,7 +152,7 @@ class ConcreteAMFC(MaterialProblem):
 
         # solve problem for current time increment
         self.mechanics_solver.solve(self.u)
-        self.mechanics_problem.update()
+        self.mechanics_problem.update() # TODO at which point?
 
         # update total displacement
         self.fields.displacement.vector.array[:] += self.u.vector.array[:]
@@ -359,59 +360,33 @@ class Problem_AM(df.fem.petsc.NonlinearProblem):
         assert (
                 x.array.data == self._u.vector.array.data
         ), "The solution vector must be the same as the one passed to the MechanicsProblem"
-        if len(self.laws) > 1:
-            for k, (law, cells) in enumerate(self.laws):
-                with df.common.Timer("strain_evaluation"):
-                    # TODO: test this!!
-                    self.del_grad_u_expr.eval(
-                        cells, self._del_grad_u[k].x.array.reshape(cells.size, -1)
-                    )
+        law, cells = self.laws[0]
+        with df.common.Timer("strain_evaluation"):
+            self.del_grad_u_expr.eval(
+                cells, self._del_grad_u[0].x.array.reshape(cells.size, -1)
+            )
 
-                with df.common.Timer("stress_evaluation"):
-                    self.submesh_maps[k].map_to_child(self.stress_0, self._stress[k])
-                    if law.history_dim is not None:
-                        self._history_1[0].x.array[:] = self._history_0[0].x.array
-                    law.evaluate(
-                        self._time,
-                        self._del_grad_u[k].x.array,
-                        self._stress[k].x.array,
-                        self._tangent[k].x.array,
-                        self._history_1[k].x.array
-                        if law.history_dim is not None
-                        else None,
-                    )
+        with df.common.Timer("stress_evaluation"):
+            self.stress_1.x.array[:] = self.stress_0.x.array
+            history_input = None
+            if isinstance(law.history_dim, int):
+                self._history_1[0].x.array[:] = self._history_0[0].x.array
+                history_input = self._history_1[0].x.array
+            elif isinstance(law.history_dim, dict):
+                history_input = {}
+                for key in law.history_dim:
+                    self._history_1[0][key].x.array[:] = self._history_0[0][key].x.array
+                    history_input[key] = self._history_1[0][key].x.array
+            law.evaluate(
+                self._time,
+                self._del_grad_u[0].x.array,
+                self.stress_1.x.array,
+                self.tangent.x.array,
+                history_input,
+            )
 
-                with df.common.Timer("stress-local-to-global"):
-                    self.submesh_maps[k].map_to_parent(self._stress[k], self.stress_1)
-                    self.submesh_maps[k].map_to_parent(self._tangent[k], self.tangent)
-        else:
-            law, cells = self.laws[0]
-            with df.common.Timer("strain_evaluation"):
-                self.del_grad_u_expr.eval(
-                    cells, self._del_grad_u[0].x.array.reshape(cells.size, -1)
-                )
-
-            with df.common.Timer("stress_evaluation"):
-                self.stress_1.x.array[:] = self.stress_0.x.array
-                history_input = None
-                if isinstance(law.history_dim, int):
-                    self._history_1[0].x.array[:] = self._history_0[0].x.array
-                    history_input = self._history_1[0].x.array
-                elif isinstance(law.history_dim, dict):
-                    history_input = {}
-                    for key in law.history_dim:
-                        self._history_1[0][key].x.array[:] = self._history_0[0][key].x.array
-                        history_input[key] = self._history_1[0][key].x.array
-                law.evaluate(
-                    self._time,
-                    self._del_grad_u[0].x.array,
-                    self.stress_1.x.array,
-                    self.tangent.x.array,
-                    history_input,
-                )
-
-        self.stress_1.x.scatter_forward()
-        self.tangent.x.scatter_forward()
+    self.stress_1.x.scatter_forward()
+    self.tangent.x.scatter_forward()
 
     def update(self) -> None:
         """
