@@ -2,11 +2,18 @@ import copy
 from collections.abc import Callable
 from typing import Type
 
+import basix
 import dolfinx as df
 import numpy as np
 import pint
 import ufl
-from fenics_constitutive import Constraint, IncrSmallStrainModel, VonMises3D, build_history, ufl_mandel_strain
+from fenics_constitutive import (
+    Constraint,
+    IncrSmallStrainModel,
+    IncrSmallStrainProblem,
+    build_history,
+    ufl_mandel_strain,
+)
 from mpi4py import MPI
 from petsc4py import PETSc
 
@@ -31,7 +38,7 @@ class ConcreteAMFC(MaterialProblem):
         self,
         experiment: Experiment,
         parameters: dict[str, pint.Quantity],
-        material,  # check which type
+        material: IncrSmallStrainModel,
         pv_name: str = "pv_output_full",
         pv_path: str | None = None,
     ) -> None:
@@ -125,26 +132,27 @@ class ConcreteAMFC(MaterialProblem):
         )
 
         # material law
-        law = self.material_law(self.p)
+        law = self.material_law(self.p, constraint = Constraint.FULL)
 
         # boundaries
         bcs = self.experiment.create_displacement_boundary(self.V)
         body_force_fct = self.experiment.create_body_force_am
 
         # problem
-        self.mechanics_problem = Problem_AM(law, self.u, bcs, body_force_fct, q_degree=self.p["q_degree"])
+        #self.mechanics_problem = Problem_AM(law, self.u, bcs, body_force_fct, q_degree=self.p["q_degree"])
+        self.mechanics_problem = IncrSmallStrainProblem(law, self.u, bcs, q_degree=self.p["q_degree"])
 
         # setting up the solver
         self.mechanics_solver = df.nls.petsc.NewtonSolver(MPI.COMM_WORLD, self.mechanics_problem)
-        self.mechanics_solver.convergence_criterion = "incremental"
-        self.mechanics_solver.atol = 1e-9
-        self.mechanics_solver.rtol = 1e-8
-        self.mechanics_solver.report = True
+        # self.mechanics_solver.convergence_criterion = "incremental"
+        # self.mechanics_solver.atol = 1e-9
+        # self.mechanics_solver.rtol = 1e-8
+        # self.mechanics_solver.report = True
 
     def solve(self) -> None:
         """time incremental solving !"""
 
-        # self.update_time()  # set t+dt
+        self.update_time()  # set t+dt
         # self.update_path()  # set path
 
         self.logger.info(f"solve for t: {self.time}")
@@ -155,7 +163,7 @@ class ConcreteAMFC(MaterialProblem):
         self.mechanics_problem.update() # TODO at which point?
 
         # update total displacement
-        self.fields.displacement.vector.array[:] += self.u.vector.array[:]
+        self.fields.displacement.vector.array[:] = self.u.vector.array[:]
         self.fields.displacement.x.scatter_forward()
 
         # save fields to global problem for sensor output
@@ -167,13 +175,10 @@ class ConcreteAMFC(MaterialProblem):
             # go through all sensors and measure
             self.sensors[sensor_name].measure(self)
 
-        # update path & internal variables before next step! TODO: WHERE?
-        # self.mechanics_problem.update_history(fields=self.fields, q_fields=self.q_fields)  # if required otherwise pass
-
     def compute_residuals(self) -> None:
         """defines what to do, to compute the residuals. Called in solve for sensors"""
 
-        self.residual = self.mechanics_problem.R
+        self.residual = self.mechanics_problem.R_form
 
     def pv_plot(self) -> None:
         """creates paraview output at given time step"""
@@ -194,8 +199,8 @@ class ConcreteAMFC(MaterialProblem):
         # E_plot.name = "Youngs_Modulus"
         # sigma_plot.name = "Stress"
         #
-        # with df.io.XDMFFile(self.mesh.comm, self.pv_output_file, "a") as f:
-        #     f.write_function(self.fields.displacement, self.time)
+        with df.io.XDMFFile(self.mesh.comm, self.pv_output_file, "a") as f:
+            f.write_function(self.fields.displacement, self.time)
         #     f.write_function(sigma_plot, self.time)
         #     f.write_function(E_plot, self.time)
         #
@@ -225,7 +230,7 @@ class Problem_AM(df.fem.petsc.NonlinearProblem):
             laws: IncrSmallStrainModel,
             u: df.fem.Function,
             bcs: list[df.fem.DirichletBCMetaClass],
-            body_force: Callable,
+            body_force_fct: Callable,
             q_degree: int = 1,
             form_compiler_options: dict | None = None,
             jit_options: dict | None = None,
@@ -306,6 +311,11 @@ class Problem_AM(df.fem.petsc.NonlinearProblem):
         self.R_form = (
                 ufl.inner(ufl_mandel_strain(u_, constraint), self.stress_1) * self.dxm
         )
+        # # apply body force
+        # body_force = body_force_fct(v, self.q_fd, self.rule)
+        # if body_force:
+        #     self.R_form  -= body_force
+
         self.dR_form = (
                 ufl.inner(
                     ufl_mandel_strain(du, constraint),
@@ -385,8 +395,8 @@ class Problem_AM(df.fem.petsc.NonlinearProblem):
                 history_input,
             )
 
-    self.stress_1.x.scatter_forward()
-    self.tangent.x.scatter_forward()
+        self.stress_1.x.scatter_forward()
+        self.tangent.x.scatter_forward()
 
     def update(self) -> None:
         """
@@ -398,16 +408,16 @@ class Problem_AM(df.fem.petsc.NonlinearProblem):
         self.stress_0.x.array[:] = self.stress_1.x.array
         self.stress_0.x.scatter_forward()
 
-        for k, (law, _) in enumerate(self.laws):
-            match law.history_dim:
-                case int():
-                    self._history_0[k].x.array[:] = self._history_1[k].x.array
-                    self._history_0[k].x.scatter_forward()
-                case None:
-                    pass
-                case dict():
-                    for key in law.history_dim:
-                        self._history_0[k][key].x.array[:] = self._history_1[k][
-                            key
-                        ].x.array
-                        self._history_0[k][key].x.scatter_forward()
+        law, _ = self.laws[0]
+        match law.history_dim:
+            case int():
+                self._history_0[0].x.array[:] = self._history_1[0].x.array
+                self._history_0[0].x.scatter_forward()
+            case None:
+                pass
+            case dict():
+                for key in law.history_dim:
+                    self._history_0[0][key].x.array[:] = self._history_1[0][
+                        key
+                    ].x.array
+                    self._history_0[0][key].x.scatter_forward()
