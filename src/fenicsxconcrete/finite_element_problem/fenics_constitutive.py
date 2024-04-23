@@ -1,25 +1,11 @@
-import copy
-from collections.abc import Callable
-from typing import Type
-
-import basix
 import dolfinx as df
-import numpy as np
 import pint
-import ufl
-from fenics_constitutive import (
-    Constraint,
-    IncrSmallStrainModel,
-    IncrSmallStrainProblem,
-    build_history,
-    ufl_mandel_strain,
-)
+from fenics_constitutive import Constraint, IncrSmallStrainModel, IncrSmallStrainProblem
 from mpi4py import MPI
-from petsc4py import PETSc
 
 from fenicsxconcrete.experimental_setup import Experiment, SimpleCube
 from fenicsxconcrete.finite_element_problem.base_material import MaterialProblem, QuadratureFields, SolutionFields
-from fenicsxconcrete.util import Parameters, QuadratureEvaluator, QuadratureRule, project, ureg
+from fenicsxconcrete.util import QuadratureRule, project, ureg
 
 
 class FenicsConstitutive(MaterialProblem):
@@ -127,19 +113,26 @@ class FenicsConstitutive(MaterialProblem):
 
         # additional output fields
         self.rule = QuadratureRule(cell_type=self.mesh.ufl_cell(), degree=self.p["q_degree"])
-        self.strain_stress_space = self.rule.create_quadrature_tensor_space(self.mesh, (self.p["dim"], self.p["dim"]))
         self.q_fields = QuadratureFields(
             measure=self.rule.dx,
-            plot_space_type=("DG", self.p["degree"] - 1),
-            strain=df.fem.Function(self.strain_stress_space, name="strain"),
-            stress=df.fem.Function(self.strain_stress_space, name="stress"),
+            plot_space_type=("CG", self.p["degree"] - 1),
+            stress=self.mechanics_problem.stress_1,  # vector space!! not working with stress_sensor
         )
+        # TODO: transform stress vector space into tensor space for stress_sensor
 
         # setting up the solver
         self.mechanics_solver = df.nls.petsc.NewtonSolver(MPI.COMM_WORLD, self.mechanics_problem)
         self.mechanics_solver.atol = 1e-9
         self.mechanics_solver.rtol = 1e-8
         self.mechanics_solver.report = True
+
+        # for paraview stress output
+        # vector space
+        self.plot_space_stress = df.fem.VectorFunctionSpace(
+            self.experiment.mesh, self.q_fields.plot_space_type, dim=law.stress_strain_dim
+        )
+        # # tensor space
+        # self.plot_space_stress_T = df.fem.TensorFunctionSpace(self.experiment.mesh, self.q_fields.plot_space_type)
 
     def solve(self) -> None:
         """time incremental solving !"""
@@ -158,9 +151,6 @@ class FenicsConstitutive(MaterialProblem):
 
         self.mechanics_problem.update()  # TODO at which point?
 
-        # save fields to global problem for sensor output
-        # TODO
-
         # get sensor data
         self.compute_residuals()  # for residual sensor
         for sensor_name in self.sensors:
@@ -177,22 +167,10 @@ class FenicsConstitutive(MaterialProblem):
 
         self.logger.info(f"create pv plot for t: {self.time}")
 
-        # # write further fields
-        # sigma_plot = project(
-        #     self.mechanics_problem.sigma(self.fields.displacement),
-        #     df.fem.TensorFunctionSpace(self.mesh, self.q_fields.plot_space_type),
-        #     self.rule.dx,
-        # )
-        #
-        # E_plot = project(
-        #     self.mechanics_problem.q_E, df.fem.FunctionSpace(self.mesh, self.q_fields.plot_space_type), self.rule.dx
-        # )
-        #
-        # E_plot.name = "Youngs_Modulus"
-        # sigma_plot.name = "Stress"
+        # write further fields
+        sigma_plot = project(self.q_fields.stress, self.plot_space_stress, self.rule.dx)
+        sigma_plot.name = "Stress"
         #
         with df.io.XDMFFile(self.mesh.comm, self.pv_output_file, "a") as f:
             f.write_function(self.fields.displacement, self.time)
-        #     f.write_function(sigma_plot, self.time)
-        #     f.write_function(E_plot, self.time)
-        #
+            f.write_function(sigma_plot, self.time)
