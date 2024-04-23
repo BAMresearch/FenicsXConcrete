@@ -30,7 +30,7 @@ class ConcreteAMFC(MaterialProblem):
     - material laws from fenics-constitutive (incremental small strain models)
 
     Attributes:
-        nonlinear_problem: the nonlinear problem class of used material law
+        material: the IncrSmallStrainModel given the material law
         further: see base class
     """
 
@@ -69,19 +69,24 @@ class ConcreteAMFC(MaterialProblem):
 
         """
         description = {
-            "parameters": "to be done",
+            "rho": "Density of material",
+            "g": "Gravitational acceleration",
+            "degree": "Polynomial degree for the FEM model",
+            "q_degree": "Polynomial degree for which the quadrature rule integrates correctly",
+            "dt": "time step",
+            "material parameters": "select according to chosen material law!",
         }
 
         return description
 
     @staticmethod
     def default_parameters(
-        non_linear_problem: df.fem.petsc.NonlinearProblem | None = None,
+        material: str | None = None,
     ) -> tuple[Experiment, dict[str, pint.Quantity]]:
         """Static method that returns a set of default parameters for the selected nonlinear problem.
 
         Args:
-            non_linear_problem: the nonlinear problem class of used material law
+            material: string of material law as IncSmallStrainModel from fenics-constitutive
 
         Returns:
             The default experiment instance and the default parameters as a dictionary.
@@ -91,25 +96,39 @@ class ConcreteAMFC(MaterialProblem):
         # default experiment
         experiment = AmMultipleLayers(AmMultipleLayers.default_parameters())
 
-        # default parameters according given nonlinear problem #TODO
+        # default parameters according given nonlinear problem
         parameters = {
-            # Material parameter for concrete model
-            "rho": 2070 * ureg("kg/m^3"),  # density of fresh concrete
+            # general parameters
+            "rho": 2070 * ureg("kg/m^3"),  # density
             "g": 9.81 * ureg("m/s^2"),  # gravity
-            # other model parameters
+            # general model parameters
             "degree": 2 * ureg(""),  # polynomial degree
             "q_degree": 2 * ureg(""),  # quadrature rule
             "dt": 1.0 * ureg("s"),  # time step
             "load_time": 60 * ureg("s"),  # body force load applied in s
-            # plasticity material parameters # TODO: check units
-            "p_ka": 175000 * ureg("MPa"),  # bulk modulus
-            "p_mu": 80769 * ureg("MPa"), # shear modulus
-            "p_y0": 1200 * ureg("MPa"), # initial yield stress
-            "p_y00": 2500 * ureg("MPa"), # final yield stress
-            "p_w": 200 * ureg(""), # saturation parameter
-        }
+            # material parameters
+            # ... - according to chosen material law!
 
-        return experiment, {**parameters}
+        }
+        if not material or material == "LinearElasticityModel":
+            model_parameters = {
+                "E": 15000 * ureg("Pa"),  # Youngs Modulus
+                "nu": 0.3 * ureg(""),  # Poisson ratio
+                "A_E": 1500 * ureg("Pa/s"),  # rate of change over time
+                "time_fct": "linear" * ureg(''),  # time dependency of material parameters
+            }
+        elif material == "VonMises3D":
+            model_parameters = {
+                "p_ka": 175000 * ureg("MPa"),  # bulk modulus
+                "p_mu": 80769 * ureg("MPa"),  # shear modulus
+                "p_y0": 1200 * ureg("MPa"),  # initial yield stress
+                "p_y00": 2500 * ureg("MPa"),  # final yield stress
+                "p_w": 200 * ureg(""),  # saturation parameter
+            }
+        else:
+            raise ValueError("material law not known")
+
+        return experiment, {**parameters, **model_parameters}
 
     def setup(self) -> None:
         """set up problem"""
@@ -120,47 +139,51 @@ class ConcreteAMFC(MaterialProblem):
 
         # define problem:
 
-        # material law
-        law = self.material_law(self.p, constraint = Constraint.FULL)
+        # material law based on fenics constitutive interface
+        law = self.material_law(self.p, constraint=Constraint.FULL)
 
         # boundaries
         bcs = self.experiment.create_displacement_boundary(self.V)
-        # body_force_fct = self.experiment.create_body_force_am # not yet in IncrSmallStrainProblem
+        body_force_fct = self.experiment.create_body_force
 
-        # problem
-        # self.mechanics_problem = Problem_AM(law, self.u, bcs, body_force_fct, q_degree=self.p["q_degree"])
-        self.mechanics_problem = IncrSmallStrainProblem(
-            law,
-            self.fields.displacement,
-            bcs,
-            q_degree=self.p["q_degree"])
-
-
+        # define problem:
+        self.mechanics_problem = ProblemAM(
+            law, self.fields.displacement, bcs, body_force_fct, q_degree=self.p["q_degree"]
+        )
         # additional output fields
         self.rule = QuadratureRule(cell_type=self.mesh.ufl_cell(), degree=self.p["q_degree"])
-        self.strain_stress_space = self.rule.create_quadrature_tensor_space(self.mesh, (self.p["dim"], self.p["dim"]))
         self.q_fields = QuadratureFields(
             measure=self.rule.dx,
-            plot_space_type=("DG", self.p["degree"] - 1),
-            strain=df.fem.Function(self.strain_stress_space, name="strain"),
-            stress=df.fem.Function(self.strain_stress_space, name="stress"),
+            plot_space_type=("CG", self.p["degree"] - 1),
+            stress=self.mechanics_problem.stress_1,  # vector space!! not working with stress_sensor
         )
+        # TODO: transform stress vector space into tensor space for stress_sensor
 
         # setting up the solver
         self.mechanics_solver = df.nls.petsc.NewtonSolver(MPI.COMM_WORLD, self.mechanics_problem)
-        # self.mechanics_solver.convergence_criterion = "incremental"
         self.mechanics_solver.atol = 1e-9
         self.mechanics_solver.rtol = 1e-8
         self.mechanics_solver.report = True
+
+        # for paraview stress output
+        # vector space
+        self.plot_space_stress = df.fem.VectorFunctionSpace(
+            self.experiment.mesh, self.q_fields.plot_space_type, dim=law.stress_strain_dim
+        )
+        # # tensor space
+        # self.plot_space_stress_T = df.fem.TensorFunctionSpace(self.experiment.mesh, self.q_fields.plot_space_type)
+
 
     def solve(self) -> None:
         """time incremental solving !"""
 
         self.update_time()  # set t+dt
-        # self.update_path()  # set path
 
         self.logger.info(f"solve for t: {self.time}")
         self.logger.info(f"CHECK if external loads are applied as incremental loads e.g. delta_u(t)!!!")
+
+        # compute current material parameters for time t
+        self.update_material_parameters()
 
         # solve problem for current time increment
         n, converged = self.mechanics_solver.solve(self.fields.displacement)
@@ -169,10 +192,7 @@ class ConcreteAMFC(MaterialProblem):
         else:
             self.logger.info(f"Mechanics solve converged in {n} iterations")
 
-        self.mechanics_problem.update() # TODO at which point?
-
-        # save fields to global problem for sensor output
-        # TODO
+        self.mechanics_problem.update()
 
         # get sensor data
         self.compute_residuals()  # for residual sensor
@@ -185,32 +205,77 @@ class ConcreteAMFC(MaterialProblem):
 
         self.residual = self.mechanics_problem.R_form
 
+    def update_material_parameters(self) -> None:
+        """update material parameters for current time"""
+
+        print(self.material_law.__name__)
+        params = {}
+
+        # compute material parameters for time t
+        if self.material_law.__name__ == 'LinearElasticityModel':
+            print('in Linear model')
+            # get params
+            params['P0'],  params['A_P'] = self.p["E"], self.p["A_E"]
+            try:
+                params['R_P'], params['tf_P'] = self.p["R_E"], self.p["tf_E"]
+            except KeyError:
+                params['R_P'], params['tf_P'] = 0.0, 0.0
+
+            c_value = self.param_time_fkt(params,_model=self.p["time_fct"])
+            self.mechanics_problem.laws[0][0].factor = c_value/self.p["E"]
+        # elif str(self.material_law) == 'VonMises3D':
+        #
+        else:
+            raise ValueError("material law not known")
+
+
+
     def pv_plot(self) -> None:
         """creates paraview output at given time step"""
 
         self.logger.info(f"create pv plot for t: {self.time}")
 
-        # # write further fields
-        # sigma_plot = project(
-        #     self.mechanics_problem.sigma(self.fields.displacement),
-        #     df.fem.TensorFunctionSpace(self.mesh, self.q_fields.plot_space_type),
-        #     self.rule.dx,
-        # )
-        #
-        # E_plot = project(
-        #     self.mechanics_problem.q_E, df.fem.FunctionSpace(self.mesh, self.q_fields.plot_space_type), self.rule.dx
-        # )
-        #
-        # E_plot.name = "Youngs_Modulus"
-        # sigma_plot.name = "Stress"
+        # write further fields
+        sigma_plot = project(self.q_fields.stress, self.plot_space_stress, self.rule.dx)
+        sigma_plot.name = "Stress"
         #
         with df.io.XDMFFile(self.mesh.comm, self.pv_output_file, "a") as f:
             f.write_function(self.fields.displacement, self.time)
-        #     f.write_function(sigma_plot, self.time)
-        #     f.write_function(E_plot, self.time)
-        #
+            f.write_function(sigma_plot, self.time)
 
-class Problem_AM(df.fem.petsc.NonlinearProblem):
+    def param_time_fkt(self, parameters: dict, _model: str='linear') -> float:
+        """computes
+
+        Args:
+            time: time value
+            parameters: required parameter dict see models
+            _model: model type:
+                        bilinear model
+                                    P(t) = P0 + R_P*t for t< tf_P and P(t) = P0 + R_P*tf_P + A_P * (t-tf_P)
+                                    requires parameters (P0: start value t=0, R_P: first rate until tf_P, A_P: second rate after tf_P, tf_P: switch time for rates)
+                        linear model
+                                    P(t)= P0 + A_P*t
+                                    requires parameters (P0: start value (t=0), A_P: rate)
+        Returns:
+            current parameter value
+        """
+
+        value = None
+        if _model == 'linear':
+            value = parameters["P0"] + parameters["A_P"] * self.time
+        elif _model == 'bilinear':
+            if self.time < parameters["tf_P"]:
+                value = parameters["P0"] + parameters["R_P"] * self.time
+            elif self.time >= parameters["tf_P"]:
+                value = (
+                    parameters["P0"]
+                    + parameters["R_P"] * parameters["tf_P"]
+                    + parameters["A_P"] * (self.time - parameters["tf_P"])
+                )
+
+        return value
+
+class ProblemAM(df.fem.petsc.NonlinearProblem):
     """general small strain incremental problem for additive manufacturing
         similar to the IncrSmallStrainProblem in fenics-constitutive
 
@@ -316,10 +381,19 @@ class Problem_AM(df.fem.petsc.NonlinearProblem):
         self.R_form = (
                 ufl.inner(ufl_mandel_strain(u_, constraint), self.stress_1) * self.dxm
         )
-        # # apply body force
-        # body_force = body_force_fct(v, self.q_fd, self.rule)
-        # if body_force:
-        #     self.R_form  -= body_force
+
+        # apply body force
+        body_force_form = body_force_fct(u.function_space)
+        if body_force_form:
+            self.R_form = (
+                    ufl.inner(ufl_mandel_strain(u_, constraint), self.stress_1) * self.dxm - body_force_form
+            )
+        else:
+            self.R_form = (
+                    ufl.inner(ufl_mandel_strain(u_, constraint), self.stress_1) * self.dxm
+            )
+
+        # maybe also external forces?
 
         self.dR_form = (
                 ufl.inner(
@@ -372,10 +446,12 @@ class Problem_AM(df.fem.petsc.NonlinearProblem):
         """
         super().form(x)
         print("help, i am in form")
+
         assert (
                 x.array.data == self._u.vector.array.data
         ), "The solution vector must be the same as the one passed to the MechanicsProblem"
         law, cells = self.laws[0]
+        print("material parameters are", law.factor)
         with df.common.Timer("strain_evaluation"):
             self.del_grad_u_expr.eval(
                 cells, self._del_grad_u[0].x.array.reshape(cells.size, -1)

@@ -11,6 +11,7 @@ from mises_plasticity_isotropic_hardening import VonMises3D
 from fenicsxconcrete.experimental_setup.simple_cube import SimpleCube
 from fenicsxconcrete.finite_element_problem.fenics_constitutive import FenicsConstitutive
 from fenicsxconcrete.sensor_definition.displacement_sensor import DisplacementSensor
+from fenicsxconcrete.sensor_definition.reaction_force_sensor import ReactionForceSensor
 from fenicsxconcrete.sensor_definition.stress_sensor import StressSensor
 from fenicsxconcrete.util import ureg
 
@@ -70,6 +71,7 @@ def test_fc(dim: int, mat: str) -> None:
     sensor_location = [0.5, 0.5, 0.5]
     # problem.add_sensor(StressSensor(sensor_location))
     problem.add_sensor(DisplacementSensor(sensor_location))
+    problem.add_sensor(ReactionForceSensor())
 
     # apply displacement load and solve
     displacement = 0.005 * ureg("m")
@@ -81,8 +83,9 @@ def test_fc(dim: int, mat: str) -> None:
         print("computed disp", problem.time, problem.fields.displacement.x.array[:].max())
 
     disp_result = problem.sensors["DisplacementSensor"].get_last_entry().magnitude
+    force_result = problem.sensors["ReactionForceSensor"].get_last_entry().magnitude
     # stress_result = problem.sensors["StressSensor"].get_last_entry().magnitude
-    print("results", disp_result)  # stress_result)
+    print("results", disp_result, force_result)  # stress_result)
 
     # check
     assert np.isclose(abs(problem.fields.displacement.x.array[:]).max(), abs(displacement.magnitude), rtol=1e-2)

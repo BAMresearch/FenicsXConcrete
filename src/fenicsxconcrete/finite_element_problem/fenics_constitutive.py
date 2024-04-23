@@ -75,7 +75,7 @@ class FenicsConstitutive(MaterialProblem):
         # default experiment
         experiment = SimpleCube(SimpleCube.default_parameters())
 
-        # default parameters according given nonlinear problem #TODO
+        # default parameters according given nonlinear problem
         parameters = {
             # general parameters
             "rho": 2070 * ureg("kg/m^3"),  # density
@@ -88,7 +88,7 @@ class FenicsConstitutive(MaterialProblem):
             # ... - according to chosen material law!
         }
 
-        return experiment, {**parameters}
+        return experiment, parameters
 
     def setup(self) -> None:
         """set up problem"""
@@ -149,7 +149,7 @@ class FenicsConstitutive(MaterialProblem):
         else:
             self.logger.info(f"Mechanics solve converged in {n} iterations")
 
-        self.mechanics_problem.update()  # TODO at which point?
+        self.mechanics_problem.update()
 
         # get sensor data
         self.compute_residuals()  # for residual sensor
