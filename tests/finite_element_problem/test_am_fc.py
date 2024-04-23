@@ -75,7 +75,7 @@ def test_fc(dim: int, mat: str, bc: str) -> None:
 
     # sensors:
     sensor_location = [0.5, 0.5, 0.5]
-    # problem.add_sensor(StressSensor(sensor_location))
+    problem.add_sensor(StressSensor(sensor_location))
     problem.add_sensor(DisplacementSensor(sensor_location))
     problem.add_sensor(ReactionForceSensor())
 
@@ -91,8 +91,8 @@ def test_fc(dim: int, mat: str, bc: str) -> None:
     disp_result = problem.sensors["DisplacementSensor"].get_last_entry().magnitude
     force_result = np.array(problem.sensors["ReactionForceSensor"].data)[:, -1]
 
-    # stress_result = problem.sensors["StressSensor"].get_last_entry().magnitude
-    print("results", disp_result, force_result)  # stress_result)
+    stress_result = problem.sensors["StressSensor"].get_last_entry().magnitude
+    print("results", disp_result, force_result, stress_result)
 
     # check
     assert np.isclose(abs(problem.fields.displacement.x.array[:]).max(), abs(displacement.magnitude), rtol=1e-2)

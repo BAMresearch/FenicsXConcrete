@@ -34,17 +34,37 @@ class StressSensor(PointSensor):
             t : time of measurement for time dependent problems, default is 1
         """
         # project stress onto visualization space
+        stress, mandel_stress = None, None
         try:
             stress = problem.q_fields.stress
             assert stress is not None
         except AssertionError:
-            raise Exception("Stress not defined in problem")
+            # raise Exception("Stress not defined in problem")
+            pass
 
-        stress_function = project(
-            stress,  # stress fct from problem
-            df.fem.TensorFunctionSpace(problem.experiment.mesh, problem.q_fields.plot_space_type),  # tensor space
-            problem.q_fields.measure,
-        )
+        try:
+            mandel_stress = problem.q_fields.mandel_stress
+            assert mandel_stress is not None
+        except AssertionError:
+            # raise Exception("Mandel stress not defined in problem")
+            pass
+
+        if stress is not None:
+            stress_function = project(
+                stress,  # stress fct from problem
+                df.fem.TensorFunctionSpace(problem.experiment.mesh, problem.q_fields.plot_space_type),  # tensor space
+                problem.q_fields.measure,
+            )
+        elif mandel_stress is not None:
+            stress_function = project(
+                mandel_stress,  # stress fct from problem
+                df.fem.VectorFunctionSpace(
+                    problem.experiment.mesh, problem.q_fields.plot_space_type, dim=problem.mandel_stress_dim
+                ),  # tensor space
+                problem.q_fields.measure,
+            )
+        else:
+            raise Exception("Stress and Mandel stress not defined in problem")
 
         # finding the cells corresponding to the point
         bb_tree = df.geometry.BoundingBoxTree(problem.experiment.mesh, problem.experiment.mesh.topology.dim)

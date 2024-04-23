@@ -116,9 +116,9 @@ class FenicsConstitutive(MaterialProblem):
         self.q_fields = QuadratureFields(
             measure=self.rule.dx,
             plot_space_type=("CG", self.p["degree"] - 1),
-            stress=self.mechanics_problem.stress_1,  # vector space!! not working with stress_sensor
+            mandel_stress=self.mechanics_problem.stress_1,  # vector space!! not working with stress_sensor
         )
-        # TODO: transform stress vector space into tensor space for stress_sensor
+        self.mandel_stress_dim = law.stress_strain_dim  # for sensor
 
         # setting up the solver
         self.mechanics_solver = df.nls.petsc.NewtonSolver(MPI.COMM_WORLD, self.mechanics_problem)
@@ -129,10 +129,8 @@ class FenicsConstitutive(MaterialProblem):
         # for paraview stress output
         # vector space
         self.plot_space_stress = df.fem.VectorFunctionSpace(
-            self.experiment.mesh, self.q_fields.plot_space_type, dim=law.stress_strain_dim
+            self.experiment.mesh, self.q_fields.plot_space_type, dim=self.mandel_stress_dim
         )
-        # # tensor space
-        # self.plot_space_stress_T = df.fem.TensorFunctionSpace(self.experiment.mesh, self.q_fields.plot_space_type)
 
     def solve(self) -> None:
         """time incremental solving !"""
@@ -168,7 +166,7 @@ class FenicsConstitutive(MaterialProblem):
         self.logger.info(f"create pv plot for t: {self.time}")
 
         # write further fields
-        sigma_plot = project(self.q_fields.stress, self.plot_space_stress, self.rule.dx)
+        sigma_plot = project(self.q_fields.mandel_stress, self.plot_space_stress, self.rule.dx)
         sigma_plot.name = "Stress"
         #
         with df.io.XDMFFile(self.mesh.comm, self.pv_output_file, "a") as f:
