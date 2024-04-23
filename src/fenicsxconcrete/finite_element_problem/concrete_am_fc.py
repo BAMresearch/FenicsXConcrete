@@ -114,16 +114,31 @@ class ConcreteAMFC(MaterialProblem):
     def setup(self) -> None:
         """set up problem"""
 
-        # displacement space (name V required for sensors!)
-        self.V = df.fem.VectorFunctionSpace(self.mesh, ("CG", self.p["degree"]))
-        self.u = df.fem.Function(self.V)
-
-        # global variables for all AM problems relevant
+        # displacement space and field
+        self.V = df.fem.VectorFunctionSpace(self.experiment.mesh, ("CG", self.p["degree"]))
         self.fields = SolutionFields(displacement=df.fem.Function(self.V, name="displacement"))
 
+        # define problem:
+
+        # material law
+        law = self.material_law(self.p, constraint = Constraint.FULL)
+
+        # boundaries
+        bcs = self.experiment.create_displacement_boundary(self.V)
+        # body_force_fct = self.experiment.create_body_force_am # not yet in IncrSmallStrainProblem
+
+        # problem
+        # self.mechanics_problem = Problem_AM(law, self.u, bcs, body_force_fct, q_degree=self.p["q_degree"])
+        self.mechanics_problem = IncrSmallStrainProblem(
+            law,
+            self.fields.displacement,
+            bcs,
+            q_degree=self.p["q_degree"])
+
+
+        # additional output fields
         self.rule = QuadratureRule(cell_type=self.mesh.ufl_cell(), degree=self.p["q_degree"])
         self.strain_stress_space = self.rule.create_quadrature_tensor_space(self.mesh, (self.p["dim"], self.p["dim"]))
-
         self.q_fields = QuadratureFields(
             measure=self.rule.dx,
             plot_space_type=("DG", self.p["degree"] - 1),
@@ -131,23 +146,12 @@ class ConcreteAMFC(MaterialProblem):
             stress=df.fem.Function(self.strain_stress_space, name="stress"),
         )
 
-        # material law
-        law = self.material_law(self.p, constraint = Constraint.FULL)
-
-        # boundaries
-        bcs = self.experiment.create_displacement_boundary(self.V)
-        body_force_fct = self.experiment.create_body_force_am
-
-        # problem
-        #self.mechanics_problem = Problem_AM(law, self.u, bcs, body_force_fct, q_degree=self.p["q_degree"])
-        self.mechanics_problem = IncrSmallStrainProblem(law, self.u, bcs, q_degree=self.p["q_degree"])
-
         # setting up the solver
         self.mechanics_solver = df.nls.petsc.NewtonSolver(MPI.COMM_WORLD, self.mechanics_problem)
         # self.mechanics_solver.convergence_criterion = "incremental"
-        # self.mechanics_solver.atol = 1e-9
-        # self.mechanics_solver.rtol = 1e-8
-        # self.mechanics_solver.report = True
+        self.mechanics_solver.atol = 1e-9
+        self.mechanics_solver.rtol = 1e-8
+        self.mechanics_solver.report = True
 
     def solve(self) -> None:
         """time incremental solving !"""
@@ -159,12 +163,13 @@ class ConcreteAMFC(MaterialProblem):
         self.logger.info(f"CHECK if external loads are applied as incremental loads e.g. delta_u(t)!!!")
 
         # solve problem for current time increment
-        self.mechanics_solver.solve(self.u)
-        self.mechanics_problem.update() # TODO at which point?
+        n, converged = self.mechanics_solver.solve(self.fields.displacement)
+        if not converged:
+            self.logger.warning("Mechanics solve did not converge")
+        else:
+            self.logger.info(f"Mechanics solve converged in {n} iterations")
 
-        # update total displacement
-        self.fields.displacement.vector.array[:] = self.u.vector.array[:]
-        self.fields.displacement.x.scatter_forward()
+        self.mechanics_problem.update() # TODO at which point?
 
         # save fields to global problem for sensor output
         # TODO

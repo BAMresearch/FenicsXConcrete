@@ -9,7 +9,7 @@ from linear_elasticity_model import LinearElasticityModel
 from mises_plasticity_isotropic_hardening import VonMises3D
 
 from fenicsxconcrete.experimental_setup.simple_cube import SimpleCube
-from fenicsxconcrete.finite_element_problem.concrete_am_fc import ConcreteAMFC
+from fenicsxconcrete.finite_element_problem.fenics_constitutive import FenicsConstitutive
 from fenicsxconcrete.sensor_definition.displacement_sensor import DisplacementSensor
 from fenicsxconcrete.sensor_definition.strain_sensor import StrainSensor
 from fenicsxconcrete.sensor_definition.stress_sensor import StressSensor
@@ -17,7 +17,8 @@ from fenicsxconcrete.util import ureg
 
 
 @pytest.mark.parametrize("dim", [3])
-def test_fc(dim: int) -> None:
+@pytest.mark.parametrize("mat", ["linear_elastic", "mises"])
+def test_fc(dim: int, mat: str) -> None:
     """easy cube test for checking interface fenicsxconcrete - fencis_constitutive
     uniaxial tension test"""
 
@@ -33,45 +34,47 @@ def test_fc(dim: int) -> None:
         if file.is_file():
             os.remove(file)
 
-    # defining experiment parameters
+    # experiment:
     parameters = {}
 
     parameters["dim"] = dim * ureg("")
     parameters["num_elements_length"] = 2 * ureg("")
     parameters["num_elements_height"] = 2 * ureg("")
     parameters["num_elements_width"] = 2 * ureg("")
-    parameters["q_degree"] = 4 * ureg("")
 
-    displacement = 0.005 * ureg("m")
+    experiment = SimpleCube(parameters)
 
-    # choose material and set parameters
-    # material_law = VonMises3D
-    # parameters["p_ka"] = 175000 * ureg("MPa")  # bulk modulus
-    # parameters["p_mu"] = 80769 * ureg("MPa")  # shear modulus
-    # parameters["p_y0"] = 1200 * ureg("MPa")  # initial yield stress
-    # parameters["p_y00"] = 2500 * ureg("MPa")  # final yield stress
-    # parameters["p_w"] = 200 * ureg("")  # saturation parameter
-    #
-    material_law = LinearElasticityModel
-    parameters["E"] = 42000 * ureg("Pa")  # young's modulus
-    parameters["nu"] = 0.3 * ureg("")  # poisson ratio
+    # material:
+    if mat == "linear_elastic":
+        material_law = LinearElasticityModel
+        parameters["E"] = 42000 * ureg("Pa")  # young's modulus
+        parameters["nu"] = 0.3 * ureg("")  # poisson ratio
+    elif mat == "mises":
+        material_law = VonMises3D
+        parameters["p_ka"] = 175000 * ureg("MPa")  # bulk modulus
+        parameters["p_mu"] = 80769 * ureg("MPa")  # shear modulus
+        parameters["p_y0"] = 1200 * ureg("MPa")  # initial yield stress
+        parameters["p_y00"] = 2500 * ureg("MPa")  # final yield stress
+        parameters["p_w"] = 200 * ureg("")  # saturation parameter
+    else:
+        raise ValueError("material not supported")
 
+    # problem:
     parameters["rho"] = 2000 * ureg("kg/m^3")
     parameters["strain_state"] = "uniaxial" * ureg("")
     parameters["dt"] = 0.1 * ureg("s")
+    parameters["q_degree"] = 4 * ureg("")
 
-    # setting up the problem
-    experiment = SimpleCube(parameters)
-    problem = ConcreteAMFC(experiment, parameters, material_law, pv_name=file_name, pv_path=data_path)
+    problem = FenicsConstitutive(experiment, parameters, material_law, pv_name=file_name, pv_path=data_path)
 
+    # sensors:
     sensor_location = [0.5, 0.5, 0.5]
-
-    # add sensors
     problem.add_sensor(StressSensor(sensor_location))
     problem.add_sensor(StrainSensor(sensor_location))
     problem.add_sensor(DisplacementSensor(sensor_location))
 
     # apply displacement load and solve
+    displacement = 0.005 * ureg("m")
     total_time = 1.0
     while problem.time <= total_time:
         problem.experiment.apply_displ_load(problem.time * displacement)
@@ -86,5 +89,8 @@ def test_fc(dim: int) -> None:
 
 
 if __name__ == "__main__":
+    import logging
 
-    test_fc(3)
+    logging.basicConfig(level=logging.DEBUG)
+
+    test_fc(3, "linear_elastic")
