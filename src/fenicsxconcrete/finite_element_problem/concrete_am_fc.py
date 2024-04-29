@@ -144,7 +144,8 @@ class ConcreteAMFC(MaterialProblem):
 
         # boundaries
         bcs = self.experiment.create_displacement_boundary(self.V)
-        body_force_fct = self.experiment.create_body_force
+        #body_force_fct = self.experiment.create_body_force # TODO temp delete
+        body_force_fct = self.experiment.create_body_force_am #with element activation
 
         # define problem:
         self.mechanics_problem = ProblemAM(
@@ -155,9 +156,13 @@ class ConcreteAMFC(MaterialProblem):
         self.q_fields = QuadratureFields(
             measure=self.rule.dx,
             plot_space_type=("CG", self.p["degree"] - 1),
-            mandel_stress=self.mechanics_problem.stress_1,  # vector space!! not working with stress_sensor
+            mandel_stress=self.mechanics_problem.stress_1,
         )
         self.mandel_stress_dim = law.stress_strain_dim # for sensor
+
+        # additional output field not yet used in any sensors
+        self.modulus = self.mechanics_problem.modulus
+        self.density_inc = self.mechanics_problem.density_incr
 
         # setting up the solver
         self.mechanics_solver = df.nls.petsc.NewtonSolver(MPI.COMM_WORLD, self.mechanics_problem)
@@ -178,6 +183,11 @@ class ConcreteAMFC(MaterialProblem):
 
         self.logger.info(f"solve for t: {self.time}")
         self.logger.info(f"CHECK if external loads are applied as incremental loads e.g. delta_u(t)!!!")
+
+
+
+        # update path and incr loading
+        self.update_path()
 
         # compute current material parameters for time t
         self.update_material_parameters()
@@ -203,7 +213,7 @@ class ConcreteAMFC(MaterialProblem):
         self.residual = self.mechanics_problem.R_form
 
     def update_material_parameters(self) -> None:
-        """update material parameters for current time"""
+        """update material parameters for current time""" # TODO make on quadrature points!!
 
         print(self.material_law.__name__)
         params = {}
@@ -225,6 +235,38 @@ class ConcreteAMFC(MaterialProblem):
         else:
             raise ValueError("material law not known")
 
+    def update_path(self) -> None:
+        """update path for next time increment
+                and compute density field for element activation including load stepping
+
+            density includes load stepping - active is between 0 and 1
+        """
+
+        self.q_array_path += self.p["dt"] * np.ones_like(self.q_array_path) # path time
+
+        density = np.zeros_like(self.q_array_path)
+
+        active_idx = np.where(self.q_array_path >= 0 - 1e-5)[0]  # only active elements
+        # select indices where path_time is smaller than load_time and bigger then zero [since usually we start the computation at dt so that also for further layers the loading starts at local layer time +dt]
+        load_idx = np.where(self.q_array_path[active_idx] <= self.p["load_time"])
+        for _ in load_idx:
+            density[active_idx[load_idx]] = self.p["dt"] / self.p["load_time"]  # linear ramp #TODO check
+
+        self.density_inc.x.array[:] = density
+        self.density_inc.x.scatter_forward()
+
+    def set_initial_path(self, path: list[float] | float) -> None:
+        """set initial path for problem
+
+        Args:
+            path: array describing the negative time when an element will be reached on quadrature space
+                    if only one value is given, it is assumed that all elements are reached at the same time
+
+        """
+        if isinstance(path, float):
+            self.q_array_path = path * np.ones_like(self.density_inc.x.array[:])
+        else:
+            self.q_array_path = path
 
 
     def pv_plot(self) -> None:
@@ -302,7 +344,6 @@ class ProblemAM(df.fem.petsc.NonlinearProblem):
             form_compiler_options: dict | None = None,
             jit_options: dict | None = None,
     ):
-        print("help, i am in init")
         mesh = u.function_space.mesh
         map_c = mesh.topology.index_map(mesh.topology.dim)
         num_cells = map_c.size_local + map_c.num_ghosts
@@ -370,6 +411,19 @@ class ProblemAM(df.fem.petsc.NonlinearProblem):
         self.stress_1 = df.fem.Function(QV)
         self.tangent = df.fem.Function(QT)
 
+        # additional field for modulus changing over space and time
+        Qs = ufl.VectorElement(
+            "Quadrature",
+            mesh.ufl_cell(),
+            q_degree,
+            quad_scheme="default",
+            dim=1,
+        )
+        s_space = df.fem.FunctionSpace(mesh, Qs)
+        self.modulus = df.fem.Function(s_space, name="youngs_modulus") # one material parameter
+        self.density_incr = df.fem.Function(s_space, name="density_increment")
+
+        # define forms
         u_, du = ufl.TestFunction(u.function_space), ufl.TrialFunction(u.function_space)
 
         self.metadata = {"quadrature_degree": q_degree, "quadrature_scheme": "default"}
@@ -380,15 +434,10 @@ class ProblemAM(df.fem.petsc.NonlinearProblem):
         )
 
         # apply body force
-        body_force_form = body_force_fct(u.function_space)
+        # body_force_form = body_force_fct(u_) # ohne activierung
+        body_force_form = body_force_fct(u_, self.density_incr)
         if body_force_form:
-            self.R_form = (
-                    ufl.inner(ufl_mandel_strain(u_, constraint), self.stress_1) * self.dxm - body_force_form
-            )
-        else:
-            self.R_form = (
-                    ufl.inner(ufl_mandel_strain(u_, constraint), self.stress_1) * self.dxm
-            )
+            self.R_form -= body_force_form
 
         # maybe also external forces?
 
@@ -475,6 +524,10 @@ class ProblemAM(df.fem.petsc.NonlinearProblem):
 
         self.stress_1.x.scatter_forward()
         self.tangent.x.scatter_forward()
+
+        # store E just for access
+        self.modulus.x.array[:] = law.factor
+        self.modulus.x.scatter_forward()
 
     def update(self) -> None:
         """
