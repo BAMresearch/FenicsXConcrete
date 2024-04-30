@@ -144,8 +144,8 @@ class ConcreteAMFC(MaterialProblem):
 
         # boundaries
         bcs = self.experiment.create_displacement_boundary(self.V)
-        #body_force_fct = self.experiment.create_body_force # TODO temp delete
-        body_force_fct = self.experiment.create_body_force_am #with element activation
+        body_force_fct = self.experiment.create_body_force # TODO temp delete
+        #body_force_fct = self.experiment.create_body_force_am #with element activation
 
         # define problem:
         self.mechanics_problem = ProblemAM(
@@ -160,9 +160,11 @@ class ConcreteAMFC(MaterialProblem):
         )
         self.mandel_stress_dim = law.stress_strain_dim # for sensor
 
-        # additional output field not yet used in any sensors
+        # additional stuff/output field for activation or specific output
         self.modulus = self.mechanics_problem.modulus
         self.density_inc = self.mechanics_problem.density_incr
+        # array describing path time per quadrature point
+        self.q_array_path_time = np.zeros_like(self.density_inc.x.array[:]) # zero as default
 
         # setting up the solver
         self.mechanics_solver = df.nls.petsc.NewtonSolver(MPI.COMM_WORLD, self.mechanics_problem)
@@ -189,7 +191,7 @@ class ConcreteAMFC(MaterialProblem):
         # update path and incr loading
         self.update_path()
 
-        # compute current material parameters for time t
+        # compute current material parameters according to path_time
         self.update_material_parameters()
 
         # solve problem for current time increment
@@ -213,7 +215,7 @@ class ConcreteAMFC(MaterialProblem):
         self.residual = self.mechanics_problem.R_form
 
     def update_material_parameters(self) -> None:
-        """update material parameters for current time""" # TODO make on quadrature points!!
+        """update material parameters at each quadrature point according time based on path_time"""
 
         print(self.material_law.__name__)
         params = {}
@@ -228,12 +230,20 @@ class ConcreteAMFC(MaterialProblem):
             except KeyError:
                 params['R_P'], params['tf_P'] = 0.0, 0.0
 
-            c_value = self.param_time_fkt(params,_model=self.p["time_fct"])
+            # comput for each quadrature point
+            fkt_vectorized = np.vectorize(self.param_time_fkt)
+            c_value = fkt_vectorized( self.q_array_path_time,
+                params, _model=self.p["time_fct"])
+
+            print('check', c_value, type(c_value))
+            input()
+            # c_value = self.param_time_fkt(params,_model=self.p["time_fct"])
             self.mechanics_problem.laws[0][0].factor = c_value/self.p["E"]
         # elif str(self.material_law) == 'VonMises3D':
         #
         else:
             raise ValueError("material law not known")
+
 
     def update_path(self) -> None:
         """update path for next time increment
@@ -242,15 +252,23 @@ class ConcreteAMFC(MaterialProblem):
             density includes load stepping - active is between 0 and 1
         """
 
-        self.q_array_path += self.p["dt"] * np.ones_like(self.q_array_path) # path time
+        self.q_array_path_time += self.p["dt"] * np.ones_like(self.q_array_path_time) # path time
+        print('update_path', self.q_array_path_time.min(), self.q_array_path_time.max())
+        input()
 
-        density = np.zeros_like(self.q_array_path)
+        # compute density field for element activation
+        density = np.zeros_like(self.q_array_path_time) # 0: non-active
 
-        active_idx = np.where(self.q_array_path >= 0 - 1e-5)[0]  # only active elements
-        # select indices where path_time is smaller than load_time and bigger then zero [since usually we start the computation at dt so that also for further layers the loading starts at local layer time +dt]
-        load_idx = np.where(self.q_array_path[active_idx] <= self.p["load_time"])
-        for _ in load_idx:
-            density[active_idx[load_idx]] = self.p["dt"] / self.p["load_time"]  # linear ramp #TODO check
+        active_idx = np.where(self.q_array_path_time >= 0 - 1e-5)[0]  # only active elements
+        density[active_idx] = 1.0 # 1: active
+
+        # load stepping: linear ramp of body force over time of active elements
+        # TODO
+
+        # # select indices where path_time is smaller than load_time and bigger then zero [since usually we start the computation at dt so that also for further layers the loading starts at local layer time +dt]
+        # load_idx = np.where(self.q_array_path[active_idx] <= self.p["load_time"])
+        # for _ in load_idx:
+        #     density[active_idx[load_idx]] = self.p["dt"] / self.p["load_time"]  # linear ramp #TODO check
 
         self.density_inc.x.array[:] = density
         self.density_inc.x.scatter_forward()
@@ -264,9 +282,9 @@ class ConcreteAMFC(MaterialProblem):
 
         """
         if isinstance(path, float):
-            self.q_array_path = path * np.ones_like(self.density_inc.x.array[:])
+            self.q_array_path_time = path * np.ones_like(self.q_array_path_time)
         else:
-            self.q_array_path = path
+            self.q_array_path_time = path
 
 
     def pv_plot(self) -> None:
@@ -282,7 +300,8 @@ class ConcreteAMFC(MaterialProblem):
             f.write_function(self.fields.displacement, self.time)
             f.write_function(sigma_plot, self.time)
 
-    def param_time_fkt(self, parameters: dict, _model: str='linear') -> float:
+    @staticmethod
+    def param_time_fkt(time, parameters: dict, _model: str='linear') -> float:
         """computes
 
         Args:
@@ -301,16 +320,21 @@ class ConcreteAMFC(MaterialProblem):
 
         value = None
         if _model == 'linear':
-            value = parameters["P0"] + parameters["A_P"] * self.time
+            if time >= -1e-5: # only for activated elements
+                value = parameters["P0"] + parameters["A_P"] * time
+            else:
+                value = 1e-4 # for non-active elements
         elif _model == 'bilinear':
-            if self.time < parameters["tf_P"]:
-                value = parameters["P0"] + parameters["R_P"] * self.time
-            elif self.time >= parameters["tf_P"]:
+            if time >= -1e-5 and time < parameters["tf_P"]:
+                value = parameters["P0"] + parameters["R_P"] * time
+            elif time >= parameters["tf_P"]:
                 value = (
                     parameters["P0"]
                     + parameters["R_P"] * parameters["tf_P"]
-                    + parameters["A_P"] * (self.time - parameters["tf_P"])
+                    + parameters["A_P"] * (time - parameters["tf_P"])
                 )
+            else:
+                value = 1e-4 # for non-active elements
 
         return value
 
@@ -434,8 +458,9 @@ class ProblemAM(df.fem.petsc.NonlinearProblem):
         )
 
         # apply body force
-        # body_force_form = body_force_fct(u_) # ohne activierung
-        body_force_form = body_force_fct(u_, self.density_incr)
+        body_force_form = body_force_fct(u_) # ohne activierung
+        #body_force_form = body_force_fct(u_, self.density_incr,
+        #                                 QuadratureRule(cell_type=mesh.ufl_cell(), degree=q_degree))
         if body_force_form:
             self.R_form -= body_force_form
 
@@ -491,7 +516,6 @@ class ProblemAM(df.fem.petsc.NonlinearProblem):
 
         """
         super().form(x)
-        print("help, i am in form")
 
         assert (
                 x.array.data == self._u.vector.array.data

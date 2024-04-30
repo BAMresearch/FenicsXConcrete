@@ -197,6 +197,8 @@ def test_am_single_layer(mat: str, factor: int) -> None:
     experiment = AmMultipleLayers(setup_parameters)
 
     problem = ConcreteAMFC(experiment, setup_parameters, material_law, pv_name=file_name, pv_path=data_path)
+    problem.set_initial_path(0.0)
+
     problem.add_sensor(ReactionForceSensor())
     problem.add_sensor(StressSensor([problem.p["layer_length"] / 2, 0, 0]))
 
