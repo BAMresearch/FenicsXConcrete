@@ -1,5 +1,6 @@
 import os
 from pathlib import Path
+from typing import Literal
 
 import numpy as np
 import pytest
@@ -18,7 +19,7 @@ from fenicsxconcrete.util import ureg
 
 @pytest.mark.parametrize("dim", [3])
 @pytest.mark.parametrize("mat", ["linear_elastic", "mises"])
-def test_fc(dim: int, mat: str) -> None:
+def test_fc(dim: int, mat: Literal["linear_elastic", "mises"]) -> None:
     """easy cube test for checking interface fenicsxconcrete - fencis_constitutive
     uniaxial tension test"""
 

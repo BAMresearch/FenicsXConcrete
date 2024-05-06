@@ -1,25 +1,18 @@
-import copy
+
 from collections.abc import Callable
-from typing import Type
 
 import basix
 import dolfinx as df
 import numpy as np
 import pint
 import ufl
-from fenics_constitutive import (
-    Constraint,
-    IncrSmallStrainModel,
-    IncrSmallStrainProblem,
-    build_history,
-    ufl_mandel_strain,
-)
+from fenics_constitutive import Constraint, IncrSmallStrainModel, build_history, ufl_mandel_strain
 from mpi4py import MPI
 from petsc4py import PETSc
 
 from fenicsxconcrete.experimental_setup import AmMultipleLayers, Experiment
 from fenicsxconcrete.finite_element_problem.base_material import MaterialProblem, QuadratureFields, SolutionFields
-from fenicsxconcrete.util import Parameters, QuadratureEvaluator, QuadratureRule, project, ureg
+from fenicsxconcrete.util import QuadratureRule, project, ureg
 
 
 class ConcreteAMFC(MaterialProblem):
@@ -144,8 +137,8 @@ class ConcreteAMFC(MaterialProblem):
 
         # boundaries
         bcs = self.experiment.create_displacement_boundary(self.V)
-        body_force_fct = self.experiment.create_body_force # TODO temp delete
-        #body_force_fct = self.experiment.create_body_force_am #with element activation
+        #body_force_fct = self.experiment.create_body_force # TODO temp delete
+        body_force_fct = self.experiment.create_body_force_am #with element activation
 
         # define problem:
         self.mechanics_problem = ProblemAM(
@@ -162,9 +155,9 @@ class ConcreteAMFC(MaterialProblem):
 
         # additional stuff/output field for activation or specific output
         self.modulus = self.mechanics_problem.modulus
-        self.density_inc = self.mechanics_problem.density_incr
+        self.density_time = self.mechanics_problem.density_time
         # array describing path time per quadrature point
-        self.q_array_path_time = np.zeros_like(self.density_inc.x.array[:]) # zero as default
+        self.q_array_path_time = np.zeros_like(self.density_time.x.array[:]) # zero as default
 
         # setting up the solver
         self.mechanics_solver = df.nls.petsc.NewtonSolver(MPI.COMM_WORLD, self.mechanics_problem)
@@ -185,7 +178,6 @@ class ConcreteAMFC(MaterialProblem):
 
         self.logger.info(f"solve for t: {self.time}")
         self.logger.info(f"CHECK if external loads are applied as incremental loads e.g. delta_u(t)!!!")
-
 
 
         # update path and incr loading
@@ -217,12 +209,12 @@ class ConcreteAMFC(MaterialProblem):
     def update_material_parameters(self) -> None:
         """update material parameters at each quadrature point according time based on path_time"""
 
-        print(self.material_law.__name__)
+        # print(self.material_law.__name__)
         params = {}
 
         # compute material parameters for time t
         if self.material_law.__name__ == 'LinearElasticityModel':
-            print('in Linear model')
+            #print('in Linear model')
             # get params
             params['P0'],  params['A_P'] = self.p["E"], self.p["A_E"]
             try:
@@ -235,8 +227,6 @@ class ConcreteAMFC(MaterialProblem):
             c_value = fkt_vectorized( self.q_array_path_time,
                 params, _model=self.p["time_fct"])
 
-            print('check', c_value, type(c_value))
-            input()
             # c_value = self.param_time_fkt(params,_model=self.p["time_fct"])
             self.mechanics_problem.laws[0][0].factor = c_value/self.p["E"]
         # elif str(self.material_law) == 'VonMises3D':
@@ -253,8 +243,6 @@ class ConcreteAMFC(MaterialProblem):
         """
 
         self.q_array_path_time += self.p["dt"] * np.ones_like(self.q_array_path_time) # path time
-        print('update_path', self.q_array_path_time.min(), self.q_array_path_time.max())
-        input()
 
         # compute density field for element activation
         density = np.zeros_like(self.q_array_path_time) # 0: non-active
@@ -263,15 +251,12 @@ class ConcreteAMFC(MaterialProblem):
         density[active_idx] = 1.0 # 1: active
 
         # load stepping: linear ramp of body force over time of active elements
-        # TODO
+        load_idx = np.where(self.q_array_path_time[active_idx] < self.p["load_time"])
+        for _ in load_idx:
+            density[active_idx[load_idx]] = self.q_array_path_time[active_idx[load_idx]] / self.p["load_time"]  # linear ramp #TODO check
 
-        # # select indices where path_time is smaller than load_time and bigger then zero [since usually we start the computation at dt so that also for further layers the loading starts at local layer time +dt]
-        # load_idx = np.where(self.q_array_path[active_idx] <= self.p["load_time"])
-        # for _ in load_idx:
-        #     density[active_idx[load_idx]] = self.p["dt"] / self.p["load_time"]  # linear ramp #TODO check
-
-        self.density_inc.x.array[:] = density
-        self.density_inc.x.scatter_forward()
+        self.density_time.x.array[:] = density
+        self.density_time.x.scatter_forward()
 
     def set_initial_path(self, path: list[float] | float) -> None:
         """set initial path for problem
@@ -295,10 +280,17 @@ class ConcreteAMFC(MaterialProblem):
         # write further fields
         sigma_plot = project(self.q_fields.mandel_stress, self.plot_space_stress, self.rule.dx)
         sigma_plot.name = "Stress"
+
+        D_plot = project(
+            self.density_time, df.fem.FunctionSpace(self.mesh, self.q_fields.plot_space_type), self.rule.dx
+        )
+        D_plot.name = "Density"
+
         #
         with df.io.XDMFFile(self.mesh.comm, self.pv_output_file, "a") as f:
             f.write_function(self.fields.displacement, self.time)
             f.write_function(sigma_plot, self.time)
+            f.write_function(D_plot, self.time)
 
     @staticmethod
     def param_time_fkt(time, parameters: dict, _model: str='linear') -> float:
@@ -436,16 +428,15 @@ class ProblemAM(df.fem.petsc.NonlinearProblem):
         self.tangent = df.fem.Function(QT)
 
         # additional field for modulus changing over space and time
-        Qs = ufl.VectorElement(
+        Qs = ufl.FiniteElement(
             "Quadrature",
             mesh.ufl_cell(),
             q_degree,
             quad_scheme="default",
-            dim=1,
         )
         s_space = df.fem.FunctionSpace(mesh, Qs)
-        self.modulus = df.fem.Function(s_space, name="youngs_modulus") # one material parameter
-        self.density_incr = df.fem.Function(s_space, name="density_increment")
+        self.modulus = df.fem.Function(s_space, name="modulus") # one material parameter
+        self.density_time = df.fem.Function(s_space, name="density")
 
         # define forms
         u_, du = ufl.TestFunction(u.function_space), ufl.TrialFunction(u.function_space)
@@ -458,9 +449,10 @@ class ProblemAM(df.fem.petsc.NonlinearProblem):
         )
 
         # apply body force
-        body_force_form = body_force_fct(u_) # ohne activierung
-        #body_force_form = body_force_fct(u_, self.density_incr,
-        #                                 QuadratureRule(cell_type=mesh.ufl_cell(), degree=q_degree))
+        # body_force_form = body_force_fct(u_) # ohne activierung
+        rule = QuadratureRule(cell_type=mesh.ufl_cell(), degree=q_degree)
+        body_force_form = body_force_fct(u_, self.density_time, rule)
+
         if body_force_form:
             self.R_form -= body_force_form
 
@@ -490,7 +482,7 @@ class ProblemAM(df.fem.petsc.NonlinearProblem):
     @property
     def a(self) -> df.fem.FormMetaClass:
         """Compiled bilinear form (the Jacobian form)"""
-        print("help, i am in a")
+
         if not hasattr(self, "_a"):
             # ensure compilation of UFL forms
             super().__init__(
@@ -521,7 +513,6 @@ class ProblemAM(df.fem.petsc.NonlinearProblem):
                 x.array.data == self._u.vector.array.data
         ), "The solution vector must be the same as the one passed to the MechanicsProblem"
         law, cells = self.laws[0]
-        print("material parameters are", law.factor)
         with df.common.Timer("strain_evaluation"):
             self.del_grad_u_expr.eval(
                 cells, self._del_grad_u[0].x.array.reshape(cells.size, -1)
@@ -550,7 +541,7 @@ class ProblemAM(df.fem.petsc.NonlinearProblem):
         self.tangent.x.scatter_forward()
 
         # store E just for access
-        self.modulus.x.array[:] = law.factor
+        self.modulus.x.array[:] = law.factor # dependent on used material model how in general ???
         self.modulus.x.scatter_forward()
 
     def update(self) -> None:
