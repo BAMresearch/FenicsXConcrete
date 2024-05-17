@@ -211,7 +211,7 @@ class ConcreteAMFC(MaterialProblem):
     def update_material_parameters(self) -> None:
         """update material parameters at each quadrature point according time based on path_time"""
 
-        # print(self.material_law.__name__)
+        print(self.material_law.__name__)
 
         # compute material parameters for time t
         if self.material_law.__name__ == 'LinearElasticityModel':
@@ -225,7 +225,18 @@ class ConcreteAMFC(MaterialProblem):
             self.mechanics_problem.modulus.x.array[:] = self.mechanics_problem.laws[0][0].factor
             self.mechanics_problem.modulus.x.scatter_forward()
 
-        # elif str(self.material_law) == 'VonMises3D':
+        elif self.material_law.__name__ == 'VonMises3D':
+            # no changing in the moment
+            # time_params = ['p_ka', 'p_mu', 'p_y0']
+            # p_values = self.get_params_gp(time_params)
+            #
+            # self.mechanics_problem.laws[0][0].p_ka = p_values['E0']
+            # self.mechanics_problem.laws[0][0].p_mu = p_values['E1']
+            # self.mechanics_problem.laws[0][0].p_y0 = p_values['tau']
+
+            # # store bulk modulus just for access since material law dependent do it here and not in ProblemAM
+            self.mechanics_problem.modulus.x.array[:] = self.mechanics_problem.laws[0][0].p_ka
+            self.mechanics_problem.modulus.x.scatter_forward()
         #
         elif self.material_law.__name__ == 'SpringKelvinModel' or self.material_law.__name__ == 'SpringMaxwellModel':
             # parameters which can vary over time [E0,E1,tau]

@@ -71,10 +71,10 @@ def set_test_parameters(mat: Literal["linear_elastic", "mises"]) -> Parameters:
         setup_parameters["A_tau"] = 1 * ureg("Pa/s")  # young's modulus rate over time
     elif mat == "mises":
         material_law = VonMises3D
-        setup_parameters["p_ka"] = 175000 * ureg("MPa")  # bulk modulus
-        setup_parameters["p_mu"] = 80769 * ureg("MPa")  # shear modulus
-        setup_parameters["p_y0"] = 1200 * ureg("MPa")  # initial yield stress
-        setup_parameters["p_y00"] = 2500 * ureg("MPa")  # final yield stress
+        setup_parameters["p_ka"] = 175000 * ureg("Pa")  # bulk modulus
+        setup_parameters["p_mu"] = 80769 * ureg("Pa")  # shear modulus
+        setup_parameters["p_y0"] = 300 * ureg("Pa")  # initial yield stress
+        setup_parameters["p_y00"] = 800 * ureg("Pa")  # final yield stress
         setup_parameters["p_w"] = 200 * ureg("")  # saturation parameter
     else:
         raise ValueError("material not supported")
@@ -82,7 +82,7 @@ def set_test_parameters(mat: Literal["linear_elastic", "mises"]) -> Parameters:
     return setup_parameters, material_law
 
 
-@pytest.mark.parametrize("mat", ["linear_elastic", "visco_Kelvin", "visco_Maxwell"])
+@pytest.mark.parametrize("mat", ["linear_elastic", "visco_Kelvin", "visco_Maxwell", "mises"])
 @pytest.mark.parametrize("factor", [1, 2])
 def test_am_single_layer(
     mat: Literal["linear_elastic", "visco_Kelvin", "visco_Maxwell", "mises"], factor: int
@@ -208,7 +208,7 @@ def test_am_single_layer(
             assert np.isclose(np.diff(E_o_time).mean(), problem.p["A_E0"] * problem.p["dt"], rtol=1e-2)
 
 
-@pytest.mark.parametrize("mat", ["linear_elastic", "visco_Kelvin", "visco_Maxwell"])
+@pytest.mark.parametrize("mat", ["linear_elastic", "visco_Kelvin", "visco_Maxwell", "mises"])
 @pytest.mark.parametrize("factor", [1, 2])
 def test_am_multiple_layer(
     mat: Literal["linear_elastic", "visco_Kelvin", "visco_Maxwell", "mises"], factor: int, plot: bool = False
@@ -369,6 +369,8 @@ if __name__ == "__main__":
     # test_am_single_layer("visco_Kelvin", 2)
     # test_am_single_layer("visco_Maxwell", 2)
 
-    test_am_multiple_layer("linear_elastic", 2, plot=True)
-    test_am_multiple_layer("visco_Kelvin", 2, plot=True)
-    test_am_multiple_layer("visco_Maxwell", 2, plot=True)
+    # test_am_multiple_layer("linear_elastic", 2, plot=True)
+    # test_am_multiple_layer("visco_Kelvin", 2, plot=True)
+    # test_am_multiple_layer("visco_Maxwell", 2, plot=True)
+
+    test_am_multiple_layer("mises", 2, plot=True)

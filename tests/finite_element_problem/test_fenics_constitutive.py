@@ -52,10 +52,10 @@ def test_fc(dim: int, mat: Literal["linear_elastic", "mises"]) -> None:
         parameters["nu"] = 0.3 * ureg("")  # poisson ratio
     elif mat == "mises":
         material_law = VonMises3D
-        parameters["p_ka"] = 175000 * ureg("MPa")  # bulk modulus
-        parameters["p_mu"] = 80769 * ureg("MPa")  # shear modulus
-        parameters["p_y0"] = 1200 * ureg("MPa")  # initial yield stress
-        parameters["p_y00"] = 2500 * ureg("MPa")  # final yield stress
+        parameters["p_ka"] = 175000 * ureg("Pa")  # bulk modulus
+        parameters["p_mu"] = 80769 * ureg("Pa")  # shear modulus
+        parameters["p_y0"] = 1200 * ureg("Pa")  # initial yield stress
+        parameters["p_y00"] = 2500 * ureg("Pa")  # final yield stress
         parameters["p_w"] = 200 * ureg("")  # saturation parameter
     else:
         raise ValueError("material not supported")
@@ -99,4 +99,4 @@ if __name__ == "__main__":
     logging.basicConfig(level=logging.DEBUG)
 
     test_fc(3, "linear_elastic")
-    # test_fc(3, "mises") not working
+    test_fc(3, "mises")
