@@ -214,7 +214,6 @@ class ConcreteAMFC(MaterialProblem):
 
         # compute material parameters for time t
         if self.material_law.__name__ == 'LinearElasticityModel':
-            #print('in Linear model')
             # get params
             params['P0'],  params['A_P'] = self.p["E"], self.p["A_E"]
             try:
@@ -231,6 +230,21 @@ class ConcreteAMFC(MaterialProblem):
             self.mechanics_problem.laws[0][0].factor = c_value/self.p["E"]
         # elif str(self.material_law) == 'VonMises3D':
         #
+        elif self.material_law.__name__ == 'SpringKelvinModel' or self.material_law.__name__ == 'SpringMaxwellModel':
+            # get params
+            params['P0'],  params['A_P'] = self.p["E0"], self.p["A_E0"]
+            try:
+                params['R_P'], params['tf_P'] = self.p["R_E0"], self.p["tf_E0"]
+            except KeyError:
+                params['R_P'], params['tf_P'] = 0.0, 0.0
+
+            # comput for each quadrature point
+            fkt_vectorized = np.vectorize(self.param_time_fkt)
+            c_value = fkt_vectorized( self.q_array_path_time,
+                params, _model=self.p["time_fct"])
+
+            # # c_value = self.param_time_fkt(params,_model=self.p["time_fct"])
+            # self.mechanics_problem.laws[0][0].factor = c_value/self.p["E"]
         else:
             raise ValueError("material law not known")
 
@@ -540,9 +554,9 @@ class ProblemAM(df.fem.petsc.NonlinearProblem):
         self.stress_1.x.scatter_forward()
         self.tangent.x.scatter_forward()
 
-        # store E just for access
-        self.modulus.x.array[:] = law.factor # dependent on used material model how in general ???
-        self.modulus.x.scatter_forward()
+        # # store E just for access
+        # self.modulus.x.array[:] = law.factor # dependent on used material model how in general ???
+        # self.modulus.x.scatter_forward()
 
     def update(self) -> None:
         """
