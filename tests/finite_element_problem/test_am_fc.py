@@ -9,6 +9,8 @@ import pytest
 # for know copy material law from fenics-constitutive to tests/finite_element_problem should be a module later
 from linear_elasticity_model import LinearElasticityModel
 from mises_plasticity_isotropic_hardening import VonMises3D
+from spring_kelvin_model import SpringKelvinModel
+from spring_maxwell_model import SpringMaxwellModel
 
 from fenicsxconcrete.experimental_setup import AmMultipleLayers, SimpleCube
 from fenicsxconcrete.finite_element_problem.concrete_am_fc import ConcreteAMFC
@@ -18,7 +20,7 @@ from fenicsxconcrete.sensor_definition.stress_sensor import StressSensor
 from fenicsxconcrete.util import Parameters, QuadratureEvaluator, ureg
 
 
-def set_test_parameters(mat: Literal["linear_elastic", "mises"] = "linear_elastic") -> Parameters:
+def set_test_parameters(mat: Literal["linear_elastic", "mises"]) -> Parameters:
     """set up a test parameter set
 
     Args:
@@ -49,6 +51,24 @@ def set_test_parameters(mat: Literal["linear_elastic", "mises"] = "linear_elasti
         setup_parameters["nu"] = 0.3 * ureg("")  # poisson ratio
         setup_parameters["A_E"] = 4000 * ureg("Pa/s")  # young's modulus rate over time
         setup_parameters["time_fct"] = "linear" * ureg("")  # time dependency of material parameters
+    elif mat == "visco_Kelvin":
+        material_law = SpringKelvinModel
+        setup_parameters["E0"] = 550 * ureg("Pa")
+        setup_parameters["E1"] = 190 * ureg("Pa")
+        setup_parameters["tau"] = 10 * ureg("s")
+        setup_parameters["time_fct"] = "linear" * ureg("")  # time dependency of material parameters
+        setup_parameters["A_E0"] = 10 * ureg("Pa/s")  # young's modulus rate over time
+        setup_parameters["A_E1"] = 5 * ureg("Pa/s")  # young's modulus rate over time
+        setup_parameters["A_tau"] = 1 * ureg("Pa/s")  # young's modulus rate over time
+    elif mat == "visco_Maxwell":
+        material_law = SpringMaxwellModel
+        setup_parameters["E0"] = 550 * ureg("Pa")
+        setup_parameters["E1"] = 190 * ureg("Pa")
+        setup_parameters["tau"] = 10 * ureg("s")
+        setup_parameters["time_fct"] = "linear" * ureg("")  # time dependency of material parameters
+        setup_parameters["A_E0"] = 10 * ureg("Pa/s")  # young's modulus rate over time
+        setup_parameters["A_E1"] = 5 * ureg("Pa/s")  # young's modulus rate over time
+        setup_parameters["A_tau"] = 1 * ureg("Pa/s")  # young's modulus rate over time
     elif mat == "mises":
         material_law = VonMises3D
         setup_parameters["p_ka"] = 175000 * ureg("MPa")  # bulk modulus
@@ -62,9 +82,11 @@ def set_test_parameters(mat: Literal["linear_elastic", "mises"] = "linear_elasti
     return setup_parameters, material_law
 
 
-@pytest.mark.parametrize("mat", ["linear_elastic"])
+@pytest.mark.parametrize("mat", ["linear_elastic", "visco_Kelvin", "visco_Maxwell"])
 @pytest.mark.parametrize("factor", [1, 2])
-def test_am_single_layer(mat: Literal["linear_elastic", "mises"], factor: int) -> None:
+def test_am_single_layer(
+    mat: Literal["linear_elastic", "visco_Kelvin", "visco_Maxwell", "mises"], factor: int
+) -> None:
     """single layer test
 
     one layer build immediately and lying for a given time
@@ -87,15 +109,11 @@ def test_am_single_layer(mat: Literal["linear_elastic", "mises"], factor: int) -
             os.remove(file)
 
     # defining parameters
-    setup_parameters, material_law = set_test_parameters()
+    setup_parameters, material_law = set_test_parameters(mat)
     setup_parameters["num_layers"] = 1 * ureg("")
 
-    # solving parameters
-    solve_parameters = {}
-    solve_parameters["time"] = 6 * 60 * ureg("s")
-
     # defining different loading
-    setup_parameters["dt"] = 60 * ureg("s")
+    setup_parameters["dt"] = 6 * ureg("s")
     setup_parameters["load_time"] = factor * setup_parameters["dt"]  # interval where load is applied linear over time
 
     # setting up the problem
@@ -107,13 +125,14 @@ def test_am_single_layer(mat: Literal["linear_elastic", "mises"], factor: int) -
 
     problem.add_sensor(ReactionForceSensor())
     problem.add_sensor(StressSensor([problem.p["layer_length"] / 2, 0, 0]))
+    problem.add_sensor(DisplacementSensor([problem.p["layer_length"] / 2, 0, problem.p["layer_height"]]))
 
     E_o_time = []
-    total_time = 6 * 60 * ureg("s")
+    total_time = 60 * ureg("s")
     while problem.time <= total_time.to_base_units().magnitude:
         problem.solve()
         problem.pv_plot()
-        print("computed disp", problem.time, problem.fields.displacement.x.array[:].max())
+        # print("computed disp", problem.time, problem.fields.displacement.x.array[:].min())
         E_o_time.append(problem.modulus.vector.array[:].max())
 
     # check reaction force
@@ -133,18 +152,24 @@ def test_am_single_layer(mat: Literal["linear_elastic", "mises"], factor: int) -
 
     # check stresses change
     sig_o_time = np.array(problem.sensors["StressSensor"].data)[:, 2]  # zz
+    # print(sig_o_time)
+    disp_o_time = np.array(problem.sensors["DisplacementSensor"].data)[:, 2]  # zz
+    # print(disp_o_time)
 
     if factor == 1:
         # instance loading -> no changes
         assert sum(np.diff(sig_o_time)) == pytest.approx(0, abs=1e-8)
     elif factor > 1:
         # ratio sig/eps t=0 to sig/eps t=0+dt
-        steps = len(np.where(np.diff(sig_o_time) != 0)[0][:])
+        steps = len(np.where(abs(np.diff(sig_o_time)) > 1e-8)[0][:])
         assert steps == pytest.approx(factor - 1, abs=1e-8)
         # after loading steps nothing should change anymore
         assert sum(np.diff(sig_o_time)[factor - 1 : :]) == pytest.approx(0, abs=1e-8)
 
     if mat == "linear_elastic":
+        # no changes in displacements after loading finshed
+        assert sum(np.diff(disp_o_time)[factor - 1 : :]) == pytest.approx(0, abs=1e-8)
+        # changing of material parameters
         if problem.p["time_fct"] == "linear":
             print(
                 "check linear time dependency of Emodul",
@@ -152,11 +177,42 @@ def test_am_single_layer(mat: Literal["linear_elastic", "mises"], factor: int) -
                 (problem.p["A_E"] * problem.p["dt"]) / problem.p["E"],
             )
             assert np.isclose(np.diff(E_o_time).mean(), problem.p["A_E"] * problem.p["dt"] / problem.p["E"], rtol=1e-2)
+    elif mat == "visco_Kelvin":
+        # check for creep deformation over time
+        # print("diff disp", np.diff(disp_o_time)[factor - 1 : :])
+        assert sum(np.diff(disp_o_time)[factor - 1 : :]) != pytest.approx(0, abs=1e-8)
+        assert abs(np.diff(disp_o_time)[factor - 1 : :][0]) > abs(np.diff(disp_o_time)[factor - 1 : :][-1])
+        # changing of material parameters
+        # print("E_o_time", E_o_time)
+        if problem.p["time_fct"] == "linear":
+            print(
+                "check linear time dependency of Emodul",
+                np.diff(E_o_time).mean(),
+                (problem.p["A_E0"] * problem.p["dt"]),
+            )
+            assert np.isclose(np.diff(E_o_time).mean(), problem.p["A_E0"] * problem.p["dt"], rtol=1e-2)
+
+    elif mat == "visco_Maxwell":
+        # check for creep deformation over time
+        # print("diff disp", np.diff(disp_o_time)[factor - 1 : :])
+        assert sum(np.diff(disp_o_time)[factor - 1 : :]) != pytest.approx(0, abs=1e-8)
+        assert abs(np.diff(disp_o_time)[factor - 1 : :][0]) > abs(np.diff(disp_o_time)[factor - 1 : :][-1])
+        # changing of material parameters
+        # print("E_o_time", E_o_time)
+        if problem.p["time_fct"] == "linear":
+            print(
+                "check linear time dependency of Emodul",
+                np.diff(E_o_time).mean(),
+                (problem.p["A_E0"] * problem.p["dt"]),
+            )
+            assert np.isclose(np.diff(E_o_time).mean(), problem.p["A_E0"] * problem.p["dt"], rtol=1e-2)
 
 
-@pytest.mark.parametrize("mat", ["linear_elastic"])
+@pytest.mark.parametrize("mat", ["linear_elastic", "visco_Kelvin", "visco_Maxwell"])
 @pytest.mark.parametrize("factor", [1, 2])
-def test_am_multiple_layer(mat: Literal["linear_elastic", "mises"], factor: int, plot: bool = False) -> None:
+def test_am_multiple_layer(
+    mat: Literal["linear_elastic", "visco_Kelvin", "visco_Maxwell", "mises"], factor: int, plot: bool = False
+) -> None:
     """multiple layer test
 
     several layers building over time one layer at once
@@ -180,14 +236,12 @@ def test_am_multiple_layer(mat: Literal["linear_elastic", "mises"], factor: int,
             os.remove(file)
 
     # defining parameters
-    setup_parameters, material_law = set_test_parameters()
+    setup_parameters, material_law = set_test_parameters(mat)
 
     # solving parameters
-    solve_parameters = {}
-    solve_parameters["time"] = 6 * 60 * ureg("s")
     time_layer = 20 * ureg("s")  # time to build one layer
-    setup_parameters["dt"] = time_layer / 4
-    assert factor < 4, "factor is to bigger then time for on layer"
+    setup_parameters["dt"] = time_layer / 5
+    assert factor < time_layer / setup_parameters["dt"], "factor is bigger then time for on layer"
     setup_parameters["load_time"] = factor * setup_parameters["dt"]  # interval where load is applied linear over time
 
     # setting up the problem
@@ -209,7 +263,7 @@ def test_am_multiple_layer(mat: Literal["linear_elastic", "mises"], factor: int,
     while problem.time <= total_time.to_base_units().magnitude:
         problem.solve()
         problem.pv_plot()
-        print("computed disp", problem.time, problem.fields.displacement.x.array[:].max())
+        # print("computed disp", problem.time, problem.fields.displacement.x.array[:].min())
 
     # check residual force bottom
     force_bottom_y = np.array(problem.sensors["ReactionForceSensor"].data)[:, -1]
@@ -311,10 +365,10 @@ def define_path(prob, t_diff, t_0=0):
 
 if __name__ == "__main__":
 
-    # test_fc(3, "linear_elastic", "disp")
-
-    # test_fc(3, "linear_elastic", "force")
-
-    # test_am_single_layer("linear_elastic", 5)
+    # test_am_single_layer("linear_elastic", 2)
+    # test_am_single_layer("visco_Kelvin", 2)
+    # test_am_single_layer("visco_Maxwell", 2)
 
     test_am_multiple_layer("linear_elastic", 2, plot=True)
+    test_am_multiple_layer("visco_Kelvin", 2, plot=True)
+    test_am_multiple_layer("visco_Maxwell", 2, plot=True)

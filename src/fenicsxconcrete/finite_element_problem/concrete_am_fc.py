@@ -144,6 +144,8 @@ class ConcreteAMFC(MaterialProblem):
         self.mechanics_problem = ProblemAM(
             law, self.fields.displacement, bcs, body_force_fct, q_degree=self.p["q_degree"]
         )
+        self.mechanics_problem._time = self.p['dt']
+
         # additional output fields
         self.rule = QuadratureRule(cell_type=self.mesh.ufl_cell(), degree=self.p["q_degree"])
         self.q_fields = QuadratureFields(
@@ -210,44 +212,64 @@ class ConcreteAMFC(MaterialProblem):
         """update material parameters at each quadrature point according time based on path_time"""
 
         # print(self.material_law.__name__)
-        params = {}
 
         # compute material parameters for time t
         if self.material_law.__name__ == 'LinearElasticityModel':
-            # get params
-            params['P0'],  params['A_P'] = self.p["E"], self.p["A_E"]
-            try:
-                params['R_P'], params['tf_P'] = self.p["R_E"], self.p["tf_E"]
-            except KeyError:
-                params['R_P'], params['tf_P'] = 0.0, 0.0
+            time_params = ['E']
+            p_values = self.get_params_gp(time_params)
 
-            # comput for each quadrature point
-            fkt_vectorized = np.vectorize(self.param_time_fkt)
-            c_value = fkt_vectorized( self.q_array_path_time,
-                params, _model=self.p["time_fct"])
+            # in the linear model we adapt the factor of the youngs modulus
+            self.mechanics_problem.laws[0][0].factor = p_values['E']/self.p["E"]
 
-            # c_value = self.param_time_fkt(params,_model=self.p["time_fct"])
-            self.mechanics_problem.laws[0][0].factor = c_value/self.p["E"]
+            # # store E just for access since material law dependent do it here and not in ProblemAM
+            self.mechanics_problem.modulus.x.array[:] = self.mechanics_problem.laws[0][0].factor
+            self.mechanics_problem.modulus.x.scatter_forward()
+
         # elif str(self.material_law) == 'VonMises3D':
         #
         elif self.material_law.__name__ == 'SpringKelvinModel' or self.material_law.__name__ == 'SpringMaxwellModel':
-            # get params
-            params['P0'],  params['A_P'] = self.p["E0"], self.p["A_E0"]
-            try:
-                params['R_P'], params['tf_P'] = self.p["R_E0"], self.p["tf_E0"]
-            except KeyError:
-                params['R_P'], params['tf_P'] = 0.0, 0.0
+            # parameters which can vary over time [E0,E1,tau]
+            time_params = ['E0', 'E1', 'tau']
+            p_values = self.get_params_gp(time_params)
 
-            # comput for each quadrature point
-            fkt_vectorized = np.vectorize(self.param_time_fkt)
-            c_value = fkt_vectorized( self.q_array_path_time,
-                params, _model=self.p["time_fct"])
+            self.mechanics_problem.laws[0][0].E0 = p_values['E0']
+            self.mechanics_problem.laws[0][0].E1 = p_values['E1']
+            self.mechanics_problem.laws[0][0].tau = p_values['tau']
 
-            # # c_value = self.param_time_fkt(params,_model=self.p["time_fct"])
-            # self.mechanics_problem.laws[0][0].factor = c_value/self.p["E"]
+            # # store E0 just for access since material law dependent do it here and not in ProblemAM
+            self.mechanics_problem.modulus.x.array[:] = self.mechanics_problem.laws[0][0].E0
+            self.mechanics_problem.modulus.x.scatter_forward()
+
         else:
             raise ValueError("material law not known")
 
+    def get_params_gp(self,time_params):
+        '''evaluate for a given string list of parameters the current values at each quadrature point
+        Args:
+            time_params: list of strings with parameter names
+        Returns:
+            dict with parameter values at each quadrature point
+        '''
+
+        params = {}
+        p_values = {}
+        for pi in time_params:
+            # get params
+            params['P0'] = self.p[pi]
+            try:
+                params['A_P'] = self.p[f"A_{pi}"]
+            except KeyError:
+                params['A_P'] = 0.0  # no change
+            try:
+                params['R_P'], params['tf_P'] = self.p[f"R_{pi}"], self.p[f"tf_{pi}"]
+            except KeyError:
+                params['R_P'], params['tf_P'] = 0.0, 0.0
+
+            # compute for each quadrature point
+            fkt_vectorized = np.vectorize(self.param_time_fkt)
+            p_values[pi] = fkt_vectorized(self.q_array_path_time,
+                                          params, _model=self.p["time_fct"])
+        return p_values
 
     def update_path(self) -> None:
         """update path for next time increment
@@ -553,10 +575,6 @@ class ProblemAM(df.fem.petsc.NonlinearProblem):
 
         self.stress_1.x.scatter_forward()
         self.tangent.x.scatter_forward()
-
-        # # store E just for access
-        # self.modulus.x.array[:] = law.factor # dependent on used material model how in general ???
-        # self.modulus.x.scatter_forward()
 
     def update(self) -> None:
         """
