@@ -211,7 +211,7 @@ class ConcreteAMFC(MaterialProblem):
     def update_material_parameters(self) -> None:
         """update material parameters at each quadrature point according time based on path_time"""
 
-        print(self.material_law.__name__)
+        #print(self.material_law.__name__)
 
         # compute material parameters for time t
         if self.material_law.__name__ == 'LinearElasticityModel':
