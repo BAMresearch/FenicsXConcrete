@@ -246,6 +246,8 @@ class ConcreteAMFC(MaterialProblem):
             self.mechanics_problem.laws[0][0].E0 = p_values['E0']
             self.mechanics_problem.laws[0][0].E1 = p_values['E1']
             self.mechanics_problem.laws[0][0].tau = p_values['tau']
+            self.mechanics_problem.laws[0][0].factor_E0 = p_values['E0']/self.p["E0"]
+            self.mechanics_problem.laws[0][0].factor_E1 = p_values['E1']/self.p["E1"]
 
             # # store E0 just for access since material law dependent do it here and not in ProblemAM
             self.mechanics_problem.modulus.x.array[:] = self.mechanics_problem.laws[0][0].E0

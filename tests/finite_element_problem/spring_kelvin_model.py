@@ -27,20 +27,18 @@ class SpringKelvinModel(IncrSmallStrainModel):
 
         self.I2 = np.zeros(self.stress_strain_dim, dtype=np.float64)  # Identity of rank 2 tensor
 
+        self.factor_E0 = 1.0
+        self.factor_E1 = 1.0
 
-    def compute_elasticity(self,E0:float,E1:float,nu:float):
-        '''calculates lame constants and elasticity tensor (as self variable) based on constraint type
-        Args:
-            E0,E1,nu: material parameters
+        self.compute_elasticity()
 
-        Returns:
-            mu0,mu1,lam0: lame constants
-        '''
+    def compute_elasticity(self):
+        '''calculates lame constants and elasticity tensor (as self variable) based on constraint type'''
 
         # lame constants
-        mu0 = E0 / (2.0 * (1.0 + nu))
-        lam0 = E0 * nu / ((1.0 + nu) * (1.0 - 2.0 * nu))
-        mu1 = E1 / (2.0 * (1.0 + nu))
+        mu0 = self.E0 / (2.0 * (1.0 + self.nu))
+        lam0 = self.E0 * self.nu / ((1.0 + self.nu) * (1.0 - 2.0 * self.nu))
+        mu1 = self.E1 / (2.0 * (1.0 + self.nu))
 
         match self._constraint:
             case Constraint.FULL:
@@ -72,14 +70,14 @@ class SpringKelvinModel(IncrSmallStrainModel):
 
             case Constraint.PLANE_STRESS:
                 self.D_0 = (
-                        E0
-                        / (1 - nu ** 2.0)
+                        self.E0
+                        / (1 - self.nu ** 2.0)
                         * np.array(
                     [
-                        [1.0, nu, 0.0, 0.0],
-                        [nu, 1.0, 0.0, 0.0],
+                        [1.0, self.nu, 0.0, 0.0],
+                        [self.nu, 1.0, 0.0, 0.0],
                         [0.0, 0.0, 0.0, 0.0],
-                        [0.0, 0.0, 0.0, (1.0 - nu)],
+                        [0.0, 0.0, 0.0, (1.0 - self.nu)],
                     ]
                 )
                 )
@@ -87,7 +85,7 @@ class SpringKelvinModel(IncrSmallStrainModel):
                 self.I2[1] = 1.0
 
             case Constraint.UNIAXIAL_STRESS:
-                self.D_0 = np.array([[E0]])
+                self.D_0 = np.array([[self.E0]])
                 self.I2[0] = 1.0
             case _:
                 msg = "Constraint not implemented"
@@ -118,7 +116,12 @@ class SpringKelvinModel(IncrSmallStrainModel):
             E1 = self.E1
             tau = self.tau
             nu = self.nu
-            mu0, mu1, lam0 = self.compute_elasticity(E0, E1, nu)
+            # mu0, mu1, lam0 = self.compute_elasticity(E0, E1, nu)
+
+            mu0 = E0 / (2.0 * (1.0 + nu))
+            lam0 = E0 * nu / ((1.0 + nu) * (1.0 - 2.0 * nu))
+            mu1 = E1 / (2.0 * (1.0 + nu))
+            fac0 = self.factor_E0
 
 
         # reshape gauss point arrays
@@ -136,12 +139,17 @@ class SpringKelvinModel(IncrSmallStrainModel):
                 E1 = self.E1[n]
                 tau = self.tau[n]
                 nu = self.nu
-                mu0, mu1, lam0 = self.compute_elasticity(E0, E1, nu)
+                mu0 = E0 / (2.0 * (1.0 + nu))
+                lam0 = E0 * nu / ((1.0 + nu) * (1.0 - 2.0 * nu))
+                mu1 = E1 / (2.0 * (1.0 + nu))
+                fac0 = self.factor_E0[n]
+
+                #mu0, mu1, lam0 = self.compute_elasticity(E0, E1, nu)
 
             if del_t == 0:
                 # linear step visko strain is zero
-                dstress = self.D_0 @ eps
-                D = self.D_0
+                dstress = fac0 * self.D_0 @ eps
+                D = fac0 * self.D_0
 
             else:
                 # visco step
@@ -150,11 +158,11 @@ class SpringKelvinModel(IncrSmallStrainModel):
                               1 / (tau * 2 * mu1) * mandel_view[n]
                               - 1 / tau * strain_visco_n[n]
                               + mu0 / (tau * mu1) * eps
-                              + lam0 / (tau * 2 * mu1) *  np.sum(eps[:3]) * self.I2
+                              + lam0 / (tau * 2 * mu1) * np.sum(eps[:3]) * self.I2
                               )
 
-                dstress = self.D_0 @ eps - 2*mu0 * deps_visko
-                D = (1 - mu0/(tau*mu1*factor)) * self.D_0
+                dstress = fac0 * self.D_0 @ eps - 2*mu0 * deps_visko
+                D = (1 - mu0/(tau*mu1*factor)) * fac0 * self.D_0
 
                 # update values
                 strain_visco_n[n] += deps_visko

@@ -9,7 +9,7 @@ import pytest
 # for know copy material law from fenics-constitutive to tests/finite_element_problem should be a module later
 from linear_elasticity_model import LinearElasticityModel
 from mises_plasticity_isotropic_hardening import VonMises3D
-from spring_kelvin_model import SpringKelvinModel
+from spring_kelvin_model01 import SpringKelvinModel
 from spring_maxwell_model import SpringMaxwellModel
 
 from fenicsxconcrete.experimental_setup import AmMultipleLayers, SimpleCube
@@ -33,7 +33,7 @@ def set_test_parameters(mat: Literal["linear_elastic", "mises"]) -> Parameters:
 
     setup_parameters["dim"] = 3 * ureg("")
     # setup_parameters["stress_state"] = "plane_strain"
-    setup_parameters["num_layers"] = 5 * ureg("")  # changed in single layer test!!
+    setup_parameters["num_layers"] = 50 * ureg("")  # changed in single layer test!!
     setup_parameters["layer_height"] = 1 / 100 * ureg("m")  # y (2D), z (3D)
     setup_parameters["layer_length"] = 50 / 100 * ureg("m")  # x
     setup_parameters["layer_width"] = 5 / 100 * ureg("m")  # y (3D)
@@ -267,7 +267,6 @@ def test_am_multiple_layer(
 
     # check residual force bottom
     force_bottom_y = np.array(problem.sensors["ReactionForceSensor"].data)[:, -1]
-    print("force", force_bottom_y)
     dead_load = (
         problem.p["g"]
         * problem.p["rho"]
@@ -277,7 +276,7 @@ def test_am_multiple_layer(
         * problem.p["layer_width"]
     )
 
-    print("check", sum(force_bottom_y), dead_load)
+    print("check", force_bottom_y[-1], dead_load)
     assert force_bottom_y[-1] == pytest.approx(-dead_load)
 
     # check E modulus evolution over structure (each layer different E)
@@ -364,13 +363,13 @@ def define_path(prob, t_diff, t_0=0):
 
 
 if __name__ == "__main__":
+    import timeit
 
     # test_am_single_layer("linear_elastic", 2)
     # test_am_single_layer("visco_Kelvin", 2)
     # test_am_single_layer("visco_Maxwell", 2)
+    # test_am_multiple_layer("linear_elastic", 2, plot=False)
+    test_am_multiple_layer("visco_Kelvin", 2, plot=False)
+    # test_am_multiple_layer("visco_Maxwell", 2, plot=False)
 
-    # test_am_multiple_layer("linear_elastic", 2, plot=True)
-    # test_am_multiple_layer("visco_Kelvin", 2, plot=True)
-    # test_am_multiple_layer("visco_Maxwell", 2, plot=True)
-
-    test_am_multiple_layer("mises", 2, plot=True)
+    # test_am_multiple_layer("mises", 2, plot=True)
