@@ -158,7 +158,7 @@ class SpringKelvinModel(IncrSmallStrainModel):
                               1 / (tau * 2 * mu1) * mandel_view[n]
                               - 1 / tau * strain_visco_n[n]
                               + mu0 / (tau * mu1) * eps
-                              + lam0 / (tau * 2 * mu1) * np.sum(eps[:3]) * self.I2
+                              + lam0 / (tau * 2 * mu1) * np.sum(eps[:self.geometric_dim]) * self.I2
                               )
 
                 dstress = fac0 * self.D_0 @ eps - 2*mu0 * deps_visko

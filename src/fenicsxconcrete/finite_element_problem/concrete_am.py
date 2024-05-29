@@ -1,5 +1,6 @@
 import copy
 from collections.abc import Callable
+from pathlib import Path
 from typing import Type
 
 import dolfinx as df
@@ -61,6 +62,11 @@ class ConcreteAM(MaterialProblem):
             self.nonlinear_problem = ConcreteThixElasticModel  # default material
 
         super().__init__(experiment, parameters, pv_name, pv_path)
+
+        # vtk writer for each property separate
+        self.f_vtk_d = df.io.VTKFile(self.mesh.comm, Path(pv_path) / (pv_name + "_disp" + ".vtk"), "w")
+        self.f_vtk_s = df.io.VTKFile(self.mesh.comm, Path(pv_path) / (pv_name + "_stress" + ".vtk"), "w")
+        self.f_vtk_E = df.io.VTKFile(self.mesh.comm, Path(pv_path) / (pv_name + "_Emodul" + ".vtk"), "w")
 
     @staticmethod
     def parameter_description() -> dict[str, str]:
@@ -258,6 +264,11 @@ class ConcreteAM(MaterialProblem):
             f.write_function(self.fields.displacement, self.time)
             f.write_function(sigma_plot, self.time)
             f.write_function(E_plot, self.time)
+
+        # vtk format for connection to VR
+        self.f_vtk_d.write_function(self.fields.displacement, self.time)
+        self.f_vtk_s.write_function(sigma_plot, self.time)
+        self.f_vtk_E.write_function(E_plot, self.time)
 
     @staticmethod
     def fd_fkt(pd: list[float], path_time: list[float], dt: float, load_time: float) -> list[float]:

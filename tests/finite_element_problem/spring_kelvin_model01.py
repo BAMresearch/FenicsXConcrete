@@ -132,7 +132,7 @@ class SpringKelvinModel(IncrSmallStrainModel):
                             1 / (self.tau * 2 * self.mu1) * mandel_view[n]
                             - 1 / self.tau * strain_visco_n[n]
                             + self.mu0 / (self.tau * self.mu1) * eps
-                            + self.lam0 / (self.tau * 2 * self.mu1) * np.sum(eps[:3]) * self.I2
+                            + self.lam0 / (self.tau * 2 * self.mu1) * np.sum(eps[:self.geometric_dim]) * self.I2
                     )
                     deps_visko_list[n] = deps_visko
 
