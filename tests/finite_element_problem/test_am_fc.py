@@ -9,7 +9,7 @@ import pytest
 # for know copy material law from fenics-constitutive to tests/finite_element_problem should be a module later
 from linear_elasticity_model import LinearElasticityModel
 from mises_plasticity_isotropic_hardening import VonMises3D
-from spring_kelvin_model01 import SpringKelvinModel
+from spring_kelvin_model import SpringKelvinModel
 from spring_maxwell_model import SpringMaxwellModel
 
 from fenicsxconcrete.experimental_setup import AmMultipleLayers, SimpleCube
@@ -33,7 +33,7 @@ def set_test_parameters(mat: Literal["linear_elastic", "mises"]) -> Parameters:
 
     setup_parameters["dim"] = 3 * ureg("")
     # setup_parameters["stress_state"] = "plane_strain"
-    setup_parameters["num_layers"] = 50 * ureg("")  # changed in single layer test!!
+    setup_parameters["num_layers"] = 5 * ureg("")  # changed in single layer test!!
     setup_parameters["layer_height"] = 1 / 100 * ureg("m")  # y (2D), z (3D)
     setup_parameters["layer_length"] = 50 / 100 * ureg("m")  # x
     setup_parameters["layer_width"] = 5 / 100 * ureg("m")  # y (3D)
@@ -263,7 +263,7 @@ def test_am_multiple_layer(
     while problem.time <= total_time.to_base_units().magnitude:
         problem.solve()
         problem.pv_plot()
-        # print("computed disp", problem.time, problem.fields.displacement.x.array[:].min())
+        print("computed disp", problem.time, problem.fields.displacement.x.array[:].min())
 
     # check residual force bottom
     force_bottom_y = np.array(problem.sensors["ReactionForceSensor"].data)[:, -1]
@@ -369,7 +369,7 @@ if __name__ == "__main__":
     # test_am_single_layer("visco_Kelvin", 2)
     # test_am_single_layer("visco_Maxwell", 2)
     # test_am_multiple_layer("linear_elastic", 2, plot=False)
-    test_am_multiple_layer("visco_Kelvin", 2, plot=False)
+    # test_am_multiple_layer("visco_Kelvin", 2, plot=False)
     # test_am_multiple_layer("visco_Maxwell", 2, plot=False)
 
-    # test_am_multiple_layer("mises", 2, plot=True)
+    test_am_multiple_layer("mises", 2, plot=True)
