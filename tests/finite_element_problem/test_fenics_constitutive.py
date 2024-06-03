@@ -8,6 +8,7 @@ import pytest
 # for know copy material law from fenics-constitutive to tests/finite_element_problem should be a module later
 from linear_elasticity_model import LinearElasticityModel
 from mises_plasticity_isotropic_hardening import VonMises3D
+from spring_kelvin_model import SpringKelvinModel
 
 from fenicsxconcrete.experimental_setup.simple_cube import SimpleCube
 from fenicsxconcrete.finite_element_problem.fenics_constitutive import FenicsConstitutive
@@ -18,17 +19,17 @@ from fenicsxconcrete.util import ureg
 
 
 @pytest.mark.parametrize("dim", [3])
-@pytest.mark.parametrize("mat", ["linear_elastic", "mises"])
+@pytest.mark.parametrize("mat", ["linear_elastic", "visco_Kelvin", "mises"])
 def test_fc(dim: int, mat: Literal["linear_elastic", "mises"]) -> None:
     """easy cube test for checking interface fenicsxconcrete - fencis_constitutive
-    uniaxial tension test"""
+    uniaxial tension test displacment controlled"""
 
     # setup paths and directories
     data_dir = "data_files"
     data_path = Path(__file__).parent / data_dir
 
     # define file name and path for paraview output
-    file_name = f"test_mat_fc_uniaxial_{dim}d"
+    file_name = f"test_mat_fc_uniaxial_{mat}_{dim}d"
     files = [data_path / (file_name + ".xdmf"), data_path / (file_name + ".h5")]
     # delete file if it exists (only relevant for local tests)
     for file in files:
@@ -49,6 +50,12 @@ def test_fc(dim: int, mat: Literal["linear_elastic", "mises"]) -> None:
     if mat == "linear_elastic":
         material_law = LinearElasticityModel
         parameters["E"] = 42000 * ureg("Pa")  # young's modulus
+        parameters["nu"] = 0.3 * ureg("")  # poisson ratio
+    elif mat == "visco_Kelvin":
+        material_law = SpringKelvinModel
+        parameters["E0"] = 550 * ureg("Pa")
+        parameters["E1"] = 190 * ureg("Pa")
+        parameters["tau"] = 10 * ureg("s")
         parameters["nu"] = 0.3 * ureg("")  # poisson ratio
     elif mat == "mises":
         material_law = VonMises3D
@@ -79,18 +86,29 @@ def test_fc(dim: int, mat: Literal["linear_elastic", "mises"]) -> None:
     total_time = 1.0
     while problem.time <= total_time:
         problem.experiment.apply_displ_load(problem.time * displacement)
+
+        # update material parameters globally in time
+        if mat == "linear_elastic":
+            problem.mechanics_problem.laws[0][0].factor = 1.0 + 0.1 * problem.time
+        elif mat == "visco_Kelvin":
+            problem.mechanics_problem.laws[0][0].E0 = (1.0 + 0.1 * problem.time) * parameters["E0"]
+            problem.mechanics_problem.laws[0][0].factor_E0 = 1.0 + 0.1 * problem.time
+
         problem.solve()
         problem.pv_plot()
         print("computed disp", problem.time, problem.fields.displacement.x.array[:].max())
 
-    disp_result = problem.sensors["DisplacementSensor"].get_last_entry().magnitude
-    force_result = problem.sensors["ReactionForceSensor"].get_last_entry().magnitude
-    stress_result = problem.sensors["StressSensor"].get_last_entry().magnitude
-    print("results", disp_result, force_result, stress_result)
+    delta_stress_z = np.array(problem.sensors["StressSensor"].data)[:, 2]
+    delta_disp_z = np.array(problem.sensors["DisplacementSensor"].data)[:, 2]
 
+    print(np.diff(delta_disp_z).mean(), parameters["dt"].magnitude * displacement.magnitude)
     # check
     assert np.isclose(abs(problem.fields.displacement.x.array[:]).max(), abs(displacement.magnitude), rtol=1e-2)
-    assert np.isclose(disp_result[0], disp_result[1], rtol=1e-2)
+    # displacement in middle 1/5 of total per time step
+    assert np.isclose(np.diff(delta_disp_z).mean(), parameters["dt"].magnitude * displacement.magnitude / 2, rtol=1e-2)
+    # for changing material params over time
+    if mat == "linear_elastic" or mat == "visco_Kelvin":
+        assert np.diff(delta_stress_z)[-1] > np.diff(delta_stress_z)[1]
 
 
 if __name__ == "__main__":
@@ -98,5 +116,6 @@ if __name__ == "__main__":
 
     logging.basicConfig(level=logging.DEBUG)
 
-    test_fc(3, "linear_elastic")
-    test_fc(3, "mises")
+    # test_fc(3, "linear_elastic")
+    # test_fc(3, "mises")
+    test_fc(3, "visco_Kelvin")

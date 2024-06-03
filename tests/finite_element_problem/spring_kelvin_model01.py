@@ -36,20 +36,20 @@ class SpringKelvinModel(IncrSmallStrainModel):
         '''calculates lame constants and elasticity tensor (as self variable) based on constraint type'''
 
         # lame constants
-        self.mu0 = self.E0 / (2.0 * (1.0 + self.nu))
-        self.lam0 = self.E0 * self.nu / ((1.0 + self.nu) * (1.0 - 2.0 * self.nu))
-        self.mu1 = self.E1 / (2.0 * (1.0 + self.nu))
+        mu0 = self.E0 / (2.0 * (1.0 + self.nu))
+        lam0 = self.E0 * self.nu / ((1.0 + self.nu) * (1.0 - 2.0 * self.nu))
+        mu1 = self.E1 / (2.0 * (1.0 + self.nu))
 
         match self._constraint:
             case Constraint.FULL:
                 self.D_0 = np.array(
                     [
-                        [2.0 * self.mu0 + self.lam0, self.lam0, self.lam0, 0.0, 0.0, 0.0],
-                        [self.lam0, 2.0 * self.mu0 + self.lam0, self.lam0, 0.0, 0.0, 0.0],
-                        [self.lam0, self.lam0, 2.0 * self.mu0 + self.lam0, 0.0, 0.0, 0.0],
-                        [0.0, 0.0, 0.0, 2.0 * self.mu0, 0.0, 0.0],
-                        [0.0, 0.0, 0.0, 0.0, 2.0 * self.mu0, 0.0],
-                        [0.0, 0.0, 0.0, 0.0, 0.0, 2.0 * self.mu0],
+                        [2.0 * mu0 + lam0, lam0, lam0, 0.0, 0.0, 0.0],
+                        [lam0, 2.0 * mu0 + lam0, lam0, 0.0, 0.0, 0.0],
+                        [lam0, lam0, 2.0 * mu0 + lam0, 0.0, 0.0, 0.0],
+                        [0.0, 0.0, 0.0, 2.0 * mu0, 0.0, 0.0],
+                        [0.0, 0.0, 0.0, 0.0, 2.0 * mu0, 0.0],
+                        [0.0, 0.0, 0.0, 0.0, 0.0, 2.0 * mu0],
                     ]
                 )
                 self.I2[0] = 1.0
@@ -59,10 +59,10 @@ class SpringKelvinModel(IncrSmallStrainModel):
             case Constraint.PLANE_STRAIN:
                 self.D_0 = np.array(
                     [
-                        [2.0 * self.mu0 + self.lam0, self.lam0, self.lam0, 0.0],
-                        [self.lam0, 2.0 * self.mu0 + self.lam0, self.lam0, 0.0],
-                        [self.lam0, self.lam0, 2.0 * self.mu0 + self.lam0, 0.0],
-                        [0.0, 0.0, 0.0, 2.0 * self.mu0],
+                        [2.0 * mu0 + lam0, lam0, lam0, 0.0],
+                        [lam0, 2.0 * mu0 + lam0, lam0, 0.0],
+                        [lam0, lam0, 2.0 * mu0 + lam0, 0.0],
+                        [0.0, 0.0, 0.0, 2.0 * mu0],
                     ]
                 )
                 self.I2[0] = 1.0
@@ -91,6 +91,7 @@ class SpringKelvinModel(IncrSmallStrainModel):
                 msg = "Constraint not implemented"
                 raise NotImplementedError(msg)
 
+        return mu0, mu1, lam0
 
     def evaluate(
         self,
@@ -105,81 +106,70 @@ class SpringKelvinModel(IncrSmallStrainModel):
             == mandel_stress.size // self.stress_strain_dim
             == tangent.size // (self.stress_strain_dim**2)
         )
-
-
-        n_gauss = grad_del_u.size // (self.geometric_dim**2)
-        mandel_view = mandel_stress.reshape(-1, self.stress_strain_dim)
-
-        strain_increment = strain_from_grad_u(grad_del_u, self.constraint).reshape(-1, self.stress_strain_dim)
-        strain_n = history['strain'].reshape(-1, self.stress_strain_dim)
-        strain_visco_n = history['strain_visco'].reshape(-1, self.stress_strain_dim)
-
-
-        if type(self.factor_E0) is float or type(self.factor_E0) is int:
-
-            if del_t == 0:
-                # linear step visko strain is zero
-                self.D_updated = self.factor_E0 * self.D_0
-                mandel_view += strain_increment @ self.D_updated
-                tangent[:] = np.tile(self.D_updated.flatten(), n_gauss)
-
-            else:
-                # visco step
-                factor = (1 / del_t + 1 / self.tau + self.E0 / (self.tau * self.E1))
-                deps_visko_list = np.zeros_like(strain_increment)
-                for n, eps in enumerate(strain_increment):
-                    deps_visko = 1 / factor * (
-                            1 / (self.tau * 2 * self.mu1) * mandel_view[n]
-                            - 1 / self.tau * strain_visco_n[n]
-                            + self.mu0 / (self.tau * self.mu1) * eps
-                            + self.lam0 / (self.tau * 2 * self.mu1) * np.sum(eps[:self.geometric_dim]) * self.I2
-                    )
-                    deps_visko_list[n] = deps_visko
-
-                self.D_updated = self.factor_E0 * self.D_0
-                mandel_view += strain_increment @ self.D_updated - 2*self.mu0 * deps_visko_list
-                self.D_visco  = (1 - self.mu0/(self.tau*self.mu1*factor)) * self.D_updated
-                tangent[:] = np.tile(self.D_visco.flatten(), n_gauss)
-
-                strain_visco_n += deps_visko_list
-                strain_n += strain_increment
-
-
-        elif type(self.factor_E0) is np.ndarray:
-
-            self.mu0 = self.E0 / (2.0 * (1.0 + self.nu))
-            self.lam0 = self.E0 * self.nu / ((1.0 + self.nu) * (1.0 - 2.0 * self.nu))
-            self.mu1 = self.E1 / (2.0 * (1.0 + self.nu))
-            if del_t == 0:
-                # linear step visko strain is zero
-                mandel_view += (strain_increment.reshape(-1, self.stress_strain_dim) @ self.D_0) * self.factor_E0[:, np.newaxis]
-                tangent[:] = np.multiply(np.repeat(self.factor_E0, len(self.D_0.flatten())), np.tile(self.D_0.flatten(), n_gauss))
-
-            else:
-                # visco step
-                factor = (1 / del_t + 1 / self.tau + self.E0 / (self.tau * self.E1))
-                deps_visko_list = np.zeros_like(strain_increment)
-                for n, eps in enumerate(strain_increment):
-                    deps_visko = 1 / factor[n] * (
-                            1 / (self.tau[n] * 2 * self.mu1[n]) * mandel_view[n]
-                            - 1 / self.tau[n] * strain_visco_n[n]
-                            + self.mu0[n] / (self.tau[n] * self.mu1[n]) * eps
-                            + self.lam0[n] / (self.tau[n] * 2 * self.mu1[n]) * np.sum(eps[:3]) * self.I2
-                    )
-                    deps_visko_list[n] = deps_visko
-
-                mandel_view += (strain_increment @ self.D_0) * self.factor_E0[:, np.newaxis] - 2 * deps_visko_list * self.mu0[:,np.newaxis]
-                t_correction = (1 - self.mu0/(self.tau*self.mu1*factor)) * self.factor_E0
-                tangent[:] = np.multiply(np.repeat(t_correction, len(self.D_0.flatten())),
-                                         np.tile(self.D_0.flatten(), n_gauss))
-
-                strain_visco_n += deps_visko_list
-                strain_n += strain_increment
-
+        # check type of material parameters
+        if type(self.E0) is np.ndarray:
+            # material parameters gausspoint vise
+            update = True
         else:
-            raise ValueError("factor must be a float, int, or np.ndarray")
+            # constant material parameters
+            E0 = self.E0
+            E1 = self.E1
+            tau = self.tau
+            nu = self.nu
+            # mu0, mu1, lam0 = self.compute_elasticity(E0, E1, nu)
+
+            mu0 = E0 / (2.0 * (1.0 + nu))
+            lam0 = E0 * nu / ((1.0 + nu) * (1.0 - 2.0 * nu))
+            mu1 = E1 / (2.0 * (1.0 + nu))
+            fac0 = self.factor_E0
 
 
+        # reshape gauss point arrays
+        mandel_view = mandel_stress.reshape(-1, self.stress_strain_dim)
+        tangent_view = tangent.reshape(-1, self.stress_strain_dim ** 2)
+        strain_increment = strain_from_grad_u(grad_del_u, self.constraint).reshape(-1, self.stress_strain_dim)
+        strain_visco_n = history['strain_visco'].reshape(-1, self.stress_strain_dim)
+        strain_n = history['strain'].reshape(-1, self.stress_strain_dim)
+
+        # loop over gauss points
+        for n, eps in enumerate(strain_increment):
+
+            if update:
+                E0 = self.E0[n]
+                E1 = self.E1[n]
+                tau = self.tau[n]
+                nu = self.nu
+                mu0 = E0 / (2.0 * (1.0 + nu))
+                lam0 = E0 * nu / ((1.0 + nu) * (1.0 - 2.0 * nu))
+                mu1 = E1 / (2.0 * (1.0 + nu))
+                fac0 = self.factor_E0[n]
+
+                #mu0, mu1, lam0 = self.compute_elasticity(E0, E1, nu)
+
+            if del_t == 0:
+                # linear step visko strain is zero
+                dstress = fac0 * self.D_0 @ eps
+                D = fac0 * self.D_0
+
+            else:
+                # visco step
+                factor = (1 / del_t + 1 / tau + mu0 / (tau * mu1))
+                deps_visko = 1/factor * (
+                              1 / (tau * 2 * mu1) * mandel_view[n]
+                              - 1 / tau * strain_visco_n[n]
+                              + mu0 / (tau * mu1) * eps
+                              + lam0 / (tau * 2 * mu1) * np.sum(eps[:self.geometric_dim]) * self.I2
+                              )
+
+                dstress = fac0 * self.D_0 @ eps - 2*mu0 * deps_visko
+                D = (1 - mu0/(tau*mu1*factor)) * fac0 * self.D_0
+
+                # update values
+                strain_visco_n[n] += deps_visko
+
+            mandel_view[n] += dstress
+            strain_n[n] += eps
+            tangent_view[n] = D.flatten()
 
 
 

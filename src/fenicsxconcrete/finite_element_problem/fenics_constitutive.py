@@ -104,12 +104,19 @@ class FenicsConstitutive(MaterialProblem):
 
         # boundaries
         bcs = self.experiment.create_displacement_boundary(self.V)
-        # body_force_fct = self.experiment.create_body_force # not yet in IncrSmallStrainProblem
 
         # problem
         self.mechanics_problem = IncrSmallStrainProblem(
             law, self.fields.displacement, bcs, q_degree=self.p["q_degree"]
         )
+        # add external force and body force not implemented on IncrSmallStrainProblem
+        external_force = self.experiment.create_force_boundary(self.V)
+        if external_force:
+            self.mechanics_problem.R_form += external_force
+
+        body_force = self.experiment.create_body_force(self.V)
+        if body_force:
+            self.mechanics_problem.R_form -= body_force  # TODO check sign!!
 
         # additional output fields
         self.rule = QuadratureRule(cell_type=self.mesh.ufl_cell(), degree=self.p["q_degree"])
