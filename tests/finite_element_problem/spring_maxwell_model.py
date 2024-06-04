@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import numpy as np
-
 from fenics_constitutive import Constraint, IncrSmallStrainModel, strain_from_grad_u
 
 
@@ -25,6 +24,10 @@ class SpringMaxwellModel(IncrSmallStrainModel):
             self.nu = 0.0
         else:
             self.nu = parameters["nu"] # Poisson's ratio
+
+        # for changing parameters E0,E1 and tau (for the moment nu cannot be changed)
+        self.factor_E0 = 1.0  # float or np.array if dependent on quadrature points
+        self.factor_E1 = 1.0  # float or np.array if dependent on quadrature points
 
         # lame constants (need to be updated if time dependent material parameters are used)
         self.mu0 = self.E0 / (2.0 * (1.0 + self.nu))
@@ -131,26 +134,71 @@ class SpringMaxwellModel(IncrSmallStrainModel):
         strain_visco_n = history['strain_visco'].reshape(-1, self.stress_strain_dim)
         strain_n = history['strain'].reshape(-1, self.stress_strain_dim)
 
-        if del_t == 0:
-            # linear step visko strain is zero
-            D = self.D_0 + self.D_1
-            mandel_view += strain_increment @ D
-            _deps_visko = np.zeros_like(strain_increment)
+        if type(self.factor_E0) is float or type(self.factor_E0) is int:
+
+            # update in case parameter changed
+            self.mu1 = self.E1 / (2.0 * (1.0 + self.nu))
+
+            if del_t == 0:
+                # linear step visko strain is zero
+                D = self.factor_E0 * self.D_0 + self.factor_E1 * self.D_1
+                mandel_view += strain_increment @ D
+                _deps_visko = np.zeros_like(strain_increment)
+            else:
+                strain_total = strain_n + strain_increment
+                factor = (1 / del_t + 1 / self.tau)
+                _deps_visko = 1 / factor * (
+                        1 / (self.tau * 2 * self.mu1) * strain_total @ (self.factor_E1 * self.D_1)
+                        - 1 / self.tau * strain_visco_n
+                )
+
+                dstress = strain_increment @ (self.factor_E0 * self.D_0 + self.factor_E1 * self.D_1) - 2 * self.mu1 * _deps_visko
+                mandel_view += dstress
+                D = self.factor_E0 * self.D_0 + (1 - 1 / (self.tau * factor)) * self.factor_E1 * self.D_1
+
+            tangent[:] = np.tile(D.flatten(), n_gauss)
+            strain_visco_n += _deps_visko
+            strain_n += strain_increment
+
+        elif type(self.factor_E0) is np.ndarray:
+
+            # update in case parameter changed
+            self.mu1 = self.E1 / (2.0 * (1.0 + self.nu))
+
+            if del_t == 0:
+                # linear step visko strain is zero
+                mandel_view += (strain_increment @ self.D_0) * self.factor_E0[:,np.newaxis] + (strain_increment @ self.D_1) * self.factor_E1[:,np.newaxis]
+                tangent[:] = (np.multiply(np.repeat(self.factor_E0, len(self.D_0.flatten())),
+                                         np.tile(self.D_0.flatten(), n_gauss))
+                              + np.multiply(np.repeat(self.factor_E1, len(self.D_1.flatten())),
+                                         np.tile(self.D_1.flatten(), n_gauss)))
+                _deps_visko = np.zeros_like(strain_increment)
+
+            else:
+                # visco step
+                strain_total = strain_n + strain_increment
+                factor = (1 / del_t + 1 / self.tau)
+                _deps_visko = 1 / factor * (
+                        1 / (self.tau * 2 * self.mu1) * (strain_total @ self.D_1) * self.factor_E1[:,np.newaxis]
+                        - 1 / self.tau * strain_visco_n
+                )
+
+                dstress = (((strain_increment @ self.D_0) * self.factor_E0[:,np.newaxis]
+                           + (strain_increment @ self.D_1) * self.factor_E1[:, np.newaxis])
+                           - 2 * _deps_visko * self.mu1[:,np.newaxis])
+                mandel_view += dstress
+                t_correction = (1 - 1 / (self.tau * factor)) * self.factor_E1
+                tangent[:] = (np.multiply(np.repeat(self.factor_E0, len(self.D_0.flatten())),
+                                         np.tile(self.D_0.flatten(), n_gauss))
+                              + np.multiply(np.repeat(t_correction, len(self.D_1.flatten())),
+                                         np.tile(self.D_1.flatten(), n_gauss)))
+
+
+            strain_visco_n += _deps_visko
+            strain_n += strain_increment
+
         else:
-            strain_total = strain_n + strain_increment
-            factor = (1 / del_t + 1 / self.tau)
-            _deps_visko = 1 / factor * (
-                    1 / (self.tau * 2 * self.mu1) * strain_total @ self.D_1
-                    - 1 / self.tau * strain_visco_n
-            )
-
-            dstress = strain_increment @ (self.D_0 + self.D_1) - 2 * self.mu1 * _deps_visko
-            mandel_view += dstress
-            D = self.D_0 + (1 - 1 / (self.tau * factor)) * self.D_1
-
-        tangent[:] = np.tile(D.flatten(), n_gauss)
-        strain_visco_n += _deps_visko
-        strain_n += strain_increment
+            raise ValueError("factor must be a float, int, or np.ndarray")
 
 
 

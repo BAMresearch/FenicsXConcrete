@@ -1,5 +1,6 @@
 import dolfinx as df
 import pint
+import ufl
 from fenics_constitutive import Constraint, IncrSmallStrainModel, IncrSmallStrainProblem
 from mpi4py import MPI
 
@@ -110,11 +111,12 @@ class FenicsConstitutive(MaterialProblem):
             law, self.fields.displacement, bcs, q_degree=self.p["q_degree"]
         )
         # add external force and body force not implemented on IncrSmallStrainProblem
-        external_force = self.experiment.create_force_boundary(self.V)
+        v = ufl.TestFunction(self.V)
+        external_force = self.experiment.create_force_boundary(v)
         if external_force:
-            self.mechanics_problem.R_form += external_force
+            self.mechanics_problem.R_form -= external_force
 
-        body_force = self.experiment.create_body_force(self.V)
+        body_force = self.experiment.create_body_force(v)
         if body_force:
             self.mechanics_problem.R_form -= body_force  # TODO check sign!!
 

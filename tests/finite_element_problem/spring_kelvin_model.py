@@ -138,7 +138,7 @@ class SpringKelvinModel(IncrSmallStrainModel):
                             + self.lam0 / (self.tau * 2 * self.mu1) * tr_eps * I2
                     )
 
-                mandel_view += strain_increment @ self.D_0 - 2 * self.mu0 * _deps_visko
+                mandel_view += strain_increment @ (self.factor_E0 * self.D_0) - 2 * self.mu0 * _deps_visko
                 D = (1 - self.mu0 / (self.tau * self.mu1 * factor)) * self.factor_E0 * self.D_0
 
             tangent[:] = np.tile(D.flatten(), n_gauss)
