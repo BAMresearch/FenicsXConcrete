@@ -161,7 +161,7 @@ class SpringKelvinModel(IncrSmallStrainModel):
 
             else:
                 # visco step
-                factor = (1 / del_t + 1 / self.tau + self.E0 / (self.tau * self.E1)) # nparray
+                factor = (1 / del_t + 1 / self.tau + self.mu0 / (self.tau * self.mu1)) # nparray
 
                 _deps_visko = np.zeros_like(strain_increment)
                 _deps_visko += mandel_view * (1 / (self.tau * 2 * self.mu1))[:,np.newaxis]
