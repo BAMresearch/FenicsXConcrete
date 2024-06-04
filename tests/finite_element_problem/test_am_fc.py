@@ -32,11 +32,10 @@ def set_test_parameters(mat: Literal["linear_elastic", "mises"]) -> Parameters:
     setup_parameters = {}
 
     setup_parameters["dim"] = 3 * ureg("")
-    # setup_parameters["stress_state"] = "plane_strain"
     setup_parameters["num_layers"] = 5 * ureg("")  # changed in single layer test!!
-    setup_parameters["layer_height"] = 1 / 100 * ureg("m")  # y (2D), z (3D)
+    setup_parameters["layer_height"] = 1 / 100 * ureg("m")  # z
     setup_parameters["layer_length"] = 50 / 100 * ureg("m")  # x
-    setup_parameters["layer_width"] = 5 / 100 * ureg("m")  # y (3D)
+    setup_parameters["layer_width"] = 5 / 100 * ureg("m")  # y
 
     setup_parameters["num_elements_layer_length"] = 10 * ureg("")
     setup_parameters["num_elements_layer_height"] = 1 * ureg("")
@@ -66,9 +65,9 @@ def set_test_parameters(mat: Literal["linear_elastic", "mises"]) -> Parameters:
         setup_parameters["E1"] = 190 * ureg("Pa")
         setup_parameters["tau"] = 10 * ureg("s")
         setup_parameters["time_fct"] = "linear" * ureg("")  # time dependency of material parameters
-        setup_parameters["A_E0"] = 10 * ureg("Pa/s")  # young's modulus rate over time
-        setup_parameters["A_E1"] = 5 * ureg("Pa/s")  # young's modulus rate over time
-        setup_parameters["A_tau"] = 1 * ureg("Pa/s")  # young's modulus rate over time
+        setup_parameters["A_E0"] = 100 * ureg("Pa/s")  # young's modulus rate over time
+        setup_parameters["A_E1"] = 0 * ureg("Pa/s")  # young's modulus rate over time
+        setup_parameters["A_tau"] = 0 * ureg("Pa/s")  # young's modulus rate over time
     elif mat == "mises":
         material_law = VonMises3D
         setup_parameters["p_ka"] = 175000 * ureg("Pa")  # bulk modulus
@@ -152,9 +151,9 @@ def test_am_single_layer(
 
     # check stresses change
     sig_o_time = np.array(problem.sensors["StressSensor"].data)[:, 2]  # zz
-    # print(sig_o_time)
+    print("sig_o_time", sig_o_time)
     disp_o_time = np.array(problem.sensors["DisplacementSensor"].data)[:, 2]  # zz
-    # print(disp_o_time)
+    print("disp_o_time", disp_o_time)
 
     if factor == 1:
         # instance loading -> no changes
@@ -177,22 +176,7 @@ def test_am_single_layer(
                 (problem.p["A_E"] * problem.p["dt"]) / problem.p["E"],
             )
             assert np.isclose(np.diff(E_o_time).mean(), problem.p["A_E"] * problem.p["dt"] / problem.p["E"], rtol=1e-2)
-    elif mat == "visco_Kelvin":
-        # check for creep deformation over time
-        # print("diff disp", np.diff(disp_o_time)[factor - 1 : :])
-        assert sum(np.diff(disp_o_time)[factor - 1 : :]) != pytest.approx(0, abs=1e-8)
-        assert abs(np.diff(disp_o_time)[factor - 1 : :][0]) > abs(np.diff(disp_o_time)[factor - 1 : :][-1])
-        # changing of material parameters
-        # print("E_o_time", E_o_time)
-        if problem.p["time_fct"] == "linear":
-            print(
-                "check linear time dependency of Emodul",
-                np.diff(E_o_time).mean(),
-                (problem.p["A_E0"] * problem.p["dt"]),
-            )
-            assert np.isclose(np.diff(E_o_time).mean(), problem.p["A_E0"] * problem.p["dt"], rtol=1e-2)
-
-    elif mat == "visco_Maxwell":
+    elif mat == "visco_Kelvin" or mat == "visco_Maxwell":
         # check for creep deformation over time
         # print("diff disp", np.diff(disp_o_time)[factor - 1 : :])
         assert sum(np.diff(disp_o_time)[factor - 1 : :]) != pytest.approx(0, abs=1e-8)
@@ -368,8 +352,8 @@ if __name__ == "__main__":
     # test_am_single_layer("linear_elastic", 2)
     # test_am_single_layer("visco_Kelvin", 2)
     # test_am_single_layer("visco_Maxwell", 2)
-    # test_am_multiple_layer("linear_elastic", 2, plot=False)
-    # test_am_multiple_layer("visco_Kelvin", 2, plot=False)
-    # test_am_multiple_layer("visco_Maxwell", 2, plot=False)
+    test_am_multiple_layer("linear_elastic", 2, plot=True)
+    test_am_multiple_layer("visco_Kelvin", 2, plot=True)
+    test_am_multiple_layer("visco_Maxwell", 2, plot=True)
 
-    test_am_multiple_layer("mises", 2, plot=True)
+    # test_am_multiple_layer("mises", 2, plot=True)

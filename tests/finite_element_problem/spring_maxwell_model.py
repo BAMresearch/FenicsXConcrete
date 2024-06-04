@@ -177,14 +177,16 @@ class SpringMaxwellModel(IncrSmallStrainModel):
             else:
                 # visco step
                 strain_total = strain_n + strain_increment
-                factor = (1 / del_t + 1 / self.tau)
-                _deps_visko = 1 / factor * (
-                        1 / (self.tau * 2 * self.mu1) * (strain_total @ self.D_1) * self.factor_E1[:,np.newaxis]
-                        - 1 / self.tau * strain_visco_n
-                )
 
-                dstress = (((strain_increment @ self.D_0) * self.factor_E0[:,np.newaxis]
-                           + (strain_increment @ self.D_1) * self.factor_E1[:, np.newaxis])
+                factor = (1 / del_t + 1 / self.tau)
+
+                _deps_visko = np.zeros_like(strain_increment)
+                _deps_visko += (strain_total @ self.D_1) * self.factor_E1[:, np.newaxis] * (1 / (self.tau * 2 * self.mu1))[:, np.newaxis]
+                _deps_visko -= strain_visco_n * (1 / self.tau)[:, np.newaxis]
+                _deps_visko /= factor[:, np.newaxis]
+
+                dstress = ((strain_increment @ self.D_0) * self.factor_E0[:,np.newaxis]
+                           + (strain_increment @ self.D_1) * self.factor_E1[:, np.newaxis]
                            - 2 * _deps_visko * self.mu1[:,np.newaxis])
                 mandel_view += dstress
                 t_correction = (1 - 1 / (self.tau * factor)) * self.factor_E1

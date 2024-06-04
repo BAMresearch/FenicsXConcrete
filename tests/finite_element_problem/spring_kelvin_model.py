@@ -163,12 +163,12 @@ class SpringKelvinModel(IncrSmallStrainModel):
                 # visco step
                 factor = (1 / del_t + 1 / self.tau + self.E0 / (self.tau * self.E1)) # nparray
 
-                _deps_visko = 1 / factor * (
-                        1 / (self.tau * 2 * self.mu1) * mandel_view
-                        - 1 / self.tau * strain_visco_n
-                        + self.mu0 / (self.tau * self.mu1) * strain_increment
-                        + self.lam0 / (self.tau * 2 * self.mu1) * tr_eps * I2
-                )
+                _deps_visko = np.zeros_like(strain_increment)
+                _deps_visko += mandel_view * (1 / (self.tau * 2 * self.mu1))[:,np.newaxis]
+                _deps_visko -= strain_visco_n * (1 / self.tau)[:,np.newaxis]
+                _deps_visko += strain_increment * (self.mu0 / (self.tau * self.mu1))[:,np.newaxis]
+                _deps_visko += ( self.lam0 / (self.tau * 2 * self.mu1))[:,np.newaxis] * (tr_eps * I2)
+                _deps_visko /= factor[:,np.newaxis]
 
                 mandel_view += (strain_increment @ self.D_0) * self.factor_E0[:, np.newaxis] - 2  * _deps_visko * self.mu0[:,np.newaxis]
                 t_correction = (1 - self.mu0 / (self.tau * self.mu1 * factor)) * self.factor_E0
