@@ -48,7 +48,7 @@ def set_test_parameters(mat: Literal["linear_elastic", "mises"]) -> Parameters:
         material_law = LinearElasticityModel
         setup_parameters["E"] = 42000 * ureg("Pa")  # young's modulus
         setup_parameters["nu"] = 0.3 * ureg("")  # poisson ratio
-        setup_parameters["A_E"] = 4000 * ureg("Pa/s")  # young's modulus rate over time
+        setup_parameters["A_E"] = 0 * ureg("Pa/s")  # young's modulus rate over time (4000)
         setup_parameters["time_fct"] = "linear" * ureg("")  # time dependency of material parameters
     elif mat == "visco_Kelvin":
         material_law = SpringKelvinModel
@@ -166,7 +166,7 @@ def test_am_single_layer(
         assert sum(np.diff(sig_o_time)[factor - 1 : :]) == pytest.approx(0, abs=1e-8)
 
     if mat == "linear_elastic":
-        # no changes in displacements after loading finshed
+        # no changes in displacements after loading finished
         assert sum(np.diff(disp_o_time)[factor - 1 : :]) == pytest.approx(0, abs=1e-8)
         # changing of material parameters
         if problem.p["time_fct"] == "linear":

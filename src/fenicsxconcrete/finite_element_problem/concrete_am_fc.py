@@ -213,10 +213,18 @@ class ConcreteAMFC(MaterialProblem):
 
         #print(self.material_law.__name__)
 
+        print(self.density_time.x.array[:])
+        print('pd min max', self.density_time.x.array[:].min(), self.density_time.x.array[:].max())
+        print('num active elements', len(np.where(self.density_time.x.array[:] > 0)[0]))
+        print('num active elements 1', len(np.where(self.density_time.x.array[:] == 1)[0]))
+        print('num active elements 0.5', len(np.where(self.density_time.x.array[:] == 0.5)[0]))
+        # input()
+
         # compute material parameters for time t
         if self.material_law.__name__ == 'LinearElasticityModel':
             time_params = ['E']
             p_values = self.get_params_gp(time_params)
+            print('E=E',len(np.where(p_values['E'] == self.p["E"])[0]))
 
             # in the linear model we adapt the factor of the youngs modulus
             self.mechanics_problem.laws[0][0].factor = p_values['E']/self.p["E"]
@@ -224,6 +232,8 @@ class ConcreteAMFC(MaterialProblem):
             # # store E just for access since material law dependent do it here and not in ProblemAM
             self.mechanics_problem.modulus.x.array[:] = self.mechanics_problem.laws[0][0].factor
             self.mechanics_problem.modulus.x.scatter_forward()
+
+            print('num youngs modulus', len(np.where(self.mechanics_problem.modulus.x.array[:] > 0.1)[0]))
 
         elif self.material_law.__name__ == 'VonMises3D':
             # no changing in the moment
