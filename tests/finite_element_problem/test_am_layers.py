@@ -7,6 +7,7 @@ import pytest
 
 from fenicsxconcrete.experimental_setup import AmMultipleLayers
 from fenicsxconcrete.finite_element_problem import ConcreteAM, ConcreteThixElasticModel
+from fenicsxconcrete.sensor_definition.displacement_sensor import DisplacementSensor
 from fenicsxconcrete.sensor_definition.reaction_force_sensor import ReactionForceSensor
 from fenicsxconcrete.sensor_definition.strain_sensor import StrainSensor
 from fenicsxconcrete.sensor_definition.stress_sensor import StressSensor
@@ -191,6 +192,7 @@ def test_am_multiple_layer(dimension: int, mat: str, plot: bool = False) -> None
     problem.add_sensor(ReactionForceSensor())
     problem.add_sensor(StressSensor([problem.p["layer_length"] / 2, 0, 0]))
     problem.add_sensor(StrainSensor([problem.p["layer_length"] / 2, 0, 0]))
+    problem.add_sensor(DisplacementSensor([problem.p["layer_length"] / 2, 0, problem.p["layer_height"]]))
 
     total_time = setup_parameters["num_layers"] * time_layer
     while problem.time <= total_time.to_base_units().magnitude:
@@ -249,14 +251,16 @@ def test_am_multiple_layer(dimension: int, mat: str, plot: bool = False) -> None
     #
     if plot:
         # example plotting
-        strain_yy = np.array(problem.sensors["StrainSensor"].data)[:, -1]
+        # strain_yy = np.array(problem.sensors["StrainSensor"].data)[:, -1]
+        disp = np.array(problem.sensors["DisplacementSensor"].data)[:, -1]
         time = []
         [time.append(ti) for ti in problem.sensors["StrainSensor"].time]
 
         import matplotlib.pylab as plt
 
         plt.figure(1)
-        plt.plot([0] + time, [0] + list(strain_yy), "*-r")
+        # plt.plot([0] + time, [0] + list(strain_yy), "*-r")
+        plt.plot([0] + time, [0] + list(disp), "*-b")
         plt.xlabel("process time")
         plt.ylabel("sensor bottom middle strain_yy")
         plt.show()

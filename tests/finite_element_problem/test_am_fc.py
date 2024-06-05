@@ -16,6 +16,7 @@ from fenicsxconcrete.experimental_setup import AmMultipleLayers, SimpleCube
 from fenicsxconcrete.finite_element_problem.concrete_am_fc import ConcreteAMFC
 from fenicsxconcrete.sensor_definition.displacement_sensor import DisplacementSensor
 from fenicsxconcrete.sensor_definition.reaction_force_sensor import ReactionForceSensor
+from fenicsxconcrete.sensor_definition.strain_sensor import StrainSensor
 from fenicsxconcrete.sensor_definition.stress_sensor import StressSensor
 from fenicsxconcrete.util import Parameters, QuadratureEvaluator, ureg
 
@@ -240,7 +241,8 @@ def test_am_multiple_layer(
     problem.set_initial_path(path_activation)
 
     problem.add_sensor(ReactionForceSensor())
-    problem.add_sensor(StressSensor([problem.p["layer_length"] / 2, 0, 0]))
+    problem.add_sensor(StressSensor([problem.p["layer_length"] / 2, 0, 0]))  # mandel stress
+    # problem.add_sensor(StrainSensor([problem.p["layer_length"] / 2, 0, 0]))  # full tensor
     problem.add_sensor(DisplacementSensor([problem.p["layer_length"] / 2, 0, problem.p["layer_height"]]))
 
     total_time = setup_parameters["num_layers"] * time_layer
@@ -278,9 +280,11 @@ def test_am_multiple_layer(
             assert problem.modulus.vector.array[:].min() * problem.p["E"] == pytest.approx(E_upper_layer)
             assert problem.modulus.vector.array[:].max() * problem.p["E"] == pytest.approx(E_bottom_layer)
         #
+
     if plot:
         # example plotting
         disp = np.array(problem.sensors["DisplacementSensor"].data)[:, -1]
+        # eps = np.array(problem.sensors["StrainSensor"].data)[:, -1]
         time = []
         [time.append(ti) for ti in problem.sensors["DisplacementSensor"].time]
 
@@ -290,6 +294,11 @@ def test_am_multiple_layer(
         plt.plot([0] + time, [0] + list(disp), "*-r")
         plt.xlabel("process time")
         plt.ylabel("displacement")
+
+        # plt.figure(2)
+        # plt.plot([0] + time, [0] + list(eps), "*-r")
+        # plt.xlabel("process time")
+        # plt.ylabel("strain")
         plt.show()
 
 
@@ -352,7 +361,7 @@ if __name__ == "__main__":
     # test_am_single_layer("linear_elastic", 2)
     # test_am_single_layer("visco_Kelvin", 2)
     # test_am_single_layer("visco_Maxwell", 2)
-    test_am_multiple_layer("linear_elastic", 2, plot=True)
+    # test_am_multiple_layer("linear_elastic", 2, plot=True)
     test_am_multiple_layer("visco_Kelvin", 2, plot=True)
     test_am_multiple_layer("visco_Maxwell", 2, plot=True)
 
