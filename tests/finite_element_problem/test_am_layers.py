@@ -251,7 +251,8 @@ def test_am_multiple_layer(dimension: int, mat: str, plot: bool = False) -> None
     #
     if plot:
         # example plotting
-        # strain_yy = np.array(problem.sensors["StrainSensor"].data)[:, -1]
+        # strain = np.array(problem.sensors["StrainSensor"].data)[:, -1]
+        stress = np.array(problem.sensors["StressSensor"].data)[:, -1]
         disp = np.array(problem.sensors["DisplacementSensor"].data)[:, -1]
         time = []
         [time.append(ti) for ti in problem.sensors["StrainSensor"].time]
@@ -263,6 +264,13 @@ def test_am_multiple_layer(dimension: int, mat: str, plot: bool = False) -> None
         plt.plot([0] + time, [0] + list(disp), "*-b")
         plt.xlabel("process time")
         plt.ylabel("sensor bottom middle strain_yy")
+
+        plt.figure(2)
+        # plt.plot([0] + time, [0] + list(strain), "*-r")
+        plt.plot([0] + time, [0] + list(stress), "*-r")
+        plt.xlabel("process time")
+        plt.ylabel("stress")
+
         plt.show()
 
 
