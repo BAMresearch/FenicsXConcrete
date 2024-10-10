@@ -169,8 +169,12 @@ class AmMultipleLayers(Experiment):
 
         force_vector = np.zeros(self.p["dim"])
         force_vector[-1] = -self.p["rho"] * self.p["g"]  # works for 2D and 3D
-
-        f = df.fem.Constant(self.mesh, ScalarType(force_vector))
+        force_vector_buckling= np.zeros(self.p["dim"])
+        force_vector_buckling[1] = 0
+        f1 = df.fem.Constant(self.mesh, ScalarType(force_vector))
+        f_buckling = df.fem.Constant(self.mesh, ScalarType(force_vector_buckling))
+        f = f1 + f_buckling
+        # print(f.value)
         L = q_fd * ufl.dot(f, v) * rule.dx
 
         return L
