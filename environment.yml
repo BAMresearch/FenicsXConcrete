@@ -6,6 +6,7 @@ dependencies:
   # runtime
   - pydantic
   - numpy
+  - pint
   - pip:
     - -e .
 
