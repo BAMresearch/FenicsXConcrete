@@ -2,7 +2,8 @@ name: fenicsxconcrete
 channels:
   - conda-forge
 dependencies:
-  - python>=3.10
+  #python version between 3.10 and 3.13
+  - python>=3.10, <3.13
   # runtime
   - pydantic
   - numpy

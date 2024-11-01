@@ -1,39 +1,53 @@
-from typing import Literal
+from typing import ClassVar, Literal
 import numpy as np
 from pydantic import Field, RootModel
-from bcs import DirichletBCDefinition, InitialConditionDefinition, NeumannBCDefinition, BodyForceDefinition
+from bcs import DisplacementBC, ForceBC, TemperatureBC, PressureBC, BodyForce, VolumetricHeatFlux, InitialCondition
 from mesh import MeshGenerator
 from material import MaterialDefinition, LinearElasticMaterial
-from dataclasses import dataclass, asdict
+from pydantic.dataclasses import dataclass
 
-@dataclass#(config=dict(arbitrary_types_allowed=True))
+@dataclass(config=dict(arbitrary_types_allowed=True))
 class Experiment:
-    dirichlet_bcs: list[DirichletBCDefinition] | None
-    neumann_bcs: list[NeumannBCDefinition] | None
-    initial_conditions: list[InitialConditionDefinition] | None
-    body_forces: list[BodyForceDefinition] | None
+    name: ClassVar[str] = "experiment"
+    initial_conditions: list[InitialCondition] | None
     geometry: MeshGenerator
-    solution_fields: list[str]
     time: tuple[float, float]
     material: MaterialDefinition
-    name: str ='experiment'
+
+@dataclass(config=dict(arbitrary_types_allowed=True))
+class MechanicsExperiment(Experiment):
+    displacement_bcs: list[DisplacementBC] | None
+    pressure_bcs: list[PressureBC] | None
+    force_bcs: list[ForceBC] | None
+    body_forces: list[BodyForce] | None
 
 
+@dataclass(config=dict(arbitrary_types_allowed=True))
+class HeatTransferExperiment(Experiment):
+    temperature_bcs: list[TemperatureBC] | None
+    heat_flux_bcs: list[VolumetricHeatFlux] | None
+    heat_flux: list[VolumetricHeatFlux] | None
+
+
+@dataclass(config=dict(arbitrary_types_allowed=True))
+class ThermoMechanicalExperiment(MechanicsExperiment, HeatTransferExperiment):
+    pass
 
 
 if __name__ == "__main__":
-    def marker_function(x):
-        return np.isclose(x[1], 0)
-    bc = DirichletBCDefinition(marker=marker_function, value=np.array([0.,0.]), subspace=0, variable='displacement')
-    neumann = NeumannBCDefinition(marker=2, value=[-42.0], variable='displacement')
-    initial = InitialConditionDefinition(value=[42.24], variable='density')
-    body_force = BodyForceDefinition(value=[0.,0., 9.81], variable='displacement')
-    mat = LinearElasticMaterial(name='steel', mu=1., lam=2.)
-    geo = MeshGenerator(parameters={'length': (1, 'm')}, mesh_tags={'left': 0, 'right': 1, 'top': 2, 'bottom': 3})
-    solution_fields = ['displacement']
-    time = (0., 1.)
-    exp = Experiment(dirichlet_bcs=[bc], neumann_bcs=[neumann], initial_conditions=[initial], body_forces=[body_force], geometry=geo, solution_fields=solution_fields, time=time, material=mat)
-
-    print(asdict(exp))
-    print(RootModel[Experiment](exp).model_dump_json(indent=4))
-    
+    exp = ThermoMechanicalExperiment(
+        displacement_bcs=None,
+        pressure_bcs=None,
+        force_bcs=None,
+        initial_conditions=None,
+        body_forces=None,
+        geometry=MeshGenerator(
+            parameters={"length": (1, "m")}, mesh_tags={"left": 0, "right": 1, "top": 2, "bottom": 3}
+        ),
+        time=(0.0, 1.0),
+        material=LinearElasticMaterial(name="steel", mu=1.0, lam=2.0),
+        temperature_bcs=None,
+        heat_flux_bcs=None,
+        heat_flux=None,
+    )
+    print(RootModel[ThermoMechanicalExperiment](exp).model_dump_json(indent=4))

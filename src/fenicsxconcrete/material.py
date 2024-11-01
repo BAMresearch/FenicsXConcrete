@@ -3,16 +3,16 @@ from typing import Callable
 from pydantic.dataclasses import dataclass
 
 @dataclass(config=dict(arbitrary_types_allowed=True))
-class MaterialDefinition:
+class Material:
     name: str
 
 @dataclass(config=dict(arbitrary_types_allowed=True))
-class LinearElasticMaterial(MaterialDefinition):
+class LinearElasticMaterial(Material):
     mu: float
     lam: float
 
 @dataclass(config=dict(arbitrary_types_allowed=True))
-class MisesPlasticityIsotropicHardening(MaterialDefinition):
+class MisesPlasticityIsotropicHardening(Material):
     mu: float
     lam: float
     yield_stress: float

@@ -2,12 +2,12 @@
 from pydantic.dataclasses import dataclass
 from typing import Callable
 import numpy as np
-
-
+from names import SolutionField
+from bcs import Unit
 
 
 @dataclass(config=dict(arbitrary_types_allowed=True))
-class PointSensorDefinition:
+class PointSensor:
     """
     Definition of a point sensor
 
@@ -17,34 +17,23 @@ class PointSensorDefinition:
      
     """
     location: tuple[float,float,float]
-    variable: str
-    unit: str
+    variable: str | SolutionField
+    unit: Unit
 
 @dataclass(config=dict(arbitrary_types_allowed=True))
-class GlobalSensorDefinition:
-    variable: str
-    unit: str
+class GlobalSensor:
+    variable: str | SolutionField
+    unit: Unit
 
 @dataclass(config=dict(arbitrary_types_allowed=True))
-class PlotDefinition:
-    variable: str
-    #mapping: Callable
-    unit: str
+class Plot:
+    variable: str | SolutionField
+    unit: Unit
 
-# @dataclass
-# class DolfinXPointSensor:
-#     cells: list[int]
-#     plot_function: df.fem.Function | None
-#     function: df.fem.Function
-#     mapping: Callable
-#     definition: PointSensorDefinition
-
-#     def __init__(self, sensor: SensorDefinition, function: df.fem.FunctionSpace, plot_function: df.fem.Function | None = None):
-#         pass
 
 @dataclass
 class  Sensors:
-    groups: dict[str, list[PointSensorDefinition | GlobalSensorDefinition | PlotDefinition]]
+    groups: dict[str | SolutionField, list[PointSensor | GlobalSensor | Plot]]
     #plot_functions: dict[str, df.fem.Function | None]
     #functions: dict[str, df.fem.Function]
 
@@ -57,11 +46,11 @@ class  Sensors:
         for group, sensors in self.groups.items():
             for sensor in sensors:
                 match sensor:
-                    case PointSensorDefinition(location, variable, mapping, unit):
+                    case PointSensor(location, variable, mapping, unit):
                         pass
-                    case GlobalSensorDefinition(variable, mapping, unit):
+                    case GlobalSensor(variable, mapping, unit):
                         pass
-                    case PlotDefinition(variable, mapping, unit):
+                    case Plot(variable, mapping, unit):
                         pass
                     case _:
                         pass
