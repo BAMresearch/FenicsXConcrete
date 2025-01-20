@@ -36,7 +36,7 @@ def set_test_parameters(mat: Literal["linear_elastic", "mises"]) -> Parameters:
     setup_parameters["num_layers"] = 10 * ureg("")  # changed in single layer test!!
     setup_parameters["layer_height"] = 1 / 100 * ureg("m")  # y (2D), z (3D)
     setup_parameters["layer_length"] = 50 / 100 * ureg("m")  # x
-    setup_parameters["layer_width"] = 1 / 100 * ureg("m")  # y (3D)
+    setup_parameters["layer_width"] = 3 / 100 * ureg("m")  # y (3D)
 
     setup_parameters["num_elements_layer_length"] = 10 * ureg("")
     setup_parameters["num_elements_layer_height"] = 1 * ureg("")
@@ -71,11 +71,23 @@ def set_test_parameters(mat: Literal["linear_elastic", "mises"]) -> Parameters:
         setup_parameters["A_tau"] = 1 * ureg("Pa/s")  # young's modulus rate over time
     elif mat == "mises":
         material_law = VonMises3D
+        # setup_parameters["p_ka"] = 17500.0 * ureg("Pa")  # bulk modulus
+        # setup_parameters["p_mu"] = 8076.9 * ureg("Pa")  # shear modulus
+        # setup_parameters["p_y0"] = 300 * ureg("Pa")  # initial yield stress
+        # setup_parameters["p_y00"] = 2500 * ureg("Pa")  # final yield stress
+        # setup_parameters["p_w"] = 200 * ureg("")  # saturation parameter
+
+        # setup_parameters["p_ka"] = 1750.00 * ureg("Pa")  # bulk modulus
+        # setup_parameters["p_mu"] = 807.69 * ureg("Pa")  # shear modulus
+        # setup_parameters["p_y0"] = 20 * ureg("Pa")  # initial yield stress
+        # setup_parameters["p_y00"] = 2000 * ureg("Pa")  # final yield stress
+        # setup_parameters["p_w"] = 200 * ureg("")  # saturation parameter
+
         setup_parameters["p_ka"] = 17500.0 * ureg("Pa")  # bulk modulus
         setup_parameters["p_mu"] = 8076.9 * ureg("Pa")  # shear modulus
-        setup_parameters["p_y0"] = 300 * ureg("Pa")  # initial yield stress
-        setup_parameters["p_y00"] = 2500 * ureg("Pa")  # final yield stress
-        setup_parameters["p_w"] = 200 * ureg("")  # saturation parameter
+        setup_parameters["p_y0"] = 1000 * ureg("Pa")  # initial yield stress
+        setup_parameters["p_y00"] = 2000 * ureg("Pa")  # final yield stress
+        setup_parameters["p_w"] = 0.3 * ureg("")  # saturation parameter
     else:
         raise ValueError("material not supported")
 
