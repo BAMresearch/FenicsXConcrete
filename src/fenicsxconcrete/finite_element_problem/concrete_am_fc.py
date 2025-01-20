@@ -12,7 +12,7 @@ from petsc4py import PETSc
 
 from fenicsxconcrete.experimental_setup import AmMultipleLayers, Experiment
 from fenicsxconcrete.finite_element_problem.base_material import MaterialProblem, QuadratureFields, SolutionFields
-from fenicsxconcrete.util import QuadratureRule, project, ureg
+from fenicsxconcrete.util import QuadratureEvaluator, QuadratureRule, project, ureg
 
 
 class ConcreteAMFC(MaterialProblem):
@@ -148,12 +148,14 @@ class ConcreteAMFC(MaterialProblem):
 
         # additional output fields
         self.rule = QuadratureRule(cell_type=self.mesh.ufl_cell(), degree=self.p["q_degree"])
+
         self.q_fields = QuadratureFields(
             measure=self.rule.dx,
             plot_space_type=("CG", self.p["degree"] - 1),
             mandel_stress=self.mechanics_problem.stress_1,
         )
         self.mandel_stress_dim = law.stress_strain_dim # for sensor
+
 
         # additional stuff/output field for activation or specific output
         self.modulus = self.mechanics_problem.modulus
@@ -195,6 +197,8 @@ class ConcreteAMFC(MaterialProblem):
         else:
             self.logger.info(f"Mechanics solve converged in {n} iterations")
 
+
+
         self.mechanics_problem.update()
 
         # get sensor data
@@ -212,6 +216,13 @@ class ConcreteAMFC(MaterialProblem):
         """update material parameters at each quadrature point according time based on path_time"""
 
         #print(self.material_law.__name__)
+
+        # print(self.density_time.x.array[:])
+        # print('pd min max', self.density_time.x.array[:].min(), self.density_time.x.array[:].max())
+        # print('num active elements', len(np.where(self.density_time.x.array[:] > 0)[0]))
+        # print('num active elements 1', len(np.where(self.density_time.x.array[:] == 1)[0]))
+        # print('num active elements 0.5', len(np.where(self.density_time.x.array[:] == 0.5)[0]))
+        # # input()
 
         # compute material parameters for time t
         if self.material_law.__name__ == 'LinearElasticityModel':
@@ -300,9 +311,10 @@ class ConcreteAMFC(MaterialProblem):
         density[active_idx] = 1.0 # 1: active
 
         # load stepping: linear ramp of body force over time of active elements
-        load_idx = np.where(self.q_array_path_time[active_idx] < self.p["load_time"])
+        load_idx = np.where(self.q_array_path_time[active_idx] <= self.p["load_time"])
         for _ in load_idx:
             density[active_idx[load_idx]] = self.q_array_path_time[active_idx[load_idx]] / self.p["load_time"]  # linear ramp #TODO check
+
 
         self.density_time.x.array[:] = density
         self.density_time.x.scatter_forward()

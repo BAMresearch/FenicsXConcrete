@@ -20,101 +20,97 @@ class SpringMaxwellModel(IncrSmallStrainModel):
         self.E0 = parameters["E0"] # elastic modulus
         self.E1 = parameters["E1"] # visco modulus
         self.tau = parameters["tau"] # relaxation time == eta/(2 mu1) for 1D case eta/E1
-        if Constraint.UNIAXIAL_STRESS:
+        if constraint == Constraint.UNIAXIAL_STRESS:
             self.nu = 0.0
         else:
             self.nu = parameters["nu"] # Poisson's ratio
 
+        # for changing parameters E0,E1 and tau (for the moment nu cannot be changed)
+        self.factor_E0 = 1.0  # float or np.array if dependent on quadrature points
+        self.factor_E1 = 1.0  # float or np.array if dependent on quadrature points
 
-    def compute_elasticity(self,E0:float,E1:float,nu:float):
-        '''calculates lame constants and elasticity tensor based on constraint type
-        Args:
-            E0,E1,nu: material parameters
-
-        Returns:
-            mu0,mu1,lam0: lame constants
-        '''
         # lame constants (need to be updated if time dependent material parameters are used)
-        mu0 = E0 / (2.0 * (1.0 + nu))
-        lam0 = E0 * nu / ((1.0 + nu) * (1.0 - 2.0 * nu))
-        mu1 = E1 / (2.0 * (1.0 + nu))
-        lam1 = E1 * nu / ((1.0 + nu) * (1.0 - 2.0 * nu))
+        self.mu0 = self.E0 / (2.0 * (1.0 + self.nu))
+        self.lam0 = self.E0 * self.nu / ((1.0 + self.nu) * (1.0 - 2.0 * self.nu))
+        self.mu1 = self.E1 / (2.0 * (1.0 + self.nu))
+        self.lam1 = self.E1 * self.nu / ((1.0 + self.nu) * (1.0 - 2.0 * self.nu))
 
+        self.compute_elasticity() # initialize elasticity tensor
+
+    def compute_elasticity(self):
         match self._constraint:
             case Constraint.FULL:
                 self.D_0 = np.array(
                     [
-                        [2.0 * mu0 + lam0, lam0, lam0, 0.0, 0.0, 0.0],
-                        [lam0, 2.0 * mu0 + lam0, lam0, 0.0, 0.0, 0.0],
-                        [lam0, lam0, 2.0 * mu0 + lam0, 0.0, 0.0, 0.0],
-                        [0.0, 0.0, 0.0, 2.0 * mu0, 0.0, 0.0],
-                        [0.0, 0.0, 0.0, 0.0, 2.0 * mu0, 0.0],
-                        [0.0, 0.0, 0.0, 0.0, 0.0, 2.0 * mu0],
+                        [2.0 * self.mu0 + self.lam0, self.lam0, self.lam0, 0.0, 0.0, 0.0],
+                        [self.lam0, 2.0 * self.mu0 + self.lam0, self.lam0, 0.0, 0.0, 0.0],
+                        [self.lam0, self.lam0, 2.0 * self.mu0 + self.lam0, 0.0, 0.0, 0.0],
+                        [0.0, 0.0, 0.0, 2.0 * self.mu0, 0.0, 0.0],
+                        [0.0, 0.0, 0.0, 0.0, 2.0 * self.mu0, 0.0],
+                        [0.0, 0.0, 0.0, 0.0, 0.0, 2.0 * self.mu0],
                     ]
                 )
                 self.D_1 = np.array(
                     [
-                        [2.0 * mu1 + lam1, lam1, lam1, 0.0, 0.0, 0.0],
-                        [lam1, 2.0 * mu1 + lam1, lam1, 0.0, 0.0, 0.0],
-                        [lam1, lam1, 2.0 * mu0 + lam1, 0.0, 0.0, 0.0],
-                        [0.0, 0.0, 0.0, 2.0 * mu1, 0.0, 0.0],
-                        [0.0, 0.0, 0.0, 0.0, 2.0 * mu1, 0.0],
-                        [0.0, 0.0, 0.0, 0.0, 0.0, 2.0 * mu1],
+                        [2.0 * self.mu1 + self.lam1, self.lam1, self.lam1, 0.0, 0.0, 0.0],
+                        [self.lam1, 2.0 * self.mu1 + self.lam1, self.lam1, 0.0, 0.0, 0.0],
+                        [self.lam1, self.lam1, 2.0 * self.mu1 + self.lam1, 0.0, 0.0, 0.0],
+                        [0.0, 0.0, 0.0, 2.0 * self.mu1, 0.0, 0.0],
+                        [0.0, 0.0, 0.0, 0.0, 2.0 * self.mu1, 0.0],
+                        [0.0, 0.0, 0.0, 0.0, 0.0, 2.0 * self.mu1],
                     ]
                 )
 
             case Constraint.PLANE_STRAIN:
                 self.D_0 = np.array(
                     [
-                        [2.0 * mu0 + lam0, lam0, lam0, 0.0],
-                        [lam0, 2.0 * mu0 + lam0, lam0, 0.0],
-                        [lam0, lam0, 2.0 * mu0 + lam0, 0.0],
-                        [0.0, 0.0, 0.0, 2.0 * mu0],
+                        [2.0 * self.mu0 + self.lam0, self.lam0, self.lam0, 0.0],
+                        [self.lam0, 2.0 * self.mu0 + self.lam0, self.lam0, 0.0],
+                        [self.lam0, self.lam0, 2.0 * self.mu0 + self.lam0, 0.0],
+                        [0.0, 0.0, 0.0, 2.0 * self.mu0],
                     ]
                 )
                 self.D_1 = np.array(
                     [
-                        [2.0 * mu1 + lam1, lam1, lam1, 0.0],
-                        [lam1, 2.0 * mu1 + lam1, lam1, 0.0],
-                        [lam1, lam1, 2.0 * mu1 + lam1, 0.0],
-                        [0.0, 0.0, 0.0, 2.0 * mu1],
+                        [2.0 * self.mu1 + self.lam1, self.lam1, self.lam1, 0.0],
+                        [self.lam1, 2.0 * self.mu1 + self.lam1, self.lam1, 0.0],
+                        [self.lam1, self.lam1, 2.0 * self.mu1 + self.lam1, 0.0],
+                        [0.0, 0.0, 0.0, 2.0 * self.mu1],
                     ]
                 )
 
             case Constraint.PLANE_STRESS:
                 self.D_0 = (
-                        E0
-                        / (1 - nu ** 2.0)
+                        self.E0
+                        / (1 - self.nu ** 2.0)
                         * np.array(
                     [
-                        [1.0, nu, 0.0, 0.0],
-                        [nu, 1.0, 0.0, 0.0],
+                        [1.0, self.nu, 0.0, 0.0],
+                        [self.nu, 1.0, 0.0, 0.0],
                         [0.0, 0.0, 0.0, 0.0],
-                        [0.0, 0.0, 0.0, (1.0 - nu)],
+                        [0.0, 0.0, 0.0, (1.0 - self.nu)],
                     ]
                 )
                 )
                 self.D_1 = (
-                        E1
-                        / (1 - nu ** 2.0)
+                        self.E1
+                        / (1 - self.nu ** 2.0)
                         * np.array(
                     [
-                        [1.0, nu, 0.0, 0.0],
-                        [nu, 1.0, 0.0, 0.0],
+                        [1.0, self.nu, 0.0, 0.0],
+                        [self.nu, 1.0, 0.0, 0.0],
                         [0.0, 0.0, 0.0, 0.0],
-                        [0.0, 0.0, 0.0, (1.0 - nu)],
+                        [0.0, 0.0, 0.0, (1.0 - self.nu)],
                     ]
                 )
                 )
 
             case Constraint.UNIAXIAL_STRESS:
-                self.D_0 = np.array([[E0]])
-                self.D_1 = np.array([[E1]])
+                self.D_0 = np.array([[self.E0]])
+                self.D_1 = np.array([[self.E1]])
             case _:
                 msg = "Constraint not implemented"
                 raise NotImplementedError(msg)
-
-        return mu0, mu1, lam0
 
     def evaluate(
         self,
@@ -130,57 +126,81 @@ class SpringMaxwellModel(IncrSmallStrainModel):
             == tangent.size // (self.stress_strain_dim**2)
         )
 
-        # check type of material parameters
-        if type(self.E0) is np.ndarray:
-            # material parameters gausspoint vise
-            update = True
-        else:
-            # constant material parameters
-            E0 = self.E0
-            E1 = self.E1
-            tau = self.tau
-            nu = self.nu
-            mu0, mu1, lam0 = self.compute_elasticity(E0, E1, nu)
-
         # reshape gauss point arrays
+        n_gauss = grad_del_u.size // (self.geometric_dim**2)
         mandel_view = mandel_stress.reshape(-1, self.stress_strain_dim)
-        tangent_view = tangent.reshape(-1, self.stress_strain_dim ** 2)
+
         strain_increment = strain_from_grad_u(grad_del_u, self.constraint).reshape(-1, self.stress_strain_dim)
         strain_visco_n = history['strain_visco'].reshape(-1, self.stress_strain_dim)
         strain_n = history['strain'].reshape(-1, self.stress_strain_dim)
 
-        # loop over gauss points
-        for n, eps in enumerate(strain_increment):
+        if type(self.factor_E0) is float or type(self.factor_E0) is int:
 
-            if update:
-                E0 = self.E0[n]
-                E1 = self.E1[n]
-                tau = self.tau[n]
-                nu = self.nu
-                mu0, mu1, lam0 = self.compute_elasticity(E0, E1, nu)
+            # update in case parameter changed
+            self.mu1 = self.E1 / (2.0 * (1.0 + self.nu))
 
             if del_t == 0:
                 # linear step visko strain is zero
-                dstress = self.D_0 @ eps + self.D_1 @ eps
-                D = self.D_0 + self.D_1
+                D = self.factor_E0 * self.D_0 + self.factor_E1 * self.D_1
+                mandel_view += strain_increment @ D
+                _deps_visko = np.zeros_like(strain_increment)
+            else:
+                strain_total = strain_n + strain_increment
+                factor = (1 / del_t + 1 / self.tau)
+                _deps_visko = 1 / factor * (
+                        1 / (self.tau * 2 * self.mu1) * strain_total @ (self.factor_E1 * self.D_1)
+                        - 1 / self.tau * strain_visco_n
+                )
+
+                dstress = strain_increment @ (self.factor_E0 * self.D_0 + self.factor_E1 * self.D_1) - 2 * self.mu1 * _deps_visko
+                mandel_view += dstress
+                D = self.factor_E0 * self.D_0 + (1 - 1 / (self.tau * factor)) * self.factor_E1 * self.D_1
+
+            tangent[:] = np.tile(D.flatten(), n_gauss)
+            strain_visco_n += _deps_visko
+            strain_n += strain_increment
+
+        elif type(self.factor_E0) is np.ndarray:
+
+            # update in case parameter changed
+            self.mu1 = self.E1 / (2.0 * (1.0 + self.nu))
+
+            if del_t == 0:
+                # linear step visko strain is zero
+                mandel_view += (strain_increment @ self.D_0) * self.factor_E0[:,np.newaxis] + (strain_increment @ self.D_1) * self.factor_E1[:,np.newaxis]
+                tangent[:] = (np.multiply(np.repeat(self.factor_E0, len(self.D_0.flatten())),
+                                         np.tile(self.D_0.flatten(), n_gauss))
+                              + np.multiply(np.repeat(self.factor_E1, len(self.D_1.flatten())),
+                                         np.tile(self.D_1.flatten(), n_gauss)))
+                _deps_visko = np.zeros_like(strain_increment)
 
             else:
-                strain_total = strain_n[n] + eps
-                factor = (1 / del_t + 1 / tau)
-                deps_visko = 1/factor * (
-                              1 / (tau * 2 * mu1) * self.D_1 @ strain_total
-                              - 1 / tau * strain_visco_n[n]
-                              )
+                # visco step
+                strain_total = strain_n + strain_increment
 
-                dstress = self.D_0 @ eps + self.D_1 @ eps - 2*mu1 * deps_visko
-                D = self.D_0 + (1 - 1/(tau*factor)) * self.D_1
+                factor = (1 / del_t + 1 / self.tau)
 
-                # update values
-                strain_visco_n[n] += deps_visko
+                _deps_visko = np.zeros_like(strain_increment)
+                _deps_visko += (strain_total @ self.D_1) * self.factor_E1[:, np.newaxis] * (1 / (self.tau * 2 * self.mu1))[:, np.newaxis]
+                _deps_visko -= strain_visco_n * (1 / self.tau)[:, np.newaxis]
+                _deps_visko /= factor[:, np.newaxis]
 
-            mandel_view[n] += dstress
-            strain_n[n] += eps
-            tangent_view[n] = D.flatten()
+                dstress = ((strain_increment @ self.D_0) * self.factor_E0[:,np.newaxis]
+                           + (strain_increment @ self.D_1) * self.factor_E1[:, np.newaxis]
+                           - 2 * _deps_visko * self.mu1[:,np.newaxis])
+                mandel_view += dstress
+                t_correction = (1 - 1 / (self.tau * factor)) * self.factor_E1
+                tangent[:] = (np.multiply(np.repeat(self.factor_E0, len(self.D_0.flatten())),
+                                         np.tile(self.D_0.flatten(), n_gauss))
+                              + np.multiply(np.repeat(t_correction, len(self.D_1.flatten())),
+                                         np.tile(self.D_1.flatten(), n_gauss)))
+
+
+            strain_visco_n += _deps_visko
+            strain_n += strain_increment
+
+        else:
+            raise ValueError("factor must be a float, int, or np.ndarray")
 
 
 
