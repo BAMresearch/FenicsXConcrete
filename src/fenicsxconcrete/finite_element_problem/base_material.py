@@ -63,6 +63,7 @@ class QuadratureFields:
     degree_of_hydration: ufl.core.expr.Expr | df.fem.Function | None = None
     damage: ufl.core.expr.Expr | df.fem.Function | None = None
     temperature: ufl.core.expr.Expr | df.fem.Function | None = None
+    heat_flux: ufl.core.expr.Expr | df.fem.Function | None = None
     compressive_strength: ufl.core.expr.Expr | df.fem.Function | None = None
     tensile_strength: ufl.core.expr.Expr | df.fem.Function | None = None
     youngs_modulus: ufl.core.expr.Expr | df.fem.Function | None = None
