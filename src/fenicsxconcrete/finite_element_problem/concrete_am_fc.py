@@ -1,18 +1,17 @@
 from collections.abc import Callable
-from pathlib import Path
 
 import basix
 import dolfinx as df
 import numpy as np
 import pint
 import ufl
-from fenics_constitutive import Constraint, IncrSmallStrainModel, build_history, ufl_mandel_strain
+from fenics_constitutive import IncrSmallStrainModel, StressStrainConstraint, build_history, ufl_mandel_strain
 from mpi4py import MPI
 from petsc4py import PETSc
 
 from fenicsxconcrete.experimental_setup import AmMultipleLayers, Experiment
 from fenicsxconcrete.finite_element_problem.base_material import MaterialProblem, QuadratureFields, SolutionFields
-from fenicsxconcrete.util import QuadratureEvaluator, QuadratureRule, project, ureg
+from fenicsxconcrete.util import QuadratureRule, project, ureg
 
 
 class ConcreteAMFC(MaterialProblem):
@@ -132,7 +131,11 @@ class ConcreteAMFC(MaterialProblem):
         # define problem:
 
         # material law based on fenics constitutive interface
-        law = self.material_law(self.p, constraint=Constraint.FULL)
+        try:
+            law = self.material_law(self.p, constraint=StressStrainConstraint.FULL)
+        except:
+            law = self.material_law(self.p)
+            assert law.constraint == StressStrainConstraint.FULL
 
         # boundaries
         bcs = self.experiment.create_displacement_boundary(self.V)
@@ -199,7 +202,7 @@ class ConcreteAMFC(MaterialProblem):
         self.update_time()  # set t+dt
 
         self.logger.info(f"solve for t: {self.time}")
-        self.logger.info(f"CHECK if external loads are applied as incremental loads e.g. delta_u(t)!!!")
+        self.logger.info("CHECK if external loads are applied as incremental loads e.g. delta_u(t)!!!")
 
         # update path and incr loading
         self.update_path()
@@ -453,21 +456,21 @@ class ProblemAM(df.fem.petsc.NonlinearProblem):
         constraint = self.laws[0][0].constraint
 
         gdim = mesh.ufl_cell().geometric_dimension()
-        assert constraint.geometric_dim() == gdim, "Geometric dimension mismatch between mesh and laws"
+        assert constraint.geometric_dim == gdim, "Geometric dimension mismatch between mesh and laws"
 
         QVe = ufl.VectorElement(
             "Quadrature",
             mesh.ufl_cell(),
             q_degree,
             quad_scheme="default",
-            dim=constraint.stress_strain_dim(),
+            dim=constraint.stress_strain_dim,
         )
         QTe = ufl.TensorElement(
             "Quadrature",
             mesh.ufl_cell(),
             q_degree,
             quad_scheme="default",
-            shape=(constraint.stress_strain_dim(), constraint.stress_strain_dim()),
+            shape=(constraint.stress_strain_dim, constraint.stress_strain_dim),
         )
         Q_grad_u_e = ufl.TensorElement(
             "Quadrature",
@@ -582,16 +585,15 @@ class ProblemAM(df.fem.petsc.NonlinearProblem):
         """
         super().form(x)
 
-        assert (
-            x.array.data == self._u.vector.array.data
-        ), "The solution vector must be the same as the one passed to the MechanicsProblem"
+        assert x.array.data == self._u.vector.array.data, (
+            "The solution vector must be the same as the one passed to the MechanicsProblem"
+        )
 
         if self.mesh_update:
             # print('mesh update is on')
             dim = self._u.function_space.mesh.topology.dim
             # print('check', len(self._u.function_space.mesh.geometry.x[:]), len(self._u.x.array[:]))
             if len(self._u.function_space.mesh.geometry.x[:]) * dim != len(self._u.x.array[:]):
-
                 V_CG = df.fem.VectorFunctionSpace(self._u.function_space.mesh, ("CG", 1))
                 u_CG0 = df.fem.Function(V_CG)
                 u_CG = df.fem.Function(V_CG)
@@ -643,11 +645,9 @@ class ProblemAM(df.fem.petsc.NonlinearProblem):
         """
 
         if self.mesh_update:
-
             # Update to current configuration
             dim = self._u.function_space.mesh.topology.dim
             if len(self._u.function_space.mesh.geometry.x[:]) * dim != len(self._u.x.array[:]):
-
                 V_CG = df.fem.VectorFunctionSpace(self._u.function_space.mesh, ("CG", 1))
                 u_CG0 = df.fem.Function(V_CG)
                 u_CG = df.fem.Function(V_CG)

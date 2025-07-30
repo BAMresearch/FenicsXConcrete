@@ -6,10 +6,8 @@ import numpy as np
 import pytest
 
 # for know copy material law from fenics-constitutive to tests/finite_element_problem should be a module later
-from linear_elasticity_model import LinearElasticityModel
-from mises_plasticity_isotropic_hardening import VonMises3D
-from spring_kelvin_model import SpringKelvinModel
-from spring_maxwell_model import SpringMaxwellModel
+# from linear_elasticity_model import LinearElasticityModel
+from fenics_constitutive.models import LinearElasticityModel, SpringKelvinModel, SpringMaxwellModel, VonMises3D
 
 from fenicsxconcrete.experimental_setup.simple_cube import SimpleCube
 from fenicsxconcrete.finite_element_problem.fenics_constitutive import FenicsConstitutive

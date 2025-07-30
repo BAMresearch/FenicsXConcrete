@@ -1,7 +1,7 @@
 import dolfinx as df
 import pint
 import ufl
-from fenics_constitutive import Constraint, IncrSmallStrainModel, IncrSmallStrainProblem
+from fenics_constitutive import IncrSmallStrainModel, IncrSmallStrainProblem, StressStrainConstraint
 from mpi4py import MPI
 
 from fenicsxconcrete.experimental_setup import Experiment, SimpleCube
@@ -101,7 +101,7 @@ class FenicsConstitutive(MaterialProblem):
         # define problem:
 
         # material law based on fenics constitutive interface
-        law = self.material_law(self.p, constraint=Constraint.FULL)
+        law = self.material_law(self.p, constraint=StressStrainConstraint.FULL)
 
         # boundaries
         bcs = self.experiment.create_displacement_boundary(self.V)
@@ -147,7 +147,7 @@ class FenicsConstitutive(MaterialProblem):
         self.update_time()  # set t+dt
 
         self.logger.info(f"solve for t: {self.time}")
-        self.logger.info(f"CHECK if external loads are applied as incremental loads e.g. delta_u(t)!!!")
+        self.logger.info("CHECK if external loads are applied as incremental loads e.g. delta_u(t)!!!")
 
         # solve problem for current time increment
         n, converged = self.mechanics_solver.solve(self.fields.displacement)

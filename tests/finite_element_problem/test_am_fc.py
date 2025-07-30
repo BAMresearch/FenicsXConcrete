@@ -7,12 +7,9 @@ import numpy as np
 import pytest
 
 # for know copy material law from fenics-constitutive to tests/finite_element_problem should be a module later
-from linear_elasticity_model import LinearElasticityModel
-from mises_plasticity_isotropic_hardening import VonMises3D
-from spring_kelvin_model import SpringKelvinModel
-from spring_maxwell_model import SpringMaxwellModel
+from fenics_constitutive.models import LinearElasticityModel, SpringKelvinModel, SpringMaxwellModel, VonMises3D
 
-from fenicsxconcrete.experimental_setup import AmMultipleLayers, SimpleCube
+from fenicsxconcrete.experimental_setup import AmMultipleLayers
 from fenicsxconcrete.finite_element_problem.concrete_am_fc import ConcreteAMFC
 from fenicsxconcrete.sensor_definition.displacement_sensor import DisplacementSensor
 from fenicsxconcrete.sensor_definition.reaction_force_sensor import ReactionForceSensor
@@ -113,7 +110,7 @@ def test_am_single_layer(
     data_path = Path(__file__).parent / data_dir
 
     # define file name and path for paraview output
-    file_name = f"test_am_fc_single_layer"
+    file_name = "test_am_fc_single_layer"
     files = [data_path / (file_name + ".xdmf"), data_path / (file_name + ".h5")]
     # delete file if it exisits (only relevant for local tests)
     for file in files:
@@ -240,7 +237,7 @@ def test_am_multiple_layer(
     data_path = Path(__file__).parent / data_dir
 
     # define file name and path for paraview output
-    file_name = f"test_am_multiple_layer"
+    file_name = "test_am_multiple_layer"
     files = [data_path / (file_name + ".xdmf"), data_path / (file_name + ".h5")]
     # delete file if it exists (only relevant for local tests)
     for file in files:
@@ -375,8 +372,6 @@ def define_path(prob, t_diff, t_0=0):
 
 
 if __name__ == "__main__":
-    import timeit
-
     # test_am_single_layer("linear_elastic", 2)
     # test_am_single_layer("visco_Kelvin", 2)
     # test_am_single_layer("visco_Maxwell", 2)

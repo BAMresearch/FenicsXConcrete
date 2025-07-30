@@ -28,5 +28,6 @@ dependencies:
   - isort
   - pip
   - pip:
+    - git+https://github.com/BAMresearch/fenics-constitutive.git@4abacc145638129eb8b6cc87325dd0d43a65fdd6
     - -e .
 
