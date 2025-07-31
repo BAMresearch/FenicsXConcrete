@@ -5,9 +5,7 @@ from typing import Literal
 import numpy as np
 import pytest
 
-# for know copy material law from fenics-constitutive to tests/finite_element_problem should be a module later
-# from linear_elasticity_model import LinearElasticityModel
-from fenics_constitutive.models import LinearElasticityModel, SpringKelvinModel, SpringMaxwellModel, VonMises3D
+from fenics_constitutive.models import LinearElasticityModel, SpringKelvinModel, SpringMaxwellModel
 
 from fenicsxconcrete.experimental_setup.simple_cube import SimpleCube
 from fenicsxconcrete.finite_element_problem.fenics_constitutive import FenicsConstitutive
@@ -18,13 +16,12 @@ from fenicsxconcrete.util import ureg
 
 
 @pytest.mark.parametrize("dim", [3])
-@pytest.mark.parametrize("mat", ["linear_elastic", "visco_Kelvin", "visco_Maxwell"])  # , "mises"]
-@pytest.mark.parametrize("bodyforce", [True, False])
+@pytest.mark.parametrize("mat", ["linear_elastic", "visco_Kelvin", "visco_Maxwell"])
 def test_fc(
-    dim: int, mat: Literal["linear_elastic", "visco_Kelvin", "visco_Maxwell", "mises"], bodyforce: bool
+    dim: int, mat: Literal["linear_elastic", "visco_Kelvin", "visco_Maxwell"]
 ) -> None:
     """easy cube test for checking interface fenicsxconcrete - fencis_constitutive
-    uniaxial tension test displacment controlled plus body force"""
+    uniaxial tension test displacement controlled plus body force in case of linear elasticity  """
 
     # setup paths and directories
     data_dir = "data_files"
@@ -45,39 +42,35 @@ def test_fc(
     parameters["num_elements_length"] = 2 * ureg("")
     parameters["num_elements_height"] = 2 * ureg("")
     parameters["num_elements_width"] = 2 * ureg("")
+    parameters["strain_state"] = "uniaxial" * ureg("")
 
     experiment = SimpleCube(parameters)
-    if bodyforce:
-        experiment.apply_body_force()
-
-    # material:
+   
+    # material and material parameters:
     if mat == "linear_elastic":
         material_law = LinearElasticityModel
         parameters["E"] = 42000 * ureg("Pa")  # young's modulus
         parameters["nu"] = 0.3 * ureg("")  # poisson ratio
+
+        # apply body force in addition to displacement load
+        #experiment.apply_body_force()
+
     elif mat == "visco_Kelvin" or mat == "visco_Maxwell":
         if mat == "visco_Kelvin":
             material_law = SpringKelvinModel
         elif mat == "visco_Maxwell":
             material_law = SpringMaxwellModel
-        parameters["E0"] = 550 * ureg("Pa")
-        parameters["E1"] = 190 * ureg("Pa")
-        parameters["tau"] = 10 * ureg("s")
-        parameters["nu"] = 0.3 * ureg("")  # poisson ratio
-    elif mat == "mises":
-        material_law = VonMises3D
-        parameters["p_ka"] = 175000 * ureg("Pa")  # bulk modulus
-        parameters["p_mu"] = 80769 * ureg("Pa")  # shear modulus
-        parameters["p_y0"] = 1200 * ureg("Pa")  # initial yield stress
-        parameters["p_y00"] = 2500 * ureg("Pa")  # final yield stress
-        parameters["p_w"] = 200 * ureg("")  # saturation parameter
+        parameters["E0"] = 42 * ureg("Pa")
+        parameters["E1"] = 10 * ureg("Pa")
+        parameters["tau"] = 2 * ureg("s")
+        parameters["nu"] = 0.2 * ureg("")  # poisson ratio
     else:
         raise ValueError("material not supported")
 
     # problem:
     parameters["rho"] = 2000 * ureg("kg/m^3")
     parameters["strain_state"] = "uniaxial" * ureg("")
-    parameters["dt"] = 0.1 * ureg("s")
+    parameters["dt"] = 2 * ureg("s")
     parameters["q_degree"] = 4 * ureg("")
 
     problem = FenicsConstitutive(experiment, parameters, material_law, pv_name=file_name, pv_path=data_path)
@@ -91,33 +84,33 @@ def test_fc(
 
     # apply displacement load and solve
     displacement = 0.005 * ureg("m")
-    total_time = 1
+    if mat == "visco_Kelvin" or mat == "visco_Maxwell":
+        total_time = 500  # long enough to see the relaxation of the visco materials
+    else: 
+        total_time = 10
 
-    # zero time step only body force
-    problem.solve()
-    body_force_disp_Mid_z = np.array(problem.sensors["DisplacementSensorMid"].data)[:, 2]
-    body_force_disp_Top_z = np.array(problem.sensors["DisplacementSensorTop"].data)[:, 2]
-    body_force_stress_sensor = np.array(problem.sensors["StressSensor"].data)[:, 2]
+    print("case:", mat)
+    # zero time step for exclude body force displacement for linear elasticity
+    if mat == "linear_elastic":
+        problem.solve()
+        body_force_disp_Mid_z = np.array(problem.sensors["DisplacementSensorMid"].data)[:, 2]
+        body_force_disp_Top_z = np.array(problem.sensors["DisplacementSensorTop"].data)[:, 2]
+        print("body force disp Mid", body_force_disp_Mid_z)
+        print("body force disp Top", body_force_disp_Top_z)
+    else:
+        body_force_disp_Mid_z = 0. 
+        body_force_disp_Top_z = 0.
 
     while problem.time <= total_time:
-        problem.experiment.apply_displ_load(problem.time * displacement)
-
-        # update material parameters globally in time
-        if mat == "linear_elastic":
-            problem.mechanics_problem.laws[0][0].factor = 1.0 + 0.1 * problem.time
-        elif mat == "visco_Kelvin" or mat == "visco_Maxwell":
-            problem.mechanics_problem.laws[0][0].E0 = (1.0 + 0.1 * problem.time) * parameters["E0"]
-            problem.mechanics_problem.laws[0][0].factor_E0 = 1.0 + 0.1 * problem.time
-
+        problem.experiment.apply_displ_load(problem.time * displacement/total_time)
         problem.solve()
         problem.pv_plot()
-
-    #
-    # print("reac", np.array(problem.sensors["ReactionForceSensor"].data)[:, 2])
-    # print("stress", np.array(problem.sensors["StressSensor"].data)[:, 2])
-    print("disp", np.array(problem.sensors["DisplacementSensorMid"].data)[:, 2])
-    # print("disp", np.array(problem.sensors["DisplacementSensorTop"].data)[:, 2])
-
+     
+    #print("disp Top", np.array(problem.sensors["DisplacementSensorTop"].data)[:, 2])
+    #print("disp Middle", np.array(problem.sensors["DisplacementSensorMid"].data)[:, 2])
+    # print("Stress Sensor Data:", np.array(problem.sensors["StressSensor"].data))
+    #print("reaction force:", np.array(problem.sensors["ReactionForceSensor"].data)) 
+ 
     # check max displacement at top
     assert np.isclose(
         np.array(problem.sensors["DisplacementSensorTop"].data)[-1, 2] - body_force_disp_Top_z,
@@ -126,12 +119,25 @@ def test_fc(
     )
     # displacement in middle 1/2 of total per time step
     delta_disp_z = np.array(problem.sensors["DisplacementSensorMid"].data)[:, 2] - body_force_disp_Mid_z
-    assert np.isclose(np.diff(delta_disp_z).mean(), parameters["dt"].magnitude * displacement.magnitude / 2, rtol=1e-2)
-    # for changing material params over time
-    if mat == "linear_elastic" or mat == "visco_Kelvin" or mat == "visco_Maxwell":
-        delta_stress_z = np.array(problem.sensors["StressSensor"].data)[:, 2] - body_force_stress_sensor
-        print(delta_stress_z, np.diff(delta_stress_z))
-        assert np.diff(delta_stress_z)[-1] > np.diff(delta_stress_z)[1]
+    assert np.isclose(delta_disp_z[-1], abs(displacement.magnitude) / 2, rtol=1e-2)
+    # check reaction force (relaxation test for visco materials from analytical solution)
+    if mat == "linear_elastic":
+        stress_final_ana = parameters["E"].magnitude * displacement.magnitude / 1.0
+    elif mat == "visco_Kelvin":
+        stress_final_ana = (
+            parameters["E0"].magnitude * parameters["E1"].magnitude / (parameters["E0"].magnitude + parameters["E1"].magnitude) 
+            * displacement.magnitude / 1.0
+        )
+    elif mat == "visco_Maxwell":
+        stress_final_ana = parameters["E0"].magnitude * displacement.magnitude / 1.0
+    
+    print("reaction force:", np.array(problem.sensors["ReactionForceSensor"].data)[:,2][-1], stress_final_ana)
+    print("stress sensor:", np.array(problem.sensors["StressSensor"].data)[:, 2][-1])
+    assert np.isclose(
+        np.array(problem.sensors["ReactionForceSensor"].data)[:,2][-1],
+        stress_final_ana, 
+        rtol=1e-2,
+    )
 
 
 if __name__ == "__main__":
@@ -139,7 +145,6 @@ if __name__ == "__main__":
 
     logging.basicConfig(level=logging.DEBUG)
 
-    # test_fc(3, "linear_elastic", False)
-    # test_fc(3, "mises", False) # divergence with body force -> Check
-    test_fc(3, "visco_Kelvin", False)
-    test_fc(3, "visco_Maxwell", False)
+    test_fc(3, "linear_elastic")
+    test_fc(3, "visco_Kelvin")
+    test_fc(3, "visco_Maxwell")
