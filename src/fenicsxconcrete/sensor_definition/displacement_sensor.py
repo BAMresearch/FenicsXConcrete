@@ -37,8 +37,6 @@ class DisplacementSensor(PointSensor):
         bb_tree = df.geometry.BoundingBoxTree(problem.experiment.mesh, problem.experiment.mesh.topology.dim)
         cells = []
 
-        # print("check sensor position", self.name, self.where)
-
         # Find cells whose bounding-box collide with the points
         cell_candidates = df.geometry.compute_collisions(bb_tree, [self.where])
 
