@@ -1,4 +1,4 @@
-name: fenicsxconcrete
+name: fenicsxconcrete1
 channels:
   - conda-forge
 dependencies:
@@ -12,6 +12,7 @@ dependencies:
   - python-gmsh=4.11.1
   - meshio=5.3.4
   - jsonschema
+  - numba
   # tests
   - pytest
   - coverage
