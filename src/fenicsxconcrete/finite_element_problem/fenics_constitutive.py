@@ -108,7 +108,7 @@ class FenicsConstitutive(MaterialProblem):
 
         # problem
         self.mechanics_problem = IncrSmallStrainProblem(
-            law, self.fields.displacement, bcs, q_degree=self.p["q_degree"]
+            law, self.fields.displacement, bcs, self.p["q_degree"], del_t=self.p["dt"]
         )
         # add external force and body force not implemented on IncrSmallStrainProblem
         v = ufl.TestFunction(self.V)
