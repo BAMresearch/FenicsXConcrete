@@ -42,12 +42,7 @@ class StressSensor(PointSensor):
             # raise Exception("Stress not defined in problem")
             pass
 
-        try:
-            mandel_stress = problem.q_fields.mandel_stress
-            assert mandel_stress is not None
-        except AssertionError:
-            # raise Exception("Mandel stress not defined in problem")
-            pass
+mandel_stress = problem.q_fields.mandel_stress
 
         if stress is not None:
             stress_function = project(
