@@ -144,7 +144,7 @@ class ConcreteAMFC(MaterialProblem):
 
         # define problem:
         self.mechanics_problem = ProblemAM(
-            law, self.fields.displacement, bcs, body_force_fct, q_degree=self.p["q_degree"]
+            law, self.fields.displacement, bcs, body_force_fct, self.p["q_degree"], del_t=self.p["dt"]
         )
         self.mechanics_problem._time = self.p["dt"]
 
@@ -427,7 +427,8 @@ class ProblemAM(df.fem.petsc.NonlinearProblem):
         u: df.fem.Function,
         bcs: list[df.fem.DirichletBCMetaClass],
         body_force_fct: Callable,
-        q_degree: int = 1,
+        q_degree: int,
+        del_t: float = 1.0,
         form_compiler_options: dict | None = None,
         jit_options: dict | None = None,
     ):
@@ -475,6 +476,7 @@ class ProblemAM(df.fem.petsc.NonlinearProblem):
         self._history_1 = []
         self._tangent = []
 
+        self._del_t = del_t
         self._time = 0.0  # time at the end of the increment
 
         with df.common.Timer("data-structures"):
@@ -612,6 +614,7 @@ class ProblemAM(df.fem.petsc.NonlinearProblem):
                     history_input[key] = self._history_1[0][key].x.array
             law.evaluate(
                 self._time,
+                self._del_t,
                 self._del_grad_u[0].x.array,
                 stress_input,
                 self.tangent.x.array,

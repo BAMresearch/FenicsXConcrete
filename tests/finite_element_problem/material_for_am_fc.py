@@ -69,6 +69,7 @@ class LinearElasticityModel(IncrSmallStrainModel):
 
     def evaluate(
         self,
+        time: float,
         del_t: float,
         grad_del_u: np.ndarray,
         mandel_stress: np.ndarray,
@@ -96,7 +97,7 @@ class LinearElasticityModel(IncrSmallStrainModel):
             raise ValueError("factor must be a float, int, or np.ndarray")
 
     @property
-    def constraint(self) -> Constraint:
+    def constraint(self) -> StressStrainConstraint:
         return self._constraint
 
     @property
@@ -126,6 +127,7 @@ class VonMises3D(IncrSmallStrainModel):
 
     def evaluate(
         self,
+        time: float,
         del_t: float,
         grad_del_u: np.ndarray,
         mandel_stress: np.ndarray,
