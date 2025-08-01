@@ -234,13 +234,24 @@ class SimpleCube(Experiment):
         return bc_generator.bcs
 
     def create_body_force(self, v: ufl.argument.Argument) -> ufl.form.Form | None:
-        # TODO: The sign of the body force is not clear.
+        """Defines the body force in either z or y direction depending on mesh dimension
+
+        Args:
+            v: test function
+
+        Returns:
+            if use_body_force flag is true the form for the body force, else None
+
+        """
+
+        # TODO: The sign of the body force is not clear. positive direction!!
 
         if self.use_body_force:
             force_vector = np.zeros(self.p["dim"])
             force_vector[-1] = self.p["rho"] * self.p["g"]  # works for 2D and 3D
 
             f = df.fem.Constant(self.mesh, force_vector)
+
             L = ufl.dot(f, v) * ufl.dx
 
             return L

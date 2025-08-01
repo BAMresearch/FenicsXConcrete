@@ -12,6 +12,7 @@ dependencies:
   - python-gmsh=4.11.1
   - meshio=5.3.4
   - jsonschema
+  - numba
   # tests
   - pytest
   - coverage
@@ -28,5 +29,6 @@ dependencies:
   - isort
   - pip
   - pip:
+    - git+https://github.com/BAMresearch/fenics-constitutive.git@4abacc145638129eb8b6cc87325dd0d43a65fdd6
     - -e .
 

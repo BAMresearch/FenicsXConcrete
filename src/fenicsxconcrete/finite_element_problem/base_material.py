@@ -66,6 +66,7 @@ class QuadratureFields:
     tensile_strength: ufl.core.expr.Expr | df.fem.Function | None = None
     youngs_modulus: ufl.core.expr.Expr | df.fem.Function | None = None
     yield_values: ufl.core.expr.Expr | df.fem.Function | None = None
+    history_scalar: ufl.core.expr.Expr | df.fem.Function | None = None
 
 
 class MaterialProblem(ABC, LogMixin):

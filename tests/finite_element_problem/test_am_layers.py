@@ -7,6 +7,7 @@ import pytest
 
 from fenicsxconcrete.experimental_setup import AmMultipleLayers
 from fenicsxconcrete.finite_element_problem import ConcreteAM, ConcreteThixElasticModel
+from fenicsxconcrete.sensor_definition.displacement_sensor import DisplacementSensor
 from fenicsxconcrete.sensor_definition.reaction_force_sensor import ReactionForceSensor
 from fenicsxconcrete.sensor_definition.strain_sensor import StrainSensor
 from fenicsxconcrete.sensor_definition.stress_sensor import StressSensor
@@ -137,7 +138,7 @@ def test_am_single_layer(dimension: int, factor: int) -> None:
         assert sum(np.diff(eps_o_time)[factor - 1 : :]) == pytest.approx(0, abs=1e-8)
 
 
-@pytest.mark.parametrize("dimension", [2])
+@pytest.mark.parametrize("dimension", [2, 3])
 @pytest.mark.parametrize("mat", ["thix"])  # visco will be added next time
 def test_am_multiple_layer(dimension: int, mat: str, plot: bool = False) -> None:
     """multiple layer test
@@ -191,6 +192,7 @@ def test_am_multiple_layer(dimension: int, mat: str, plot: bool = False) -> None
     problem.add_sensor(ReactionForceSensor())
     problem.add_sensor(StressSensor([problem.p["layer_length"] / 2, 0, 0]))
     problem.add_sensor(StrainSensor([problem.p["layer_length"] / 2, 0, 0]))
+    problem.add_sensor(DisplacementSensor([problem.p["layer_length"] / 2, 0, problem.p["layer_height"]]))
 
     total_time = setup_parameters["num_layers"] * time_layer
     while problem.time <= total_time.to_base_units().magnitude:
@@ -249,16 +251,26 @@ def test_am_multiple_layer(dimension: int, mat: str, plot: bool = False) -> None
     #
     if plot:
         # example plotting
-        strain_yy = np.array(problem.sensors["StrainSensor"].data)[:, -1]
+        # strain = np.array(problem.sensors["StrainSensor"].data)[:, -1]
+        stress = np.array(problem.sensors["StressSensor"].data)[:, -1]
+        disp = np.array(problem.sensors["DisplacementSensor"].data)[:, -1]
         time = []
         [time.append(ti) for ti in problem.sensors["StrainSensor"].time]
 
         import matplotlib.pylab as plt
 
         plt.figure(1)
-        plt.plot([0] + time, [0] + list(strain_yy), "*-r")
+        # plt.plot([0] + time, [0] + list(strain_yy), "*-r")
+        plt.plot([0] + time, [0] + list(disp), "*-b")
         plt.xlabel("process time")
         plt.ylabel("sensor bottom middle strain_yy")
+
+        plt.figure(2)
+        # plt.plot([0] + time, [0] + list(strain), "*-r")
+        plt.plot([0] + time, [0] + list(stress), "*-r")
+        plt.xlabel("process time")
+        plt.ylabel("stress")
+
         plt.show()
 
 
@@ -280,26 +292,34 @@ def define_path(prob, t_diff, t_0=0):
     # get quadrature coordinates with work around since tabulate_dof_coordinates()[:] not possible for quadrature spaces!
     V = df.fem.VectorFunctionSpace(prob.mesh, ("CG", prob.p["degree"]))
     v_cg = df.fem.Function(V)
-    v_cg.interpolate(lambda x: (x[0], x[1]))
+    if prob.p["dim"] == 2:
+        v_cg.interpolate(lambda x: (x[0], x[1]))
+    elif prob.p["dim"] == 3:
+        v_cg.interpolate(lambda x: (x[0], x[1], x[2]))
     positions = QuadratureEvaluator(v_cg, prob.mesh, prob.rule)
     x = positions.evaluate()
-    dof_map = np.reshape(x.flatten(), [len(q_path), 2])
+    dof_map = np.reshape(x.flatten(), [len(q_path), prob.p["dim"]])
 
-    # select layers only by layer height - y
-    y_CO = np.array(dof_map)[:, 1]
+    # select layers
+    if prob.p["dim"] == 2:
+        # only by layer height - y
+        h_CO = np.array(dof_map)[:, 1]
+    elif prob.p["dim"] == 3:
+        # only by layer height - z
+        h_CO = np.array(dof_map)[:, 2]
     h_min = np.arange(0, prob.p["num_layers"] * prob.p["layer_height"], prob.p["layer_height"])
     h_max = np.arange(
         prob.p["layer_height"],
         (prob.p["num_layers"] + 1) * prob.p["layer_height"],
         prob.p["layer_height"],
     )
-    # print("y_CO", y_CO)
+    # print("h_CO", h_CO)
     # print("h_min", h_min)
     # print("h_max", h_max)
     new_path = np.zeros_like(q_path)
     EPS = 1e-8
     for i in range(0, len(h_min)):
-        layer_index = np.where((y_CO > h_min[i] - EPS) & (y_CO <= h_max[i] + EPS))
+        layer_index = np.where((h_CO > h_min[i] - EPS) & (h_CO <= h_max[i] + EPS))
         new_path[layer_index] = t_0 + (prob.p["num_layers"] - 1 - i) * t_diff
 
     q_path = new_path
@@ -307,9 +327,8 @@ def define_path(prob, t_diff, t_0=0):
     return q_path
 
 
-#
-# if __name__ == "__main__":
-#
-#     # test_am_single_layer(2, 2)
-#     #
-#     test_am_multiple_layer(2, "thix", True)
+if __name__ == "__main__":
+
+    # test_am_single_layer(2, 2)
+    #
+    test_am_multiple_layer(3, "thix", True)

@@ -129,6 +129,27 @@ class AmMultipleLayers(Experiment):
 
         return bc_generator.bcs
 
+    def create_body_force(self, v: ufl.argument.Argument) -> ufl.form.Form:
+        """defines body force for am experiments without element activation
+
+        element activation via pseudo density and incremental loading via parameter ["load_time"] computed in class concrete_am
+
+        Args:
+            v: test function
+
+        Returns:
+            form for body force
+
+        """
+
+        force_vector = np.zeros(self.p["dim"])
+        force_vector[-1] = -self.p["rho"] * self.p["g"]  # works for 2D and 3D
+
+        f = df.fem.Constant(self.mesh, ScalarType(force_vector))
+        L = ufl.dot(f, v) * ufl.dx
+
+        return L
+
     def create_body_force_am(
         self, v: ufl.argument.Argument, q_fd: df.fem.Function, rule: QuadratureRule
     ) -> ufl.form.Form:
@@ -148,8 +169,12 @@ class AmMultipleLayers(Experiment):
 
         force_vector = np.zeros(self.p["dim"])
         force_vector[-1] = -self.p["rho"] * self.p["g"]  # works for 2D and 3D
-
-        f = df.fem.Constant(self.mesh, ScalarType(force_vector))
+        force_vector_buckling= np.zeros(self.p["dim"])
+        force_vector_buckling[1] = 0
+        f1 = df.fem.Constant(self.mesh, ScalarType(force_vector))
+        f_buckling = df.fem.Constant(self.mesh, ScalarType(force_vector_buckling))
+        f = f1 + f_buckling
+        # print(f.value)
         L = q_fd * ufl.dot(f, v) * rule.dx
 
         return L
