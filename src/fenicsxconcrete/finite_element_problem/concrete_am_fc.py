@@ -125,7 +125,8 @@ class ConcreteAMFC(MaterialProblem):
         """set up problem"""
 
         # displacement space and field
-        self.V = df.fem.VectorFunctionSpace(self.experiment.mesh, ("CG", self.p["degree"]))
+        dim = self.experiment.mesh.topology.dim
+        self.V = df.fem.functionspace(self.experiment.mesh, ("CG", self.p["degree"],(dim,)))
         self.fields = SolutionFields(displacement=df.fem.Function(self.V, name="displacement"))
 
         # define problem:
@@ -189,11 +190,11 @@ class ConcreteAMFC(MaterialProblem):
 
         # for paraview stress output
         # vector space
-        self.plot_space_stress = df.fem.VectorFunctionSpace(
-            self.experiment.mesh, self.q_fields.plot_space_type, dim=self.mandel_stress_dim
+        self.plot_space_stress = df.fem.functionspace(
+            self.experiment.mesh, (self.q_fields.plot_space_type, (self.mandel_stress_dim,))
         )
-        self.plot_space_alpha = df.fem.VectorFunctionSpace(
-            self.experiment.mesh, self.q_fields.plot_space_type, dim=self.hist_a
+        self.plot_space_alpha = df.fem.functionspace(
+            self.experiment.mesh, (self.q_fields.plot_space_type, (self.hist_a,))
         )
 
     def solve(self) -> None:
@@ -345,7 +346,7 @@ class ConcreteAMFC(MaterialProblem):
         sigma_plot.name = "Stress"
 
         D_plot = project(
-            self.density_time, df.fem.FunctionSpace(self.mesh, self.q_fields.plot_space_type), self.rule.dx
+            self.density_time, df.fem.functionspace(self.mesh, self.q_fields.plot_space_type), self.rule.dx
         )
         D_plot.name = "Density"
         self.density_plot = D_plot
@@ -464,8 +465,8 @@ class ProblemAM(df.fem.petsc.NonlinearProblem):
             quad_scheme="default",
             shape=(gdim, gdim),
         )
-        QV = df.fem.FunctionSpace(mesh, QVe)
-        QT = df.fem.FunctionSpace(mesh, QTe)
+        QV = df.fem.functionspace(mesh, QVe)
+        QT = df.fem.functionspace(mesh, QTe)
 
         self.mesh_update = True
         self.co_rotation = True
@@ -481,7 +482,7 @@ class ProblemAM(df.fem.petsc.NonlinearProblem):
             law, cells = self.laws[0]
 
             # subspace for grad u
-            Q_grad_u_space = df.fem.FunctionSpace(mesh, Q_grad_u_e)
+            Q_grad_u_space = df.fem.functionspace(mesh, Q_grad_u_e)
             self._del_grad_u.append(df.fem.Function(Q_grad_u_space))
 
             # Spaces for history
@@ -501,7 +502,7 @@ class ProblemAM(df.fem.petsc.NonlinearProblem):
             q_degree,
             quad_scheme="default",
         )
-        s_space = df.fem.FunctionSpace(mesh, Qs)
+        s_space = df.fem.functionspace(mesh, Qs)
         self.modulus = df.fem.Function(s_space, name="modulus")  # one material parameter
         self.density_time = df.fem.Function(s_space, name="density")
 
@@ -579,7 +580,7 @@ class ProblemAM(df.fem.petsc.NonlinearProblem):
             dim = self._u.function_space.mesh.topology.dim
             # print('check', len(self._u.function_space.mesh.geometry.x[:]), len(self._u.x.array[:]))
             if len(self._u.function_space.mesh.geometry.x[:]) * dim != len(self._u.x.array[:]):
-                V_CG = df.fem.VectorFunctionSpace(self._u.function_space.mesh, ("CG", 1))
+                V_CG = df.fem.functionspace(self._u.function_space.mesh, ("CG", 1, (dim,)))
                 u_CG0 = df.fem.Function(V_CG)
                 u_CG = df.fem.Function(V_CG)
 
@@ -633,7 +634,7 @@ class ProblemAM(df.fem.petsc.NonlinearProblem):
             # Update to current configuration
             dim = self._u.function_space.mesh.topology.dim
             if len(self._u.function_space.mesh.geometry.x[:]) * dim != len(self._u.x.array[:]):
-                V_CG = df.fem.VectorFunctionSpace(self._u.function_space.mesh, ("CG", 1))
+                V_CG = df.fem.functionspace(self._u.function_space.mesh, ("CG", 1, (dim,)))
                 u_CG0 = df.fem.Function(V_CG)
                 u_CG = df.fem.Function(V_CG)
 

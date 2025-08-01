@@ -143,7 +143,8 @@ class ConcreteAM(MaterialProblem):
 
         self.rule = QuadratureRule(cell_type=self.mesh.ufl_cell(), degree=self.p["q_degree"])
         # displacement space (name V required for sensors!)
-        self.V = df.fem.VectorFunctionSpace(self.mesh, ("CG", self.p["degree"]))
+        dim = self.experiment.mesh.topology.dim
+        self.V = df.fem.functionspace(self.mesh, ("CG", self.p["degree"], (dim,)))
         self.strain_stress_space = self.rule.create_quadrature_tensor_space(self.mesh, (self.p["dim"], self.p["dim"]))
 
         # global variables for all AM problems relevant
@@ -241,14 +242,17 @@ class ConcreteAM(MaterialProblem):
         self.logger.info(f"create pv plot for t: {self.time}")
 
         # write further fields
-        sigma_plot = project(
-            self.mechanics_problem.sigma(self.fields.displacement),
-            df.fem.TensorFunctionSpace(self.mesh, self.q_fields.plot_space_type),
-            self.rule.dx,
-        )
+        # write further fields
+        sigma_plot = project(self.q_fields.mandel_stress, self.plot_space_stress, self.rule.dx)
+    
+        # sigma_plot = project(
+        #     self.mechanics_problem.sigma(self.fields.displacement),
+        #     df.fem.TensorFunctionSpace(self.mesh, self.q_fields.plot_space_type),
+        #     self.rule.dx,
+        # )
 
         E_plot = project(
-            self.mechanics_problem.q_E, df.fem.FunctionSpace(self.mesh, self.q_fields.plot_space_type), self.rule.dx
+            self.mechanics_problem.q_E, df.fem.functionspace(self.mesh, self.q_fields.plot_space_type), self.rule.dx
         )
 
         E_plot.name = "Youngs_Modulus"

@@ -123,8 +123,9 @@ class ConcreteThermoMechanical(MaterialProblem, LogMixin):
         self.t = 0.0
 
         self.rule = QuadratureRule(cell_type=self.mesh.ufl_cell(), degree=self.p["q_degree"])
-        displacement_space = df.fem.VectorFunctionSpace(self.experiment.mesh, ("P", self.p["degree"]))
-        temperature_space = df.fem.FunctionSpace(self.experiment.mesh, ("P", self.p["degree"]))
+        dim = self.experiment.mesh.topology.dim
+        displacement_space = df.fem.functionspace(self.experiment.mesh, ("P", self.p["degree"], (dim,)))
+        temperature_space = df.fem.functionspace(self.experiment.mesh, ("P", self.p["degree"]))
 
         self.fields = SolutionFields(
             displacement=df.fem.Function(displacement_space, name="displacement"),
@@ -176,9 +177,9 @@ class ConcreteThermoMechanical(MaterialProblem, LogMixin):
         self.mechanics_solver.max_it = 5
         self.mechanics_solver.error_on_nonconvergence = False
 
-        self.plot_space = df.fem.FunctionSpace(self.experiment.mesh, self.q_fields.plot_space_type)
-        self.plot_space_stress = df.fem.VectorFunctionSpace(
-            self.experiment.mesh, self.q_fields.plot_space_type, dim=self.mechanics_problem.stress_strain_dim
+        self.plot_space = df.fem.functionspace(self.experiment.mesh, self.q_fields.plot_space_type)
+        self.plot_space_stress = df.fem.functionspace(
+            self.experiment.mesh, (self.q_fields.plot_space_type[0], self.q_fields.plot_space_type[1], (self.mechanics_problem.stress_strain_dim,))
         )
 
         with df.io.XDMFFile(self.mesh.comm, self.pv_output_file, "w") as f:

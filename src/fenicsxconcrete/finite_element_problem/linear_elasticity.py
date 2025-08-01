@@ -44,8 +44,9 @@ class LinearElasticity(MaterialProblem):
             )
 
         # define function space ets.
-        self.V = df.fem.VectorFunctionSpace(self.mesh, ("Lagrange", self.p["degree"]))  # 2 for quadratic elements
-        self.V_scalar = df.fem.FunctionSpace(self.mesh, ("Lagrange", self.p["degree"]))
+        dim = self.experiment.mesh.topology.dim
+        self.V = df.fem.functionspace(self.mesh, ("Lagrange", self.p["degree"], (dim,)))  # 2 for quadratic elements
+        self.V_scalar = df.fem.functionspace(self.mesh, ("Lagrange", self.p["degree"]))
 
         # Define variational problem
         self.u_trial = ufl.TrialFunction(self.V)
