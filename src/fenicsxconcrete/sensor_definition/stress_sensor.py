@@ -35,8 +35,6 @@ class StressSensor(PointSensor):
         """
         # project stress onto visualization space
 stress = problem.q_fields.stress
-            # raise Exception("Stress not defined in problem")
-            pass
 
 mandel_stress = problem.q_fields.mandel_stress
 
