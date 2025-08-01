@@ -34,9 +34,9 @@ class StressSensor(PointSensor):
             t : time of measurement for time dependent problems, default is 1
         """
         # project stress onto visualization space
-stress = problem.q_fields.stress
+        stress = problem.q_fields.stress
 
-mandel_stress = problem.q_fields.mandel_stress
+        mandel_stress = problem.q_fields.mandel_stress
 
         if stress is not None:
             stress_function = project(
