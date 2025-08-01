@@ -34,10 +34,7 @@ class StressSensor(PointSensor):
             t : time of measurement for time dependent problems, default is 1
         """
         # project stress onto visualization space
-        stress, mandel_stress = None, None
-        try:
-            stress = problem.q_fields.stress
-            assert stress is not None
+stress = problem.q_fields.stress
         except AssertionError:
             # raise Exception("Stress not defined in problem")
             pass
