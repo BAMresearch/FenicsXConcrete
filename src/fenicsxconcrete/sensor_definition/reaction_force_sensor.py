@@ -74,7 +74,7 @@ class ReactionForceSensor(BaseSensor):
             method="geometrical",
             entity_dim=problem.mesh.topology.dim - 1,
         )
-        df.fem.set_bc(v_reac.vector, bc_generator_x.bcs)
+        df.fem.set_bc(v_reac.x.array, bc_generator_x.bcs)
         computed_force_x = -df.fem.assemble_scalar(df.fem.form(ufl.action(problem.residual, v_reac)))
         reaction_force_vector.append(computed_force_x)
 
@@ -86,7 +86,7 @@ class ReactionForceSensor(BaseSensor):
             method="geometrical",
             entity_dim=problem.mesh.topology.dim - 1,
         )
-        df.fem.set_bc(v_reac.vector, bc_generator_y.bcs)
+        df.fem.set_bc(v_reac.x.array, bc_generator_y.bcs)
         computed_force_y = -df.fem.assemble_scalar(df.fem.form(ufl.action(problem.residual, v_reac)))
         reaction_force_vector.append(computed_force_y)
 
@@ -99,7 +99,7 @@ class ReactionForceSensor(BaseSensor):
                 method="geometrical",
                 entity_dim=problem.mesh.topology.dim - 1,
             )
-            df.fem.set_bc(v_reac.vector, bc_generator_z.bcs)
+            df.fem.set_bc(v_reac.x.array, bc_generator_z.bcs)
             computed_force_z = -df.fem.assemble_scalar(df.fem.form(ufl.action(problem.residual, v_reac)))
             reaction_force_vector.append(computed_force_z)
 

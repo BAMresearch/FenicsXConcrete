@@ -95,8 +95,8 @@ def test_fc(
         problem.solve()
         body_force_disp_Mid_z = np.array(problem.sensors["DisplacementSensorMid"].data)[:, 2]
         body_force_disp_Top_z = np.array(problem.sensors["DisplacementSensorTop"].data)[:, 2]
-        print("body force disp Mid", body_force_disp_Mid_z)
-        print("body force disp Top", body_force_disp_Top_z)
+        #print("body force disp Mid", body_force_disp_Mid_z)
+        #print("body force disp Top", body_force_disp_Top_z)
     else:
         body_force_disp_Mid_z = 0. 
         body_force_disp_Top_z = 0.
@@ -132,7 +132,7 @@ def test_fc(
         stress_final_ana = parameters["E0"].magnitude * displacement.magnitude / 1.0
     
     print("reaction force:", np.array(problem.sensors["ReactionForceSensor"].data)[:,2][-1], stress_final_ana)
-    print("stress sensor:", np.array(problem.sensors["StressSensor"].data)[:, 2][-1])
+    print("stress sensor:", np.array(problem.sensors["StressSensor"].data)[:, 2][-1]) 
     assert np.isclose(
         np.array(problem.sensors["ReactionForceSensor"].data)[:,2][-1],
         stress_final_ana, 

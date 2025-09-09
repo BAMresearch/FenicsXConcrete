@@ -3,6 +3,7 @@ from __future__ import annotations
 import os
 from typing import TYPE_CHECKING
 
+import numpy as np
 import dolfinx as df
 import ufl
 
@@ -39,33 +40,39 @@ class StressSensor(PointSensor):
         mandel_stress = problem.q_fields.mandel_stress
 
         if stress is not None:
+            stress_tensor_dim = problem.experiment.mesh.topology.dim
             stress_function = project(
                 stress,  # stress fct from problem
-                df.fem.TensorFunctionSpace(problem.experiment.mesh, problem.q_fields.plot_space_type),  # tensor space
+                df.fem.functionspace(problem.experiment.mesh, (problem.q_fields.plot_space_type[0], problem.q_fields.plot_space_type[1], (stress_tensor_dim,stress_tensor_dim))),  # tensor space
                 problem.q_fields.measure,
             )
         elif mandel_stress is not None:
             stress_function = project(
                 mandel_stress,  # stress fct from problem
-                df.fem.VectorFunctionSpace(
-                    problem.experiment.mesh, problem.q_fields.plot_space_type, dim=problem.mandel_stress_dim
-                ),  # tensor space
-                problem.q_fields.measure,
+                df.fem.functionspace(
+                    problem.experiment.mesh, (problem.q_fields.plot_space_type[0], problem.q_fields.plot_space_type[1], (problem.mandel_stress_dim,))
+                ),  # vector space
+                ufl.dx, #TODO: check consistency!
+                #problem.q_fields.measure,
             )
         else:
             raise Exception("Stress and Mandel stress not defined in problem")
 
         # finding the cells corresponding to the point
-        bb_tree = df.geometry.BoundingBoxTree(problem.experiment.mesh, problem.experiment.mesh.topology.dim)
+        bb_tree = df.geometry.bb_tree(problem.experiment.mesh, problem.experiment.mesh.topology.dim)
         cells = []
 
         # Find cells whose bounding-box collide with the points
-        cell_candidates = df.geometry.compute_collisions(bb_tree, [self.where])
+        point = np.array(self.where, dtype=np.float64)
+        cell_candidates = df.geometry.compute_collisions_points(bb_tree, point)
 
         # Choose one of the cells that contains the point
-        colliding_cells = df.geometry.compute_colliding_cells(problem.experiment.mesh, cell_candidates, [self.where])
+        colliding_cells = df.geometry.compute_colliding_cells(problem.experiment.mesh, cell_candidates, point)
+
         if len(colliding_cells.links(0)) > 0:
             cells.append(colliding_cells.links(0)[0])
+        else:
+            raise ValueError(f"cells with point {self.where} not found in mesh")
 
         # adding correct units to stress
         stress_data = stress_function.eval([self.where], cells)

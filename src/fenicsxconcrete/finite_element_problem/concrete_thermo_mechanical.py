@@ -179,7 +179,12 @@ class ConcreteThermoMechanical(MaterialProblem, LogMixin):
 
         self.plot_space = df.fem.functionspace(self.experiment.mesh, self.q_fields.plot_space_type)
         self.plot_space_stress = df.fem.functionspace(
-            self.experiment.mesh, (self.q_fields.plot_space_type[0], self.q_fields.plot_space_type[1], (self.mechanics_problem.stress_strain_dim,))
+            self.experiment.mesh,
+            (
+                self.q_fields.plot_space_type[0],
+                self.q_fields.plot_space_type[1],
+                (self.mechanics_problem.stress_strain_dim,),
+            ),
         )
 
         with df.io.XDMFFile(self.mesh.comm, self.pv_output_file, "w") as f:
@@ -197,7 +202,7 @@ class ConcreteThermoMechanical(MaterialProblem, LogMixin):
             self.logger.info(f"Temperature solve converged in {n} iterations")
 
         # set current DOH for computation of Young's modulus
-        self.mechanics_problem.q_array_alpha[:] = self.temperature_problem.q_alpha.vector.array
+        self.mechanics_problem.q_array_alpha[:] = self.temperature_problem.q_alpha.x.array
 
         # mechanics paroblem is not required for temperature, could crash in frist time steps but then be useful
         try:
@@ -277,7 +282,7 @@ class ConcreteTemperatureHydrationModel(df.fem.petsc.NonlinearProblem, LogMixin)
         parameters: dict[str, int | float | str | bool],
         rule: QuadratureRule,
         temperature: df.fem.Function,
-        bcs: list[df.fem.DirichletBCMetaClass],
+        bcs: list[df.fem.DirichletBC],
     ) -> None:
         self.mesh = mesh
         self.p = parameters
@@ -478,19 +483,19 @@ class ConcreteTemperatureHydrationModel(df.fem.petsc.NonlinearProblem, LogMixin)
         self.q_array_delta_alpha_n = delta_alpha
 
         # compute current alpha
-        self.q_alpha.vector.array[:] = self.q_array_alpha_n + delta_alpha
+        self.q_alpha.x.array[:] = self.q_array_alpha_n + delta_alpha
         # compute derivative of delta alpha with respect to temperature for rhs
-        self.q_ddalpha_dT.vector.array[:] = (
+        self.q_ddalpha_dT.x.array[:] = (
             self.dt
-            * self.affinity(self.q_alpha.vector.array, self.q_array_alpha_n)
+            * self.affinity(self.q_alpha.x.array, self.q_array_alpha_n)
             * self.temp_adjust_tangent(self.q_array_T)
         )
 
-        self.q_delta_alpha.vector.array[:] = delta_alpha
+        self.q_delta_alpha.x.array[:] = delta_alpha
 
     def update_history(self) -> None:
         self.T_n.x.array[:] = self.T.x.array  # save temparature field
-        self.q_array_alpha_n[:] = self.q_alpha.vector.array  # save alpha field
+        self.q_array_alpha_n[:] = self.q_alpha.x.array  # save alpha field
 
     def set_timestep(self, dt: float) -> None:
         self.dt = dt
@@ -557,7 +562,7 @@ class ConcreteMechanicsModel(df.fem.petsc.NonlinearProblem):
         parameters: dict[str, int | float | str | bool],
         rule: QuadratureRule,
         u: df.fem.Function,
-        bcs: list[df.fem.DirichletBCMetaClass],
+        bcs: list[df.fem.DirichletBC],
         body_forces: ufl.form.Form | None,
     ):
         self.p = parameters
@@ -673,7 +678,7 @@ class ConcreteMechanicsModel(df.fem.petsc.NonlinearProblem):
         # vectorize the function for speed up
         # TODO: remove vectorization. It does nothing for speed-up
         E_fkt_vectorized = np.vectorize(self.E_fkt)
-        self.q_E.vector.array[:] = E_fkt_vectorized(self.q_array_alpha, parameters)
+        self.q_E.x.array[:] = E_fkt_vectorized(self.q_array_alpha, parameters)
         self.q_E.x.scatter_forward()
 
         # from here postprocessing
@@ -681,7 +686,7 @@ class ConcreteMechanicsModel(df.fem.petsc.NonlinearProblem):
         parameters["X_inf"] = self.p["fc_inf"]
         parameters["a_X"] = self.p["a_fc"]
 
-        self.q_fc.vector.array[:] = self.general_hydration_fkt(self.q_array_alpha, parameters)
+        self.q_fc.x.array[:] = self.general_hydration_fkt(self.q_array_alpha, parameters)
         self.q_fc.x.scatter_forward()
 
         parameters = {}
@@ -689,18 +694,18 @@ class ConcreteMechanicsModel(df.fem.petsc.NonlinearProblem):
         parameters["a_X"] = self.p["a_ft"]
 
         if self.p["evolution_ft"] == "True":
-            self.q_ft.vector.array[:] = self.general_hydration_fkt(self.q_array_alpha, parameters)
+            self.q_ft.x.array[:] = self.general_hydration_fkt(self.q_array_alpha, parameters)
         else:
             # no evolution....
-            self.q_ft.vector.array[:] = np.full_like(self.q_array_alpha, self.p["ft_inf"])
+            self.q_ft.x.array[:] = np.full_like(self.q_array_alpha, self.p["ft_inf"])
         self.q_ft.x.scatter_forward()
 
         self.sigma_evaluator.evaluate(self.q_array_sigma)
-        # print(self.q_E.vector.array.shape, self.q_array_sigma.shape)
-        # self.q_array_sigma *= self.q_E.vector.array
+        # print(self.q_E.x.array.shape, self.q_array_sigma.shape)
+        # self.q_array_sigma *= self.q_E.x.array
 
-        self.q_yield.vector.array[:] = self.yield_surface(
-            self.q_array_sigma.reshape(-1, self.stress_strain_dim), self.q_ft.vector.array, self.q_fc.vector.array
+        self.q_yield.x.array[:] = self.yield_surface(
+            self.q_array_sigma.reshape(-1, self.stress_strain_dim), self.q_ft.x.array, self.q_fc.x.array
         )
 
     def principal_stress(self, stresses: np.ndarray) -> np.ndarray:

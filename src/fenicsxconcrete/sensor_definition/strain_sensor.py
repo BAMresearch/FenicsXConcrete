@@ -3,6 +3,7 @@ from __future__ import annotations
 import os
 from typing import TYPE_CHECKING
 
+import numpy as np
 import dolfinx as df
 import ufl
 
@@ -40,24 +41,28 @@ class StrainSensor(PointSensor):
         except AssertionError:
             raise Exception("Strain not defined in problem")
 
+        strain_tensor_dim = problem.experiment.mesh.topology.dim
         strain_function = project(
             strain,  # stress fct from problem
-            df.fem.TensorFunctionSpace(problem.experiment.mesh, problem.q_fields.plot_space_type),  # tensor space
+            df.fem.functionspace(problem.experiment.mesh, (problem.q_fields.plot_space_type[0], problem.q_fields.plot_space_type[1], (strain_tensor_dim, strain_tensor_dim))),  # tensor space
             problem.q_fields.measure,
         )
         # project stress onto visualization space
 
         # finding the cells corresponding to the point
-        bb_tree = df.geometry.BoundingBoxTree(problem.experiment.mesh, problem.experiment.mesh.topology.dim)
+        bb_tree = df.geometry.bb_tree(problem.experiment.mesh, problem.experiment.mesh.topology.dim)
         cells = []
 
         # Find cells whose bounding-box collide with the points
-        cell_candidates = df.geometry.compute_collisions(bb_tree, [self.where])
+        point = np.array(self.where, dtype=np.float64)
+        cell_candidates = df.geometry.compute_collisions_points(bb_tree, point)
 
         # Choose one of the cells that contains the point
-        colliding_cells = df.geometry.compute_colliding_cells(problem.experiment.mesh, cell_candidates, [self.where])
+        colliding_cells = df.geometry.compute_colliding_cells(problem.experiment.mesh, cell_candidates, point)
         if len(colliding_cells.links(0)) > 0:
             cells.append(colliding_cells.links(0)[0])
+        else:
+            raise ValueError(f"cells with point {self.where} not found in mesh")
 
         # adding correct units to stress
         strain_data = strain_function.eval([self.where], cells)

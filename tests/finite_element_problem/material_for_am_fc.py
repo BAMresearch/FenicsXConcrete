@@ -69,6 +69,7 @@ class LinearElasticityModel(IncrSmallStrainModel):
 
     def evaluate(
         self,
+        time: float,
         del_t: float,
         grad_del_u: np.ndarray,
         mandel_stress: np.ndarray,
@@ -126,6 +127,7 @@ class VonMises3D(IncrSmallStrainModel):
 
     def evaluate(
         self,
+        time: float,
         del_t: float,
         grad_del_u: np.ndarray,
         mandel_stress: np.ndarray,
@@ -148,6 +150,7 @@ class VonMises3D(IncrSmallStrainModel):
             self.p_w = np.full(len(strain_increment), self.p_w)
 
         evaluate_von_mises_3D(
+            time,
             del_t,
             strain_increment,
             mandel_stress,
@@ -176,6 +179,7 @@ class VonMises3D(IncrSmallStrainModel):
 
 @jit
 def evaluate_von_mises_3D(
+    time: float,
     del_t: float,
     strain_increment: np.ndarray,
     mandel_stress: np.ndarray,

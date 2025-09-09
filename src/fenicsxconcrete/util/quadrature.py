@@ -18,7 +18,7 @@ class QuadratureRule:
 
 
     Attributes:
-        type (basix.QuadratureType): The quadrature type.
+        type (string): The quadrature type "gauss" for standard Faussian quadrature or "gll" for Gauss-Lobatto quadrature.
         cell_type (ufl.Cell): The type of FEM cell.
         degree (int): The quadrature degree.
         points (np.ndarray): The quadrature points on the refernce cell.
@@ -31,18 +31,18 @@ class QuadratureRule:
 
     def __init__(
         self,
-        type: basix.QuadratureType = basix.QuadratureType.Default,
+        type: basix.QuadratureType = basix.QuadratureType.default,
         cell_type: ufl.Cell = ufl.triangle,
         degree: int = 1,
     ):
         self.type = type
         self.cell_type = cell_type
         self.degree = degree
-        basix_cell = _ufl_cell_type_to_basix(self.cell_type)
-        self.points, self.weights = basix.make_quadrature(self.type, basix_cell, self.degree)
+        basix_cell = _ufl_cell_type_to_basix(self.cell_type) 
+        self.points, self.weights = basix.make_quadrature(basix_cell, self.degree, rule=self.type)
         self.dx = ufl.dx(
             metadata={
-                "quadrature_rule": self.type.name,
+                "quadrature_rule": self.type,
                 "quadrature_degree": self.degree,
             }
         )
@@ -56,12 +56,13 @@ class QuadratureRule:
             A scalar quadrature `FunctionSpace` on `mesh`.
         """
         assert mesh.ufl_cell() == self.cell_type
-        Qe = ufl.FiniteElement(
-            "Quadrature",
-            self.cell_type,
-            self.degree,
-            quad_scheme=self.type.name,
-        )
+        Qe = basix.ufl.quadrature_element(mesh.topology.cell_name(), value_shape=(),degree=self.degree)
+        # Qe = ufl.FiniteElement(
+        #     "Quadrature",
+        #     self.cell_type,
+        #     self.degree,
+        #     quad_scheme=self.type.name,
+        # )
 
         return df.fem.functionspace(mesh, Qe)
 
@@ -82,9 +83,7 @@ class QuadratureRule:
         #     quad_scheme=self.type.name,
         #     dim=dim,
         # )
-        Qe = basix.ufl.quadrature_element(
-            mesh.topology.cell_name(), value_shape=(dim, ), degree=self.degree
-        )
+        Qe = basix.ufl.quadrature_element(mesh.topology.cell_name(), value_shape=(dim,), degree=self.degree)
 
         return df.fem.functionspace(mesh, Qe)
 
@@ -105,9 +104,7 @@ class QuadratureRule:
         #     quad_scheme=self.type.name,
         #     shape=shape,
         # )
-        Qe = basix.ufl.quadrature_element(
-            mesh.topology.cell_name(), value_shape=shape, degree=self.degree
-        )
+        Qe = basix.ufl.quadrature_element(mesh.topology.cell_name(), value_shape=shape, degree=self.degree)
 
         return df.fem.functionspace(mesh, Qe)
 
@@ -135,7 +132,7 @@ class QuadratureRule:
             shape: Local shape of the quadrature space. Example: `shape = 1` for Scalar,
               `shape = (n, 1)` for vector and `shape = (n,n)` for Tensor.
         Returns:
-            An array that is equivalent to `quadrature_function.vector.array`.
+            An array that is equivalent to `quadrature_function.x.array`.
         """
         n_points = self.number_of_points(mesh)
         n_local = shape if isinstance(shape, int) else shape[0] * shape[1]
@@ -188,5 +185,5 @@ class QuadratureEvaluator:
         elif isinstance(q, np.ndarray):
             self.expr.eval(self.cells, values=q.reshape(self.num_cells, -1))
         elif isinstance(q, df.fem.Function):
-            self.expr.eval(self.cells, values=q.vector.array.reshape(self.num_cells, -1))
+            self.expr.eval(self.cells, values=q.x.array.reshape(self.num_cells, -1))
             q.x.scatter_forward()

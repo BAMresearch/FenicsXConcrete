@@ -14,7 +14,7 @@ from fenicsxconcrete.sensor_definition.reaction_force_sensor import ReactionForc
 from fenicsxconcrete.sensor_definition.stress_sensor import StressSensor
 from fenicsxconcrete.util import Parameters, QuadratureEvaluator, ureg
 
-#############Material laws using fenics-constitutive interface for am with changable parameters by solver#############
+#############Material laws using fenics-constitutive interface for am with changable parameters over time by solver#############
 from material_for_am_fc import LinearElasticityModel, VonMises3D
 
 def set_test_parameters(mat: Literal["linear_elastic", "mises"]) -> Parameters:
@@ -106,11 +106,12 @@ def test_am_multiple_layer(
 
     problem = ConcreteAMFC(experiment, setup_parameters, material_law, pv_name=file_name, pv_path=data_path)
 
-    # initial path function describing layer activation
-    path_activation = define_path(
-        problem, time_layer.magnitude, t_0=-(setup_parameters["num_layers"].magnitude - 1) * time_layer.magnitude
-    )
-    problem.set_initial_path(path_activation)
+    # initial path function describing layer activation #TDOD: fix problem in define_path fct
+    #path_activation = define_path(
+    #    problem, time_layer.magnitude, t_0=-(setup_parameters["num_layers"].magnitude - 1) * time_layer.magnitude
+    #)
+    #problem.set_initial_path(path_activation)
+    problem.set_initial_path(0.0)
 
     problem.add_sensor(ReactionForceSensor())
     problem.add_sensor(StressSensor([problem.p["layer_length"] / 2, 0, 0]))
@@ -157,9 +158,9 @@ def test_am_multiple_layer(
                 time_upper, {"P0": problem.p["E"], "A_P": problem.p["A_E"]}, "linear"
             )
             print("E_bottom, E_upper", E_bottom_layer, E_upper_layer)
-            print(problem.modulus.vector.array[:].min(), problem.modulus.vector.array[:].max())
-            assert problem.modulus.vector.array[:].min() * problem.p["E"] == pytest.approx(E_upper_layer)
-            assert problem.modulus.vector.array[:].max() * problem.p["E"] == pytest.approx(E_bottom_layer)
+            print(problem.modulus.x.array[:].min(), problem.modulus.x.array[:].max())
+            assert problem.modulus.x.array[:].min() * problem.p["E"] == pytest.approx(E_upper_layer)
+            assert problem.modulus.x.array[:].max() * problem.p["E"] == pytest.approx(E_bottom_layer)
     elif mat.lower() == "mises":
         if problem.p["time_fct"] == "linear":
             p_ka_bottom_layer = ConcreteAMFC.param_time_fkt(
@@ -170,9 +171,9 @@ def test_am_multiple_layer(
                 time_upper, {"P0": problem.p["p_ka"], "A_P": problem.p["A_p_ka"]}, "linear"
             )
             print("p_ka_bottom, p_ka_upper", p_ka_bottom_layer, p_ka_upper_layer)
-            print(problem.modulus.vector.array[:].min(), problem.modulus.vector.array[:].max())
-            assert problem.modulus.vector.array[:].min() == pytest.approx(p_ka_upper_layer)
-            assert problem.modulus.vector.array[:].max() == pytest.approx(p_ka_bottom_layer)
+            print(problem.modulus.x.array[:].min(), problem.modulus.x.array[:].max())
+            assert problem.modulus.x.array[:].min() == pytest.approx(p_ka_upper_layer)
+            assert problem.modulus.x.array[:].max() == pytest.approx(p_ka_bottom_layer)
         #
     if plot:
         # example plotting
@@ -205,13 +206,17 @@ def define_path(prob, t_diff, t_0=0):
     q_path = prob.rule.create_quadrature_array(prob.mesh, shape=1)
 
     # get quadrature coordinates with work around since tabulate_dof_coordinates()[:] not possible for quadrature spaces!
-    V = df.fem.VectorFunctionSpace(prob.mesh, ("CG", prob.p["degree"]))
+    V = df.fem.functionspace(prob.mesh, ("CG", prob.p["degree"],(prob.mesh.topology.dim,)))
     v_cg = df.fem.Function(V)
     if prob.p["dim"] == 2:
         v_cg.interpolate(lambda x: (x[0], x[1]))
+        v_cg.x.scatter_forward()
     elif prob.p["dim"] == 3:
         v_cg.interpolate(lambda x: (x[0], x[1], x[2]))
+        v_cg.x.scatter_forward()
     positions = QuadratureEvaluator(v_cg, prob.mesh, prob.rule)
+    #x_pos = np.zeros((positions.num_cells, prob.p["dim"])) 
+    #x = positions.evaluate(x_pos) # TODO: doesn't work
     x = positions.evaluate()
     dof_map = np.reshape(x.flatten(), [len(q_path), prob.p["dim"]])
 
@@ -237,6 +242,7 @@ def define_path(prob, t_diff, t_0=0):
         layer_index = np.where((h_CO > h_min[i] - EPS) & (h_CO <= h_max[i] + EPS))
         new_path[layer_index] = t_0 + (prob.p["num_layers"] - 1 - i) * t_diff
 
+    new_path.x.scatter_forward()
     q_path = new_path
 
     return q_path

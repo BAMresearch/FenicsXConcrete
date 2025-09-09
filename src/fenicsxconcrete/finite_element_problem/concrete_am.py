@@ -193,13 +193,13 @@ class ConcreteAM(MaterialProblem):
         self.mechanics_solver.solve(self.d_disp)
 
         # update total displacement
-        self.fields.displacement.vector.array[:] += self.d_disp.vector.array[:]
+        self.fields.displacement.x.array[:] += self.d_disp.x.array[:]
         self.fields.displacement.x.scatter_forward()
 
         # save fields to global problem for sensor output
-        self.q_fields.stress.vector.array[:] += self.mechanics_problem.q_sig.vector.array[:]
+        self.q_fields.stress.x.array[:] += self.mechanics_problem.q_sig.x.array[:]
         self.q_fields.stress.x.scatter_forward()
-        self.q_fields.strain.vector.array[:] += self.mechanics_problem.q_eps.vector.array[:]
+        self.q_fields.strain.x.array[:] += self.mechanics_problem.q_eps.x.array[:]
         self.q_fields.strain.x.scatter_forward()
 
         # additional output field not yet used in any sensors
@@ -244,7 +244,7 @@ class ConcreteAM(MaterialProblem):
         # write further fields
         # write further fields
         sigma_plot = project(self.q_fields.mandel_stress, self.plot_space_stress, self.rule.dx)
-    
+
         # sigma_plot = project(
         #     self.mechanics_problem.sigma(self.fields.displacement),
         #     df.fem.TensorFunctionSpace(self.mesh, self.q_fields.plot_space_type),
@@ -363,7 +363,7 @@ class ConcreteThixElasticModel(df.fem.petsc.NonlinearProblem):
         parameters: dict[str, int | float | str | bool],
         rule: QuadratureRule,
         u: df.fem.Function,
-        bc: list[df.fem.DirichletBCMetaClass],
+        bc: list[df.fem.DirichletBC],
         body_force_fct: Callable,
     ):
 
@@ -489,12 +489,12 @@ class ConcreteThixElasticModel(df.fem.petsc.NonlinearProblem):
                 "age_0": self.p["age_0"],
             },
         )
-        self.q_E.vector.array[:] = E_array
+        self.q_E.x.array[:] = E_array
         self.q_E.x.scatter_forward()
 
         # compute loading factors for density load using static function of ConcreteAM
         fd_array = ConcreteAM.fd_fkt(self.q_array_pd, self.q_array_path, self.p["dt"], self.p["load_time"])
-        self.q_fd.vector.array[:] = fd_array
+        self.q_fd.x.array[:] = fd_array
         self.q_fd.x.scatter_forward()
 
         # postprocessing

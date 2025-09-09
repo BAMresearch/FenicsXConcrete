@@ -10,7 +10,7 @@ from fenicsxconcrete.boundary_conditions.boundary import plane_at
 
 def test_square() -> None:
     domain = dolfinx.mesh.create_unit_square(MPI.COMM_WORLD, 8, 8, dolfinx.mesh.CellType.quadrilateral)
-    V = dolfinx.fem.FunctionSpace(domain, ("Lagrange", 1))
+    V = dolfinx.fem.functionspace(domain, ("Lagrange", 1))
 
     bottom = plane_at(0.0, "y")
     top = plane_at(1.0, "y")
@@ -56,7 +56,7 @@ def test_square() -> None:
 def test_cube() -> None:
     nx, ny, nz = 4, 4, 4
     domain = dolfinx.mesh.create_unit_cube(MPI.COMM_WORLD, nx, ny, nz, dolfinx.mesh.CellType.hexahedron)
-    V = dolfinx.fem.FunctionSpace(domain, ("Lagrange", 1))
+    V = dolfinx.fem.functionspace(domain, ("Lagrange", 1))
 
     xy_plane = plane_at(0.0, "z")
     dofs = dolfinx.fem.locate_dofs_geometrical(V, xy_plane)

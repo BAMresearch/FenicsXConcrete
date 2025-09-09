@@ -1,5 +1,6 @@
 import dolfinx as df
 import ufl
+from dolfinx.fem.petsc import LinearProblem
 
 
 def project(
@@ -24,9 +25,9 @@ def project(
     a_proj = ufl.inner(dv, v_) * dx
     b_proj = ufl.inner(v, v_) * dx
     if u is None:
-        solver = df.fem.petsc.LinearProblem(a_proj, b_proj)
+        solver = LinearProblem(a_proj, b_proj)
         uh = solver.solve()
         return uh
     else:
-        solver = df.fem.petsc.LinearProblem(a_proj, b_proj, u=u)
+        solver = LinearProblem(a_proj, b_proj, u=u)
         solver.solve()

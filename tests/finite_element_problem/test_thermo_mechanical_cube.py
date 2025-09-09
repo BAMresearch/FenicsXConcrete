@@ -116,7 +116,7 @@ class LegacyMinimalCube(SimpleCube):
         self.use_body_force = False
         self.temperature_bc = df.fem.Constant(domain=self.mesh, c=self.p["T_bc"])
 
-    def create_displacement_boundary(self, V: df.fem.FunctionSpace) -> list[df.fem.bcs.DirichletBCMetaClass]:
+    def create_displacement_boundary(self, V: df.fem.FunctionSpace) -> list[df.fem.bcs.DirichletBC]:
         bc_generator = BoundaryConditions(self.mesh, V)
 
         bc_generator.add_dirichlet_bc(

@@ -44,13 +44,15 @@ def test_whole_boundary() -> None:
     dim = 2
 
     domain = dolfinx.mesh.create_unit_square(MPI.COMM_WORLD, n, n, dolfinx.mesh.CellType.quadrilateral)
-    V = dolfinx.fem.VectorFunctionSpace(domain, ("Lagrange", degree), dim=dim)
+    V = dolfinx.fem.functionspace(domain, ("Lagrange", degree, (dim,)))
 
     # option (a)
     bc_handler = BoundaryConditions(domain, V)
     boundary_facets = dolfinx.mesh.exterior_facet_indices(domain.topology)
     u = dolfinx.fem.Function(V)
-    u.x.set(0.0)
+    u.x.array[:]=0.0
+    u.x.scatter_forward()
+    
     bc_handler.add_dirichlet_bc(u, boundary_facets, method="topological", entity_dim=1)
     bcs = bc_handler.bcs
     dofs = bcs[0].dof_indices()[0]
@@ -70,13 +72,15 @@ def test_xy_plane() -> None:
     dim = 3
 
     domain = dolfinx.mesh.create_unit_cube(MPI.COMM_WORLD, n, n, n, dolfinx.mesh.CellType.hexahedron)
-    V = dolfinx.fem.VectorFunctionSpace(domain, ("Lagrange", degree), dim=dim)
+    V = dolfinx.fem.functionspace(domain, ("Lagrange", degree, (dim,)))
     xy_plane = plane_at(0.0, "z")
 
     # option (a)
     bc_handler = BoundaryConditions(domain, V)
     u = dolfinx.fem.Function(V)
-    u.x.set(0.0)
+    u.x.array[:]=0.0
+    u.x.scatter_forward()
+    
     bc_handler.add_dirichlet_bc(u, xy_plane, method="geometrical")
     bcs = bc_handler.bcs
     dofs = bcs[0].dof_indices()[0]
