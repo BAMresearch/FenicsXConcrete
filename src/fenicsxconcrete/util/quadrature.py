@@ -38,7 +38,7 @@ class QuadratureRule:
         self.type = type
         self.cell_type = cell_type
         self.degree = degree
-        basix_cell = _ufl_cell_type_to_basix(self.cell_type) 
+        basix_cell = _ufl_cell_type_to_basix(self.cell_type)
         self.points, self.weights = basix.make_quadrature(basix_cell, self.degree, rule=self.type)
         self.dx = ufl.dx(
             metadata={
@@ -56,7 +56,7 @@ class QuadratureRule:
             A scalar quadrature `FunctionSpace` on `mesh`.
         """
         assert mesh.ufl_cell() == self.cell_type
-        Qe = basix.ufl.quadrature_element(mesh.topology.cell_name(), value_shape=(),degree=self.degree)
+        Qe = basix.ufl.quadrature_element(mesh.topology.cell_name(), value_shape=(), degree=self.degree)
         # Qe = ufl.FiniteElement(
         #     "Quadrature",
         #     self.cell_type,
@@ -166,6 +166,7 @@ class QuadratureEvaluator:
         self.num_cells = map_c.size_local
 
         self.cells = np.arange(0, self.num_cells, dtype=np.int32)
+        self.mesh = mesh
 
         self.expr = df.fem.Expression(ufl_expression, rule.points)
 
@@ -181,9 +182,9 @@ class QuadratureEvaluator:
             on `q` and `None` is returned.
         """
         if q is None:
-            return self.expr.eval(self.cells)
+            return self.expr.eval(self.mesh, self.cells)
         elif isinstance(q, np.ndarray):
-            self.expr.eval(self.cells, values=q.reshape(self.num_cells, -1))
+            self.expr.eval(self.mesh, self.cells, values=q.reshape(self.num_cells, -1))
         elif isinstance(q, df.fem.Function):
-            self.expr.eval(self.cells, values=q.x.array.reshape(self.num_cells, -1))
+            self.expr.eval(q.function_space.mesh, self.cells, values=q.x.array.reshape(self.num_cells, -1))
             q.x.scatter_forward()
