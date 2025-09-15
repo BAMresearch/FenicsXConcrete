@@ -3,9 +3,8 @@ from __future__ import annotations
 import os
 from typing import TYPE_CHECKING
 
-import numpy as np
 import dolfinx as df
-import ufl
+import numpy as np
 
 if TYPE_CHECKING:
     from fenicsxconcrete.finite_element_problem.base_material import MaterialProblem
@@ -43,17 +42,28 @@ class StressSensor(PointSensor):
             stress_tensor_dim = problem.experiment.mesh.topology.dim
             stress_function = project(
                 stress,  # stress fct from problem
-                df.fem.functionspace(problem.experiment.mesh, (problem.q_fields.plot_space_type[0], problem.q_fields.plot_space_type[1], (stress_tensor_dim,stress_tensor_dim))),  # tensor space
+                df.fem.functionspace(
+                    problem.experiment.mesh,
+                    (
+                        problem.q_fields.plot_space_type[0],
+                        problem.q_fields.plot_space_type[1],
+                        (stress_tensor_dim, stress_tensor_dim),
+                    ),
+                ),  # tensor space
                 problem.q_fields.measure,
             )
         elif mandel_stress is not None:
             stress_function = project(
                 mandel_stress,  # stress fct from problem
                 df.fem.functionspace(
-                    problem.experiment.mesh, (problem.q_fields.plot_space_type[0], problem.q_fields.plot_space_type[1], (problem.mandel_stress_dim,))
-                ),  # vector space
-                ufl.dx, #TODO: check consistency!
-                #problem.q_fields.measure,
+                    problem.experiment.mesh,
+                    (
+                        problem.q_fields.plot_space_type[0],
+                        problem.q_fields.plot_space_type[1],
+                        (problem.mandel_stress_dim,),
+                    ),
+                ),
+                problem.q_fields.measure,
             )
         else:
             raise Exception("Stress and Mandel stress not defined in problem")

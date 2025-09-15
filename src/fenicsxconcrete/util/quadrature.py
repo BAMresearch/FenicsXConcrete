@@ -40,12 +40,9 @@ class QuadratureRule:
         self.degree = degree
         basix_cell = _ufl_cell_type_to_basix(self.cell_type)
         self.points, self.weights = basix.make_quadrature(basix_cell, self.degree, rule=self.type)
-        self.dx = ufl.dx(
-            metadata={
-                "quadrature_rule": self.type,
-                "quadrature_degree": self.degree,
-            }
-        )
+
+        metadata = {"quadrature_degree": self.degree, "quadrature_scheme": self.type.name}
+        self.dx = ufl.dx(metadata=metadata)
 
     def create_quadrature_space(self, mesh: df.mesh.Mesh) -> df.fem.functionspace:
         """
@@ -56,13 +53,9 @@ class QuadratureRule:
             A scalar quadrature `FunctionSpace` on `mesh`.
         """
         assert mesh.ufl_cell() == self.cell_type
-        Qe = basix.ufl.quadrature_element(mesh.topology.cell_name(), value_shape=(), degree=self.degree)
-        # Qe = ufl.FiniteElement(
-        #     "Quadrature",
-        #     self.cell_type,
-        #     self.degree,
-        #     quad_scheme=self.type.name,
-        # )
+        Qe = basix.ufl.quadrature_element(
+            mesh.topology.cell_name(), value_shape=(), degree=self.degree, scheme=self.type.name
+        )
 
         return df.fem.functionspace(mesh, Qe)
 
@@ -76,14 +69,10 @@ class QuadratureRule:
             A vector valued quadrature `FunctionSpace` on `mesh`.
         """
         assert mesh.ufl_cell() == self.cell_type
-        # Qe = ufl.VectorElement(
-        #     "Quadrature",
-        #     self.cell_type,
-        #     self.degree,
-        #     quad_scheme=self.type.name,
-        #     dim=dim,
-        # )
-        Qe = basix.ufl.quadrature_element(mesh.topology.cell_name(), value_shape=(dim,), degree=self.degree)
+
+        Qe = basix.ufl.quadrature_element(
+            mesh.topology.cell_name(), value_shape=(dim,), degree=self.degree, scheme=self.type.name
+        )
 
         return df.fem.functionspace(mesh, Qe)
 
@@ -97,14 +86,10 @@ class QuadratureRule:
             A tensor valued quadrature `FunctionSpace` on `mesh`.
         """
         assert mesh.ufl_cell() == self.cell_type
-        # Qe = ufl.TensorElement(
-        #     "Quadrature",
-        #     self.cell_type,
-        #     self.degree,
-        #     quad_scheme=self.type.name,
-        #     shape=shape,
-        # )
-        Qe = basix.ufl.quadrature_element(mesh.topology.cell_name(), value_shape=shape, degree=self.degree)
+
+        Qe = basix.ufl.quadrature_element(
+            mesh.topology.cell_name(), value_shape=shape, degree=self.degree, scheme=self.type.name
+        )
 
         return df.fem.functionspace(mesh, Qe)
 
