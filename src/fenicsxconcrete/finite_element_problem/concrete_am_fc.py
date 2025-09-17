@@ -161,8 +161,7 @@ class ConcreteAMFC(MaterialProblem):
 
         # define problem:
         self.mechanics_problem = ProblemAM(
-            law, self.fields.displacement, bcs, body_force_fct, q_degree=self.p["q_degree"], del_t=self.p["dt"]
-        )
+            law, self.fields.displacement, bcs, body_force_fct, q_degree=self.p["q_degree"], del_t=self.p["dt"])
         self.mechanics_problem._time = self.p["dt"]
 
         # additional output fields

@@ -97,7 +97,7 @@ class LinearElasticityModel(IncrSmallStrainModel):
             raise ValueError("factor must be a float, int, or np.ndarray")
 
     @property
-    def constraint(self) -> Constraint:
+    def constraint(self) -> StressStrainConstraint:
         return self._constraint
 
     @property
