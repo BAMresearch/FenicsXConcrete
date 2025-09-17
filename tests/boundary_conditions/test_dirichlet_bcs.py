@@ -112,7 +112,7 @@ def test_scalar_geom() -> None:
     def left(x):
         return np.isclose(x[0], 0.0)
 
-    bc_handler.add_dirichlet_bc(ScalarType(0), left, method="geometrical")
+    bc_handler.add_dirichlet_bc(ScalarType(0), boundary=left, method="geometrical", sub=0, entity_dim=1)
 
     bcs = bc_handler.bcs
     my_bc = bcs[0]
@@ -136,7 +136,7 @@ def test_scalar_topo() -> None:
 
     # entire boundary; should have (n+1+n)*4 - 4 = 8n dofs
     boundary_facets = dolfinx.mesh.exterior_facet_indices(domain.topology)
-    bc_handler.add_dirichlet_bc(ScalarType(0), boundary_facets, entity_dim=fdim)
+    bc_handler.add_dirichlet_bc(ScalarType(0), boundary=boundary_facets, sub=0, entity_dim=fdim)
 
     bcs = bc_handler.bcs
     my_bc = bcs[0]
@@ -154,7 +154,7 @@ def test_dirichletbc() -> None:
     V = dolfinx.fem.functionspace(domain, ("Lagrange", 2, (domain.geometry.dim,)))
     bc_handler = BoundaryConditions(domain, V)
     dofs = dolfinx.fem.locate_dofs_geometrical(V, plane_at(0.0, "x"))
-    bc = dolfinx.fem.dirichletbc(ScalarType(0), dofs, V)
+    bc = dolfinx.fem.dirichletbc(np.array([0.0, 0.0], dtype=ScalarType), dofs, V)
     assert not bc_handler.has_dirichlet
     bc_handler.add_dirichlet_bc(bc)
     assert bc_handler.has_dirichlet
@@ -218,7 +218,7 @@ def test_clear() -> None:
     V = dolfinx.fem.functionspace(domain, ("Lagrange", 2, (domain.geometry.dim,)))
     bc_handler = BoundaryConditions(domain, V)
     dofs = dolfinx.fem.locate_dofs_geometrical(V, plane_at(0.0, "x"))
-    bc = dolfinx.fem.dirichletbc(ScalarType(0), dofs, V)
+    bc = dolfinx.fem.dirichletbc(np.array([0.0], dtype=ScalarType), dofs, V)
     assert not bc_handler.has_dirichlet
     bc_handler.add_dirichlet_bc(bc)
     assert bc_handler.has_dirichlet
