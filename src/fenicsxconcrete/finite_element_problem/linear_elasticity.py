@@ -157,13 +157,10 @@ class LinearElasticity(MaterialProblem):
         if self.p["degree"] > 1:
             # project displacement to linear space for writing 
             V_project = df.fem.functionspace(self.experiment.mesh, ("CG", 1, (self.p["dim"],)))
-            disp_plot = df.fem.Function(V_project, name="displacement")
-            #disp_plot.interpolate(self.fields.displacement)
-            project(self.fields.displacement, V_project, ufl.dx, disp_plot)
-            disp_plot.x.scatter_forward()
+            disp_plot = project(self.fields.displacement, V_project, ufl.dx)
         else:
             disp_plot = self.fields.displacement
-            disp_plot.x.scatter_forward()
+        disp_plot.name = "displacement"
 
         with df.io.XDMFFile(self.mesh.comm, self.pv_output_file, "a") as f:
             f.write_function(disp_plot, self.time)

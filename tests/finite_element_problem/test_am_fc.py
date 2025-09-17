@@ -107,11 +107,11 @@ def test_am_multiple_layer(
     problem = ConcreteAMFC(experiment, setup_parameters, material_law, pv_name=file_name, pv_path=data_path)
 
     # initial path function describing layer activation #TDOD: fix problem in define_path fct
-    #path_activation = define_path(
-    #    problem, time_layer.magnitude, t_0=-(setup_parameters["num_layers"].magnitude - 1) * time_layer.magnitude
-    #)
-    #problem.set_initial_path(path_activation)
-    problem.set_initial_path(0.0)
+    path_activation = define_path(
+        problem, time_layer.magnitude, t_0=-(setup_parameters["num_layers"].magnitude - 1) * time_layer.magnitude
+    )
+    problem.set_initial_path(path_activation)
+    #problem.set_initial_path(0.0)
 
     problem.add_sensor(ReactionForceSensor())
     problem.add_sensor(StressSensor([problem.p["layer_length"] / 2, 0, 0]))
@@ -158,7 +158,7 @@ def test_am_multiple_layer(
                 time_upper, {"P0": problem.p["E"], "A_P": problem.p["A_E"]}, "linear"
             )
             print("E_bottom, E_upper", E_bottom_layer, E_upper_layer)
-            print(problem.modulus.x.array[:].min(), problem.modulus.x.array[:].max())
+            print("check", problem.modulus.x.array[:].min() * problem.p["E"], problem.modulus.x.array[:].max()* problem.p["E"])
             assert problem.modulus.x.array[:].min() * problem.p["E"] == pytest.approx(E_upper_layer)
             assert problem.modulus.x.array[:].max() * problem.p["E"] == pytest.approx(E_bottom_layer)
     elif mat.lower() == "mises":
@@ -215,8 +215,6 @@ def define_path(prob, t_diff, t_0=0):
         v_cg.interpolate(lambda x: (x[0], x[1], x[2]))
         v_cg.x.scatter_forward()
     positions = QuadratureEvaluator(v_cg, prob.mesh, prob.rule)
-    #x_pos = np.zeros((positions.num_cells, prob.p["dim"])) 
-    #x = positions.evaluate(x_pos) # TODO: doesn't work
     x = positions.evaluate()
     dof_map = np.reshape(x.flatten(), [len(q_path), prob.p["dim"]])
 
@@ -233,16 +231,15 @@ def define_path(prob, t_diff, t_0=0):
         (prob.p["num_layers"] + 1) * prob.p["layer_height"],
         prob.p["layer_height"],
     )
-    # print("h_CO", h_CO)
-    # print("h_min", h_min)
-    # print("h_max", h_max)
+    #print("h_CO", h_CO)
+    #print("h_min", h_min)
+    #print("h_max", h_max)
     new_path = np.zeros_like(q_path)
     EPS = 1e-8
     for i in range(0, len(h_min)):
         layer_index = np.where((h_CO > h_min[i] - EPS) & (h_CO <= h_max[i] + EPS))
         new_path[layer_index] = t_0 + (prob.p["num_layers"] - 1 - i) * t_diff
 
-    new_path.x.scatter_forward()
     q_path = new_path
 
     return q_path
@@ -250,8 +247,8 @@ def define_path(prob, t_diff, t_0=0):
 
 if __name__ == "__main__":
     
-    #test_am_multiple_layer("linear_elastic", 1, plot=True)
-    #test_am_multiple_layer("linear_elastic", 2, plot=True)
+    test_am_multiple_layer("linear_elastic", 1, plot=True)
+    test_am_multiple_layer("linear_elastic", 2, plot=True)
 
-    test_am_multiple_layer("mises", 1, plot=True)
-    test_am_multiple_layer("mises", 2, plot=True)
+    #test_am_multiple_layer("mises", 1, plot=True)
+    #test_am_multiple_layer("mises", 2, plot=True)

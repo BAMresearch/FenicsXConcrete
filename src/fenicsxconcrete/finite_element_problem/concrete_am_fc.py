@@ -157,7 +157,6 @@ class ConcreteAMFC(MaterialProblem):
 
         # boundaries
         bcs = self.experiment.create_displacement_boundary(self.V)
-        # body_force_fct = self.experiment.create_body_force # TODO temp delete
         body_force_fct = self.experiment.create_body_force_am  # with element activation
 
         # define problem:
@@ -340,7 +339,7 @@ class ConcreteAMFC(MaterialProblem):
         for _ in load_idx:
             density[active_idx[load_idx]] = (
                 self.q_array_path_time[active_idx[load_idx]] / self.p["load_time"]
-            )  # linear ramp #TODO check
+            )  # linear ramp 
 
         self.density_time.x.array[:] = density
         self.density_time.x.scatter_forward()
@@ -376,18 +375,21 @@ class ConcreteAMFC(MaterialProblem):
 
 
         # write further fields 
-        sigma_plot = df.fem.Function(self.plot_space_stress, name="Stress")
-        project(self.q_fields.mandel_stress, self.plot_space_stress, ufl.dx, sigma_plot) #TODO: Check rule 
-        sigma_plot.x.scatter_forward()
-
-        density_plot = df.fem.Function(self.plot_space_alpha, name="Density")
-        project(self.density_time, self.plot_space_alpha, ufl.dx, density_plot)
-        density_plot.x.scatter_forward()
+        sigma_plot = project(self.q_fields.mandel_stress, self.plot_space_stress, self.rule.dx)  
+        sigma_plot.name = "Stress"
+        
+        density_plot = project(self.density_time, self.plot_space_alpha, self.rule.dx)
+        density_plot.name = "Density"
+        # density_plot = df.fem.Function(self.plot_space_alpha, name="Density")
+        # project(self.density_time, self.plot_space_alpha, ufl.dx, density_plot)
+        # density_plot.x.scatter_forward()
 
         if self.a_plot:
-            alpha_plot = df.fem.Function(self.plot_space_alpha, name="Alpha")   
-            project(self.q_fields.history_scalar, self.plot_space_alpha, ufl.dx, alpha_plot)
-            alpha_plot.x.scatter_forward()
+            alpha_plot = project(self.q_fields.history_scalar, self.plot_space_alpha, self.rule.dx)
+            alpha_plot.name = "Alpha"
+            # alpha_plot = df.fem.Function(self.plot_space_alpha, name="Alpha")   
+            # project(self.q_fields.history_scalar, self.plot_space_alpha, ufl.dx, alpha_plot)
+            # alpha_plot.x.scatter_forward()
         # #
         ## write to file
         with df.io.XDMFFile(self.mesh.comm, self.pv_output_file, "a") as f:

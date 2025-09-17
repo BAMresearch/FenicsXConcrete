@@ -182,7 +182,7 @@ class FenicsConstitutive(MaterialProblem):
         self.compute_residuals()  # for residual sensor
         for sensor_name in self.sensors:
             # go through all sensors and measure
-            self.sensors[sensor_name].measure(self) # TODO: problems with stress sensor
+            self.sensors[sensor_name].measure(self) 
 
     def compute_residuals(self) -> None:
         """defines what to do, to compute the residuals. Called in solve for sensors"""
@@ -197,19 +197,16 @@ class FenicsConstitutive(MaterialProblem):
         if self.p["degree"] > 1:
             # project displacement to linear space for writing 
             V_project = df.fem.functionspace(self.experiment.mesh, ("CG", 1, (self.p["dim"],)))
-            disp_plot = df.fem.Function(V_project, name="displacement")
-            #disp_plot.interpolate(self.fields.displacement)
-            project(self.fields.displacement, V_project, ufl.dx, disp_plot)
-            disp_plot.x.scatter_forward()
+            disp_plot = project(self.fields.displacement, V_project, self.rule.dx)
         else:
             disp_plot = self.fields.displacement
-            disp_plot.x.scatter_forward()
+        disp_plot.name = "displacement"
 
 
         # write further fields 
-        sigma_plot = df.fem.Function(self.plot_space_stress, name="Stress")
-        project(self.q_fields.mandel_stress, self.plot_space_stress, ufl.dx, sigma_plot) #TODO: Check rule 
-        sigma_plot.x.scatter_forward()
+        sigma_plot = project(self.q_fields.mandel_stress, self.plot_space_stress, self.rule.dx)
+        sigma_plot.name = "Stress"
+
         # #
         ## write to file
         with df.io.XDMFFile(self.mesh.comm, self.pv_output_file, "a") as f:
