@@ -1,12 +1,14 @@
 import dolfinx as df
 import pint
 import ufl
+from dolfinx.nls.petsc import NewtonSolver
 from fenics_constitutive import IncrSmallStrainModel, IncrSmallStrainProblem, StressStrainConstraint
 from mpi4py import MPI
 
 from fenicsxconcrete.experimental_setup import Experiment, SimpleCube
 from fenicsxconcrete.finite_element_problem.base_material import MaterialProblem, QuadratureFields, SolutionFields
 from fenicsxconcrete.util import QuadratureRule, project, ureg
+from fenics_constitutive.models import LinearElasticityModel
 
 
 class FenicsConstitutive(MaterialProblem):
@@ -87,15 +89,32 @@ class FenicsConstitutive(MaterialProblem):
             "dt": 1.0 * ureg("s"),  # time step
             # material parameters
             # ... - according to chosen material law!
+            # for default linear elastic material
+            "E": 42000 * ureg("Pa"),  # young's modulus
+            "nu": 0.3 * ureg(""),  # poisson ratio
         }
 
         return experiment, parameters
+    
+    @staticmethod
+    def default_material() -> IncrSmallStrainModel:
+        """Static method that returns the default material model for the selected nonlinear problem.
+
+        Returns:
+            The default material class.
+
+        """
+
+        # default material
+        material = LinearElasticityModel
+
+        return  material
 
     def setup(self) -> None:
         """set up problem"""
 
         # displacement space and field
-        self.V = df.fem.VectorFunctionSpace(self.experiment.mesh, ("CG", self.p["degree"]))
+        self.V = df.fem.functionspace(self.experiment.mesh, ("CG", self.p["degree"],(self.p["dim"],)))
         self.fields = SolutionFields(displacement=df.fem.Function(self.V, name="displacement"))
 
         # define problem:
@@ -110,7 +129,7 @@ class FenicsConstitutive(MaterialProblem):
         self.mechanics_problem = IncrSmallStrainProblem(
             law, self.fields.displacement, bcs, self.p["q_degree"], del_t=self.p["dt"]
         )
-        # add external force and body force not implemented on IncrSmallStrainProblem
+        # add external force and body force not implemented in IncrSmallStrainProblem
         v = ufl.TestFunction(self.V)
         external_force = self.experiment.create_force_boundary(v)
         if external_force:
@@ -121,24 +140,25 @@ class FenicsConstitutive(MaterialProblem):
             self.mechanics_problem.R_form -= body_force  # TODO check sign!!
 
         # additional output fields
+        #self.rule = QuadratureRule(cell_type=self.mesh.ufl_cell(), degree=self.p["q_degree"])
         self.rule = QuadratureRule(cell_type=self.mesh.ufl_cell(), degree=self.p["q_degree"])
         self.q_fields = QuadratureFields(
             measure=self.rule.dx,
             plot_space_type=("CG", self.p["degree"] - 1),
-            mandel_stress=self.mechanics_problem.stress_1,  # vector space!! not working with stress_sensor
+            mandel_stress=self.mechanics_problem.stress_1,  # vector space!!
         )
         self.mandel_stress_dim = law.stress_strain_dim  # for sensor
 
         # setting up the solver
-        self.mechanics_solver = df.nls.petsc.NewtonSolver(MPI.COMM_WORLD, self.mechanics_problem)
+        self.mechanics_solver = NewtonSolver(MPI.COMM_WORLD, self.mechanics_problem)
         self.mechanics_solver.atol = 1e-9
         self.mechanics_solver.rtol = 1e-8
         self.mechanics_solver.report = True
 
         # for paraview stress output
         # vector space
-        self.plot_space_stress = df.fem.VectorFunctionSpace(
-            self.experiment.mesh, self.q_fields.plot_space_type, dim=self.mandel_stress_dim
+        self.plot_space_stress = df.fem.functionspace(
+           self.experiment.mesh, (self.q_fields.plot_space_type[0], self.q_fields.plot_space_type[1], (self.mandel_stress_dim,))
         )
 
     def solve(self) -> None:
@@ -162,7 +182,7 @@ class FenicsConstitutive(MaterialProblem):
         self.compute_residuals()  # for residual sensor
         for sensor_name in self.sensors:
             # go through all sensors and measure
-            self.sensors[sensor_name].measure(self)
+            self.sensors[sensor_name].measure(self) 
 
     def compute_residuals(self) -> None:
         """defines what to do, to compute the residuals. Called in solve for sensors"""
@@ -174,10 +194,21 @@ class FenicsConstitutive(MaterialProblem):
 
         self.logger.info(f"create pv plot for t: {self.time}")
 
-        # write further fields
+        if self.p["degree"] > 1:
+            # project displacement to linear space for writing 
+            V_project = df.fem.functionspace(self.experiment.mesh, ("CG", 1, (self.p["dim"],)))
+            disp_plot = project(self.fields.displacement, V_project, self.rule.dx)
+        else:
+            disp_plot = self.fields.displacement
+        disp_plot.name = "displacement"
+
+
+        # write further fields 
         sigma_plot = project(self.q_fields.mandel_stress, self.plot_space_stress, self.rule.dx)
         sigma_plot.name = "Stress"
-        #
+
+        # #
+        ## write to file
         with df.io.XDMFFile(self.mesh.comm, self.pv_output_file, "a") as f:
-            f.write_function(self.fields.displacement, self.time)
-            f.write_function(sigma_plot, self.time)
+             f.write_function(disp_plot, self.time)
+             f.write_function(sigma_plot, self.time)

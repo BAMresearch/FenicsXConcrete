@@ -5,6 +5,7 @@ import dolfinx as df
 import numpy as np
 import pint
 import ufl
+from dolfinx.nls.petsc import NewtonSolver
 from fenics_constitutive import IncrSmallStrainModel, StressStrainConstraint, build_history, ufl_mandel_strain
 from mpi4py import MPI
 from petsc4py import PETSc
@@ -12,6 +13,8 @@ from petsc4py import PETSc
 from fenicsxconcrete.experimental_setup import AmMultipleLayers, Experiment
 from fenicsxconcrete.finite_element_problem.base_material import MaterialProblem, QuadratureFields, SolutionFields
 from fenicsxconcrete.util import QuadratureRule, project, ureg
+
+from material_for_am_fc import LinearElasticityModel
 
 
 class ConcreteAMFC(MaterialProblem):
@@ -101,7 +104,7 @@ class ConcreteAMFC(MaterialProblem):
             # material parameters
             # ... - according to chosen material law!
         }
-        if not material or material == "LinearElasticityModel":
+        if not material or material == "LinearElasticityModel": # default material
             model_parameters = {
                 "E": 15000 * ureg("Pa"),  # Youngs Modulus
                 "nu": 0.3 * ureg(""),  # Poisson ratio
@@ -120,12 +123,27 @@ class ConcreteAMFC(MaterialProblem):
             raise ValueError("material law not known")
 
         return experiment, {**parameters, **model_parameters}
+    
+    @staticmethod
+    def default_material() -> IncrSmallStrainModel:
+        """Static method that returns the default material model for the selected nonlinear problem.
+
+        Returns:
+            The default material class.
+
+        """
+
+        # default material
+        material = LinearElasticityModel
+
+        return  material
 
     def setup(self) -> None:
         """set up problem"""
 
         # displacement space and field
-        self.V = df.fem.VectorFunctionSpace(self.experiment.mesh, ("CG", self.p["degree"]))
+        dim = self.experiment.mesh.topology.dim
+        self.V = df.fem.functionspace(self.experiment.mesh, ("CG", self.p["degree"], (dim,)))
         self.fields = SolutionFields(displacement=df.fem.Function(self.V, name="displacement"))
 
         # define problem:
@@ -139,13 +157,11 @@ class ConcreteAMFC(MaterialProblem):
 
         # boundaries
         bcs = self.experiment.create_displacement_boundary(self.V)
-        # body_force_fct = self.experiment.create_body_force # TODO temp delete
         body_force_fct = self.experiment.create_body_force_am  # with element activation
 
         # define problem:
         self.mechanics_problem = ProblemAM(
-            law, self.fields.displacement, bcs, body_force_fct, self.p["q_degree"], del_t=self.p["dt"]
-        )
+            law, self.fields.displacement, bcs, body_force_fct, q_degree=self.p["q_degree"], del_t=self.p["dt"])
         self.mechanics_problem._time = self.p["dt"]
 
         # additional output fields
@@ -182,24 +198,29 @@ class ConcreteAMFC(MaterialProblem):
         self.q_array_path_time = np.zeros_like(self.density_time.x.array[:])  # zero as default
 
         # setting up the solver
-        self.mechanics_solver = df.nls.petsc.NewtonSolver(MPI.COMM_WORLD, self.mechanics_problem)
+        self.mechanics_solver = NewtonSolver(MPI.COMM_WORLD, self.mechanics_problem)
         self.mechanics_solver.atol = 1e-9
         self.mechanics_solver.rtol = 1e-8
         self.mechanics_solver.report = True
 
+
         # for paraview stress output
         # vector space
-        self.plot_space_stress = df.fem.VectorFunctionSpace(
-            self.experiment.mesh, self.q_fields.plot_space_type, dim=self.mandel_stress_dim
+        self.plot_space_stress = df.fem.functionspace(
+           self.experiment.mesh, (self.q_fields.plot_space_type[0], self.q_fields.plot_space_type[1], (self.mandel_stress_dim,))
         )
-        self.plot_space_alpha = df.fem.VectorFunctionSpace(
-            self.experiment.mesh, self.q_fields.plot_space_type, dim=self.hist_a
-        )
+        # history alpha space
+        self.plot_space_alpha = df.fem.functionspace(
+            self.experiment.mesh, self.q_fields.plot_space_type)
+        # # TODO check which one scalar or vector
+        # self.plot_space_alpha = df.fem.functionspace(
+        #     self.experiment.mesh, (self.q_fields.plot_space_type[0], self.q_fields.plot_space_type[1], (self.hist_a,))
+        # )
 
     def solve(self) -> None:
         """time incremental solving !"""
 
-        self.update_time()  # set t+dt
+        self.update_time()  # set t+dt # TODO check with nonlinear problem.time 
 
         self.logger.info(f"solve for t: {self.time}")
         self.logger.info("CHECK if external loads are applied as incremental loads e.g. delta_u(t)!!!")
@@ -256,12 +277,12 @@ class ConcreteAMFC(MaterialProblem):
 
         elif self.material_law.__name__ == "VonMises3D":
             # changing parameters
-            time_params = ['p_ka', 'p_mu', 'p_y0']
+            time_params = ["p_ka", "p_mu", "p_y0"]
             p_values = self.get_params_gp(time_params)
             #
-            self.mechanics_problem.laws[0][0].p_ka = p_values['p_ka']
-            self.mechanics_problem.laws[0][0].p_mu = p_values['p_mu']
-            self.mechanics_problem.laws[0][0].p_y0 = p_values['p_y0']
+            self.mechanics_problem.laws[0][0].p_ka = p_values["p_ka"]
+            self.mechanics_problem.laws[0][0].p_mu = p_values["p_mu"]
+            self.mechanics_problem.laws[0][0].p_y0 = p_values["p_y0"]
 
             # # store bulk modulus just for access since material law dependent do it here and not in ProblemAM
             self.mechanics_problem.modulus.x.array[:] = self.mechanics_problem.laws[0][0].p_ka
@@ -317,7 +338,7 @@ class ConcreteAMFC(MaterialProblem):
         for _ in load_idx:
             density[active_idx[load_idx]] = (
                 self.q_array_path_time[active_idx[load_idx]] / self.p["load_time"]
-            )  # linear ramp #TODO check
+            )  # linear ramp 
 
         self.density_time.x.array[:] = density
         self.density_time.x.scatter_forward()
@@ -340,27 +361,42 @@ class ConcreteAMFC(MaterialProblem):
 
         self.logger.info(f"create pv plot for t: {self.time}")
 
-        # write further fields
-        sigma_plot = project(self.q_fields.mandel_stress, self.plot_space_stress, self.rule.dx)
-        sigma_plot.name = "Stress"
+        if self.p["degree"] > 1:
+            # project displacement to linear space for writing 
+            V_project = df.fem.functionspace(self.experiment.mesh, ("CG", 1, (self.p["dim"],)))
+            disp_plot = df.fem.Function(V_project, name="displacement")
+            #disp_plot.interpolate(self.fields.displacement)
+            project(self.fields.displacement, V_project, ufl.dx, disp_plot)
+            disp_plot.x.scatter_forward()
+        else:
+            disp_plot = self.fields.displacement
+            disp_plot.x.scatter_forward()
 
-        D_plot = project(
-            self.density_time, df.fem.FunctionSpace(self.mesh, self.q_fields.plot_space_type), self.rule.dx
-        )
-        D_plot.name = "Density"
-        self.density_plot = D_plot
+
+        # write further fields 
+        sigma_plot = project(self.q_fields.mandel_stress, self.plot_space_stress, self.rule.dx)  
+        sigma_plot.name = "Stress"
+        
+        density_plot = project(self.density_time, self.plot_space_alpha, self.rule.dx)
+        density_plot.name = "Density"
+        # density_plot = df.fem.Function(self.plot_space_alpha, name="Density")
+        # project(self.density_time, self.plot_space_alpha, ufl.dx, density_plot)
+        # density_plot.x.scatter_forward()
 
         if self.a_plot:
-            A_plot = project(self.q_fields.history_scalar, self.plot_space_alpha, self.rule.dx)
-            A_plot.name = "Alpha"
-
-        # xdmf
+            alpha_plot = project(self.q_fields.history_scalar, self.plot_space_alpha, self.rule.dx)
+            alpha_plot.name = "Alpha"
+            # alpha_plot = df.fem.Function(self.plot_space_alpha, name="Alpha")   
+            # project(self.q_fields.history_scalar, self.plot_space_alpha, ufl.dx, alpha_plot)
+            # alpha_plot.x.scatter_forward()
+        # #
+        ## write to file
         with df.io.XDMFFile(self.mesh.comm, self.pv_output_file, "a") as f:
-            f.write_function(self.fields.displacement, self.time)
-            f.write_function(sigma_plot, self.time)
-            f.write_function(D_plot, self.time)
-            if self.a_plot:
-                f.write_function(A_plot, self.time)
+             f.write_function(disp_plot, self.time)
+             f.write_function(sigma_plot, self.time)
+             f.write_function(density_plot, self.time)
+             if self.a_plot:
+                 f.write_function(alpha_plot, self.time)
 
     @staticmethod
     def param_time_fkt(time, parameters: dict, _model: str = "linear") -> float:
@@ -425,10 +461,10 @@ class ProblemAM(df.fem.petsc.NonlinearProblem):
         self,
         laws: IncrSmallStrainModel,
         u: df.fem.Function,
-        bcs: list[df.fem.DirichletBCMetaClass],
+        bcs: list[df.fem.DirichletBC],
         body_force_fct: Callable,
-        q_degree: int,
-        del_t: float = 1.0,
+        q_degree: int = 1,
+        del_t: float=1.0,
         form_compiler_options: dict | None = None,
         jit_options: dict | None = None,
     ):
@@ -441,71 +477,69 @@ class ProblemAM(df.fem.petsc.NonlinearProblem):
         self.laws = [(laws, cells)]
         constraint = self.laws[0][0].constraint
 
-        gdim = mesh.ufl_cell().geometric_dimension()
+        gdim = mesh.geometry.dim
         assert constraint.geometric_dim == gdim, "Geometric dimension mismatch between mesh and laws"
 
-        QVe = ufl.VectorElement(
-            "Quadrature",
-            mesh.ufl_cell(),
-            q_degree,
-            quad_scheme="default",
-            dim=constraint.stress_strain_dim,
+        QVe = basix.ufl.quadrature_element(
+            mesh.topology.cell_name(),
+            value_shape=(constraint.stress_strain_dim,),
+            degree=q_degree,
         )
-        QTe = ufl.TensorElement(
-            "Quadrature",
-            mesh.ufl_cell(),
-            q_degree,
-            quad_scheme="default",
-            shape=(constraint.stress_strain_dim, constraint.stress_strain_dim),
+        QTe = basix.ufl.quadrature_element(
+            mesh.topology.cell_name(),
+            value_shape=(
+                constraint.stress_strain_dim,
+                constraint.stress_strain_dim,
+            ),
+            degree=q_degree,
         )
-        Q_grad_u_e = ufl.TensorElement(
-            "Quadrature",
-            mesh.ufl_cell(),
-            q_degree,
-            quad_scheme="default",
-            shape=(gdim, gdim),
-        )
-        QV = df.fem.FunctionSpace(mesh, QVe)
-        QT = df.fem.FunctionSpace(mesh, QTe)
+        Q_grad_u_e = basix.ufl.quadrature_element(mesh.topology.cell_name(), value_shape=(gdim, gdim), degree=q_degree)
+        QV = df.fem.functionspace(mesh, QVe)
+        QT = df.fem.functionspace(mesh, QTe)
 
-        self.mesh_update = True
-        self.co_rotation = True
+        self.mesh_update = True  # DIFF to FC solver
+        self.co_rotation = True  # DIFF to FC solver
         self._del_grad_u = []
         self._stress = []
         self._history_0 = []
         self._history_1 = []
         self._tangent = []
 
-        self._del_t = del_t
-        self._time = 0.0  # time at the end of the increment
+        self._del_t = del_t  # time increment
+        self._time = 0  # global time will be updated in the update method
 
         with df.common.Timer("data-structures"):
             law, cells = self.laws[0]
 
-            # subspace for grad u
-            Q_grad_u_space = df.fem.FunctionSpace(mesh, Q_grad_u_e)
-            self._del_grad_u.append(df.fem.Function(Q_grad_u_space))
+            # space for grad u
+            Q_grad_u_space = df.fem.functionspace(mesh, Q_grad_u_e)
+            self._del_grad_u = df.fem.Function(Q_grad_u_space)
+
+            # space for tangent
+            QT_space = df.fem.functionspace(mesh, QTe)
+            self._tangent = df.fem.Function(QT_space)
 
             # Spaces for history
             history_0 = build_history(law, mesh, q_degree)
             history_1 = {key: fn.copy() for key, fn in history_0.items()} if isinstance(history_0, dict) else history_0
-            self._history_0.append(history_0)
-            self._history_1.append(history_1)
+            self._history_0 = history_0
+            self._history_1 = history_1
 
         self.stress_0 = df.fem.Function(QV)
         self.stress_1 = df.fem.Function(QV)
         self.tangent = df.fem.Function(QT)
 
+        ### DIFF to FC solver
         # additional field for modulus changing over space and time
-        Qs = ufl.FiniteElement(
-            "Quadrature",
-            mesh.ufl_cell(),
-            q_degree,
-            quad_scheme="default",
+        QSe = basix.ufl.quadrature_element(
+            mesh.topology.cell_name(),
+            value_shape=(),  # scalar
+            degree=q_degree,
         )
-        s_space = df.fem.FunctionSpace(mesh, Qs)
+        s_space = df.fem.functionspace(mesh, QSe)
         self.modulus = df.fem.Function(s_space, name="modulus")  # one material parameter
         self.density_time = df.fem.Function(s_space, name="density")
+        ###
 
         # define forms
         u_, du = ufl.TestFunction(u.function_space), ufl.TrialFunction(u.function_space)
@@ -515,6 +549,7 @@ class ProblemAM(df.fem.petsc.NonlinearProblem):
 
         self.R_form = ufl.inner(ufl_mandel_strain(u_, constraint), self.stress_1) * self.dxm
 
+        ### DIFF to FC solver
         # apply body force
         # body_force_form = body_force_fct(u_) # ohne activierung
         rule = QuadratureRule(cell_type=mesh.ufl_cell(), degree=q_degree)
@@ -522,8 +557,7 @@ class ProblemAM(df.fem.petsc.NonlinearProblem):
 
         if body_force_form:
             self.R_form -= body_force_form
-
-        # maybe also external forces?
+        ###
 
         self.dR_form = (
             ufl.inner(
@@ -545,7 +579,7 @@ class ProblemAM(df.fem.petsc.NonlinearProblem):
         self.del_grad_u_expr = df.fem.Expression(ufl.nabla_grad(self._u - self._u0), self.q_points)
 
     @property
-    def a(self) -> df.fem.FormMetaClass:
+    def a(self) -> df.fem.Form:
         """Compiled bilinear form (the Jacobian form)"""
 
         if not hasattr(self, "_a"):
@@ -561,6 +595,7 @@ class ProblemAM(df.fem.petsc.NonlinearProblem):
 
         return self._a
 
+    @df.common.timed("constitutive-form-evaluation")
     def form(self, x: PETSc.Vec) -> None:
         """This function is called before the residual or Jacobian is
         computed. This is usually used to update ghost values, but here
@@ -571,17 +606,16 @@ class ProblemAM(df.fem.petsc.NonlinearProblem):
 
         """
         super().form(x)
-
-        assert x.array.data == self._u.vector.array.data, (
-            "The solution vector must be the same as the one passed to the MechanicsProblem"
-        )
-
+        # this copies the data from the vector x to the function _u
+        x.copy(self._u.x.petsc_vec)
+        self._u.x.petsc_vec.ghostUpdate(addv=PETSc.InsertMode.INSERT, mode=PETSc.ScatterMode.FORWARD)
+        ### DIFF to FC solver
         if self.mesh_update:
             # print('mesh update is on')
             dim = self._u.function_space.mesh.topology.dim
             # print('check', len(self._u.function_space.mesh.geometry.x[:]), len(self._u.x.array[:]))
             if len(self._u.function_space.mesh.geometry.x[:]) * dim != len(self._u.x.array[:]):
-                V_CG = df.fem.VectorFunctionSpace(self._u.function_space.mesh, ("CG", 1))
+                V_CG = df.fem.functionspace(self._u.function_space.mesh, ("CG", 1, (dim,)))
                 u_CG0 = df.fem.Function(V_CG)
                 u_CG = df.fem.Function(V_CG)
 
@@ -593,36 +627,48 @@ class ProblemAM(df.fem.petsc.NonlinearProblem):
                 midpoint_displacement = 0.5 * (self._u.x.array - self._u0.x.array)
 
             self._u.function_space.mesh.geometry.x[:] += midpoint_displacement.reshape(-1, 3)
+        ###
 
         law, cells = self.laws[0]
         with df.common.Timer("strain_evaluation"):
-            self.del_grad_u_expr.eval(cells, self._del_grad_u[0].x.array.reshape(cells.size, -1))
+            self._del_grad_u.interpolate(
+                self.del_grad_u_expr,
+                cells0=cells,
+                cells1=np.arange(cells.size, dtype=np.int32),
+            )
+            self._del_grad_u.x.scatter_forward()
 
         with df.common.Timer("stress_evaluation"):
             self.stress_1.x.array[:] = self.stress_0.x.array
+            self.stress_1.x.scatter_forward()
             stress_input = self.stress_1.x.array
+            tangent_input = self.tangent.x.array
+
+            ### DIFF to FC solver
             if self.co_rotation:
-                self.stress_rotate(del_grad_u=self._del_grad_u[0].x.array, mandel_stress=stress_input)
+                self.stress_rotate(del_grad_u=self._del_grad_u.x.array, mandel_stress=stress_input)
+            ###
+
             history_input = None
-            if isinstance(law.history_dim, int):
-                self._history_1[0].x.array[:] = self._history_0[0].x.array
-                history_input = self._history_1[0].x.array
-            elif isinstance(law.history_dim, dict):
+            if law.history_dim is not None:
                 history_input = {}
                 for key in law.history_dim:
-                    self._history_1[0][key].x.array[:] = self._history_0[0][key].x.array
-                    history_input[key] = self._history_1[0][key].x.array
-            law.evaluate(
-                self._time,
-                self._del_t,
-                self._del_grad_u[0].x.array,
-                stress_input,
-                self.tangent.x.array,
-                history_input,
-            )
+                    self._history_1[key].x.array[:] = self._history_0[key].x.array
+                    history_input[key] = self._history_1[key].x.array
+            with df.common.Timer("constitutive-law-evaluation"):
+                law.evaluate(
+                    self._time,
+                    self._del_t,
+                    self._del_grad_u.x.array,
+                    stress_input,
+                    tangent_input,
+                    history_input,
+                )
 
+        ### DIFF to FC solver
         if self.mesh_update:
             self._u.function_space.mesh.geometry.x[:] -= midpoint_displacement.reshape(-1, 3)
+        ###
 
         self.stress_1.x.scatter_forward()
         self.tangent.x.scatter_forward()
@@ -632,11 +678,12 @@ class ProblemAM(df.fem.petsc.NonlinearProblem):
         Update the current displacement, stress and history.
         """
 
+        ### DIFF to FC solver
         if self.mesh_update:
             # Update to current configuration
             dim = self._u.function_space.mesh.topology.dim
             if len(self._u.function_space.mesh.geometry.x[:]) * dim != len(self._u.x.array[:]):
-                V_CG = df.fem.VectorFunctionSpace(self._u.function_space.mesh, ("CG", 1))
+                V_CG = df.fem.functionspace(self._u.function_space.mesh, ("CG", 1, (dim,)))
                 u_CG0 = df.fem.Function(V_CG)
                 u_CG = df.fem.Function(V_CG)
 
@@ -648,6 +695,7 @@ class ProblemAM(df.fem.petsc.NonlinearProblem):
                 current_displacement = self._u.x.array - self._u0.x.array
 
             self._u.function_space.mesh.geometry.x[:] += current_displacement.reshape(-1, 3)
+        ###
 
         self._u0.x.array[:] = self._u.x.array
         self._u0.x.scatter_forward()
@@ -656,17 +704,15 @@ class ProblemAM(df.fem.petsc.NonlinearProblem):
         self.stress_0.x.scatter_forward()
 
         law, _ = self.laws[0]
-        match law.history_dim:
-            case int():
-                self._history_0[0].x.array[:] = self._history_1[0].x.array
-                self._history_0[0].x.scatter_forward()
-            case None:
-                pass
-            case dict():
-                for key in law.history_dim:
-                    self._history_0[0][key].x.array[:] = self._history_1[0][key].x.array
-                    self._history_0[0][key].x.scatter_forward()
+        if law.history_dim is not None:
+            for key in law.history_dim:
+                self._history_0[key].x.array[:] = self._history_1[key].x.array
+                self._history_0[key].x.scatter_forward()
 
+        # time update
+        self._time += self._del_t
+
+    ###DIFF to FC solver
     def stress_rotate(self, del_grad_u, mandel_stress):
         # TODO the stress that we get here is mandel stress already. convert it into 3x3 form using appropriate expressions
         # I2 = np.zeros((3,3), dtype=np.float64)  # Identity of rank 2 tensor

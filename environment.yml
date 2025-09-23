@@ -1,11 +1,12 @@
-name: fenicsxconcrete
+name: fenicsxconcrete09
 channels:
   - conda-forge
 dependencies:
   - python>=3.10
   # runtime
-  - fenics-dolfinx=0.6.0
-  - mpi4py=3.1.4
+  - fenics-dolfinx>=0.9.0
+  - adios4dolfinx
+  - mpi4py
   - scipy
   - pint
   - matplotlib
@@ -29,6 +30,6 @@ dependencies:
   - isort
   - pip
   - pip:
-    - git+https://github.com/BAMresearch/fenics-constitutive.git@4abacc145638129eb8b6cc87325dd0d43a65fdd6
+    - git+https://github.com/BAMresearch/fenics-constitutive.git@ee3f2f8744d0e1f39090ffac176c637c294fbf5a #Dolfinx 0.9.0 pull request
     - -e .
 

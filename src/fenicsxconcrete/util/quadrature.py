@@ -1,4 +1,5 @@
 import basix
+import basix.ufl
 import dolfinx as df
 import numpy as np
 import ufl
@@ -17,7 +18,7 @@ class QuadratureRule:
 
 
     Attributes:
-        type (basix.QuadratureType): The quadrature type.
+        type (string): The quadrature type "gauss" for standard Faussian quadrature or "gll" for Gauss-Lobatto quadrature.
         cell_type (ufl.Cell): The type of FEM cell.
         degree (int): The quadrature degree.
         points (np.ndarray): The quadrature points on the refernce cell.
@@ -30,7 +31,7 @@ class QuadratureRule:
 
     def __init__(
         self,
-        type: basix.QuadratureType = basix.QuadratureType.Default,
+        type: basix.QuadratureType = basix.QuadratureType.default,
         cell_type: ufl.Cell = ufl.triangle,
         degree: int = 1,
     ):
@@ -38,15 +39,12 @@ class QuadratureRule:
         self.cell_type = cell_type
         self.degree = degree
         basix_cell = _ufl_cell_type_to_basix(self.cell_type)
-        self.points, self.weights = basix.make_quadrature(self.type, basix_cell, self.degree)
-        self.dx = ufl.dx(
-            metadata={
-                "quadrature_rule": self.type.name,
-                "quadrature_degree": self.degree,
-            }
-        )
+        self.points, self.weights = basix.make_quadrature(basix_cell, self.degree, rule=self.type)
 
-    def create_quadrature_space(self, mesh: df.mesh.Mesh) -> df.fem.FunctionSpace:
+        metadata = {"quadrature_degree": self.degree, "quadrature_scheme": self.type.name}
+        self.dx = ufl.dx(metadata=metadata)
+
+    def create_quadrature_space(self, mesh: df.mesh.Mesh) -> df.fem.functionspace:
         """
         Args:
             mesh: The mesh on which we want to create the space.
@@ -55,16 +53,13 @@ class QuadratureRule:
             A scalar quadrature `FunctionSpace` on `mesh`.
         """
         assert mesh.ufl_cell() == self.cell_type
-        Qe = ufl.FiniteElement(
-            "Quadrature",
-            self.cell_type,
-            self.degree,
-            quad_scheme=self.type.name,
+        Qe = basix.ufl.quadrature_element(
+            mesh.topology.cell_name(), value_shape=(), degree=self.degree, scheme=self.type.name
         )
 
-        return df.fem.FunctionSpace(mesh, Qe)
+        return df.fem.functionspace(mesh, Qe)
 
-    def create_quadrature_vector_space(self, mesh: df.mesh.Mesh, dim: int) -> df.fem.VectorFunctionSpace:
+    def create_quadrature_vector_space(self, mesh: df.mesh.Mesh, dim: int) -> df.fem.functionspace:
         """
         Args:
             mesh: The mesh on which we want to create the space.
@@ -74,17 +69,14 @@ class QuadratureRule:
             A vector valued quadrature `FunctionSpace` on `mesh`.
         """
         assert mesh.ufl_cell() == self.cell_type
-        Qe = ufl.VectorElement(
-            "Quadrature",
-            self.cell_type,
-            self.degree,
-            quad_scheme=self.type.name,
-            dim=dim,
+
+        Qe = basix.ufl.quadrature_element(
+            mesh.topology.cell_name(), value_shape=(dim,), degree=self.degree, scheme=self.type.name
         )
 
-        return df.fem.FunctionSpace(mesh, Qe)
+        return df.fem.functionspace(mesh, Qe)
 
-    def create_quadrature_tensor_space(self, mesh: df.mesh.Mesh, shape: tuple[int, int]) -> df.fem.TensorFunctionSpace:
+    def create_quadrature_tensor_space(self, mesh: df.mesh.Mesh, shape: tuple[int, int]) -> df.fem.functionspace:
         """
         Args:
             mesh: The mesh on which we want to create the space.
@@ -94,15 +86,12 @@ class QuadratureRule:
             A tensor valued quadrature `FunctionSpace` on `mesh`.
         """
         assert mesh.ufl_cell() == self.cell_type
-        Qe = ufl.TensorElement(
-            "Quadrature",
-            self.cell_type,
-            self.degree,
-            quad_scheme=self.type.name,
-            shape=shape,
+
+        Qe = basix.ufl.quadrature_element(
+            mesh.topology.cell_name(), value_shape=shape, degree=self.degree, scheme=self.type.name
         )
 
-        return df.fem.FunctionSpace(mesh, Qe)
+        return df.fem.functionspace(mesh, Qe)
 
     def number_of_points(self, mesh: df.mesh.Mesh) -> int:
         """
@@ -128,7 +117,7 @@ class QuadratureRule:
             shape: Local shape of the quadrature space. Example: `shape = 1` for Scalar,
               `shape = (n, 1)` for vector and `shape = (n,n)` for Tensor.
         Returns:
-            An array that is equivalent to `quadrature_function.vector.array`.
+            An array that is equivalent to `quadrature_function.x.array`.
         """
         n_points = self.number_of_points(mesh)
         n_local = shape if isinstance(shape, int) else shape[0] * shape[1]
@@ -162,6 +151,7 @@ class QuadratureEvaluator:
         self.num_cells = map_c.size_local
 
         self.cells = np.arange(0, self.num_cells, dtype=np.int32)
+        self.mesh = mesh
 
         self.expr = df.fem.Expression(ufl_expression, rule.points)
 
@@ -177,9 +167,9 @@ class QuadratureEvaluator:
             on `q` and `None` is returned.
         """
         if q is None:
-            return self.expr.eval(self.cells)
+            return self.expr.eval(self.mesh, self.cells)
         elif isinstance(q, np.ndarray):
-            self.expr.eval(self.cells, values=q.reshape(self.num_cells, -1))
+            self.expr.eval(self.mesh, self.cells, values=q.reshape(self.num_cells, -1))
         elif isinstance(q, df.fem.Function):
-            self.expr.eval(self.cells, values=q.vector.array.reshape(self.num_cells, -1))
+            self.expr.eval(q.function_space.mesh, self.cells, values=q.x.array.reshape(self.num_cells, -1))
             q.x.scatter_forward()

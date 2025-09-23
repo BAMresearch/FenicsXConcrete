@@ -96,7 +96,7 @@ class AmMultipleLayers(Experiment):
         else:
             raise ValueError(f'wrong dimension: {self.p["dim"]} is not implemented for problem setup')
 
-    def create_displacement_boundary(self, V: df.fem.FunctionSpace) -> list[df.fem.bcs.DirichletBCMetaClass]:
+    def create_displacement_boundary(self, V: df.fem.FunctionSpace) -> list[df.fem.bcs.DirichletBC]:
         """defines displacement boundary as fixed at bottom
 
         Args:
@@ -169,7 +169,7 @@ class AmMultipleLayers(Experiment):
 
         force_vector = np.zeros(self.p["dim"])
         force_vector[-1] = -self.p["rho"] * self.p["g"]  # works for 2D and 3D
-        force_vector_buckling= np.zeros(self.p["dim"])
+        force_vector_buckling = np.zeros(self.p["dim"])
         force_vector_buckling[1] = 0
         f1 = df.fem.Constant(self.mesh, ScalarType(force_vector))
         f_buckling = df.fem.Constant(self.mesh, ScalarType(force_vector_buckling))

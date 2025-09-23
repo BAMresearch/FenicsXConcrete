@@ -188,7 +188,7 @@ class MaterialProblem(ABC, LogMixin):
 
     def update_time(self) -> None:
         """update time"""
-        self.time += self.p["dt"]
+        self.time += self.p["dt"] 
 
     def export_sensors_metadata(self, path: Path) -> None:
         """Exports sensor metadata to JSON file according to the appropriate schema.
