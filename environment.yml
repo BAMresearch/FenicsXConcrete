@@ -30,6 +30,6 @@ dependencies:
   - isort
   - pip
   - pip:
-    - git+https://github.com/BAMresearch/fenics-constitutive.git
+    - git+https://github.com/BAMresearch/fenics-constitutive.git@ee3f2f8744d0e1f39090ffac176c637c294fbf5a #Dolfinx 0.9.0 pull request
     - -e .
 

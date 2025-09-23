@@ -71,4 +71,4 @@ class DisplacementSensor(PointSensor):
             the base unit as pint unit object
         """
         return ureg.meter
-        return ureg.meter
+    
