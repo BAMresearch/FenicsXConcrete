@@ -81,7 +81,7 @@ class CantileverBeam(Experiment):
 
         return setup_parameters
 
-    def create_displacement_boundary(self, V: df.fem.FunctionSpaceBase) -> list:
+    def create_displacement_boundary(self, V: df.fem.FunctionSpace) -> list:
         """defines displacement boundary as fixed at bottom
 
         Args:
