@@ -14,7 +14,7 @@ from fenicsxconcrete.experimental_setup import AmMultipleLayers, Experiment
 from fenicsxconcrete.finite_element_problem.base_material import MaterialProblem, QuadratureFields, SolutionFields
 from fenicsxconcrete.util import QuadratureRule, project, ureg
 
-from material_for_am_fc import LinearElasticityModel
+from fenicsxconcrete.finite_element_problem.material_for_am_fc import LinearElasticityModel
 
 
 class ConcreteAMFC(MaterialProblem):

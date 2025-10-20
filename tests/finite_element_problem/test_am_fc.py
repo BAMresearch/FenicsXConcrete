@@ -15,7 +15,7 @@ from fenicsxconcrete.sensor_definition.stress_sensor import StressSensor
 from fenicsxconcrete.util import Parameters, QuadratureEvaluator, ureg
 
 #############Material laws using fenics-constitutive interface for am with changable parameters over time by solver#############
-from material_for_am_fc import LinearElasticityModel, VonMises3D
+from fenicsxconcrete.finite_element_problem.material_for_am_fc import LinearElasticityModel, VonMises3D
 
 def set_test_parameters(mat: Literal["linear_elastic", "mises"]) -> Parameters:
     """set up a test parameter set
