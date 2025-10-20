@@ -1,10 +1,35 @@
-name: fenicsxconcrete
+name: fenicsxconcrete09
 channels:
   - conda-forge
 dependencies:
   - python>=3.10
-  - pip
+  # runtime
+  - fenics-dolfinx>=0.9.0
+  - adios4dolfinx
+  - mpi4py
+  - scipy
+  - pint
+  - matplotlib
+  - python-gmsh=4.11.1
+  - meshio=5.3.4
+  - jsonschema
+  - numba
+  # tests
+  - pytest
+  - coverage
+  - toml
+  # docs
+  - sphinx
+  - sphinx-gallery
+  - myst-parser
+  - sphinx_rtd_theme
+  # environment
   - conda-ecosystem-user-package-isolation
-  - fenics-dolfinx
+  # formatting
+  - black
+  - isort
+  - pip
   - pip:
-    - -e .[tests,docs]
+    - git+https://github.com/BAMresearch/fenics-constitutive.git@ee3f2f8744d0e1f39090ffac176c637c294fbf5a #Dolfinx 0.9.0 pull request
+    - -e .
+

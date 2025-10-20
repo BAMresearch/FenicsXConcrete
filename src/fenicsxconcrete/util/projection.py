@@ -1,9 +1,10 @@
 import dolfinx as df
 import ufl
+from dolfinx.fem.petsc import LinearProblem
 
 
 def project(
-    v: df.fem.Function | ufl.core.expr.Expr, V: df.fem.FunctionSpace, dx: ufl.Measure, u: df.fem.Function | None = None
+    v: df.fem.Function | ufl.core.expr.Expr, V: df.fem.functionspace, dx: ufl.Measure, u: df.fem.Function | None = None
 ) -> None | df.fem.Function:
     """
     Calculates an approximation of `v` on the space `V`
@@ -24,9 +25,9 @@ def project(
     a_proj = ufl.inner(dv, v_) * dx
     b_proj = ufl.inner(v, v_) * dx
     if u is None:
-        solver = df.fem.petsc.LinearProblem(a_proj, b_proj)
+        solver = LinearProblem(a_proj, b_proj)
         uh = solver.solve()
         return uh
     else:
-        solver = df.fem.petsc.LinearProblem(a_proj, b_proj, u=u)
+        solver = LinearProblem(a_proj, b_proj, u=u)
         solver.solve()

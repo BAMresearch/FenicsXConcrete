@@ -98,7 +98,7 @@ class SimpleCube(Experiment):
         self.use_body_force = False
         self.temperature_bc = df.fem.Constant(domain=self.mesh, c=self.p["T_bc"])
 
-    def create_displacement_boundary(self, V: df.fem.FunctionSpaceBase) -> list[df.fem.bcs.DirichletBC]:
+    def create_displacement_boundary(self, V: df.fem.FunctionSpace) -> list[df.fem.bcs.DirichletBC]:
         """Defines the displacement boundary conditions
 
         Args:
@@ -192,7 +192,7 @@ class SimpleCube(Experiment):
     def apply_body_force(self) -> None:
         self.use_body_force = True
 
-    def create_temperature_bcs(self, V: df.fem.FunctionSpaceBase) -> list[df.fem.bcs.DirichletBC]:
+    def create_temperature_bcs(self, V: df.fem.FunctionSpace) -> list[df.fem.bcs.DirichletBC]:
         """defines empty temperature boundary conditions (to be done in child)
 
         this function is abstract until there is a need for a material that does need a temperature boundary
@@ -234,13 +234,24 @@ class SimpleCube(Experiment):
         return bc_generator.bcs
 
     def create_body_force(self, v: ufl.argument.Argument) -> ufl.form.Form | None:
-        # TODO: The sign of the body force is not clear.
+        """Defines the body force in either z or y direction depending on mesh dimension
+
+        Args:
+            v: test function
+
+        Returns:
+            if use_body_force flag is true the form for the body force, else None
+
+        """
+
+        # TODO: The sign of the body force is not clear. positive direction!!
 
         if self.use_body_force:
             force_vector = np.zeros(self.p["dim"])
             force_vector[-1] = self.p["rho"] * self.p["g"]  # works for 2D and 3D
 
             f = df.fem.Constant(self.mesh, force_vector)
+
             L = ufl.dot(f, v) * ufl.dx
 
             return L

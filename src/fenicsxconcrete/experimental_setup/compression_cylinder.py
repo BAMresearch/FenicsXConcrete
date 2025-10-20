@@ -126,7 +126,7 @@ class CompressionCylinder(Experiment):
                 facets = df.mesh.locate_entities_boundary(mesh, 2, plane_at(0.0, 2))
                 tdim = mesh.topology.dim
                 f_v = mesh.topology.connectivity(tdim - 1, 0).array.reshape(-1, 3)
-                entities = df.graph.create_adjacencylist(f_v[facets])
+                entities = df.graph.adjacencylist(f_v[facets])
                 values = np.full(facets.shape[0], 2, dtype=np.int32)
 
                 ft = df.mesh.meshtags_from_entities(mesh, tdim - 1, entities, values)
@@ -184,7 +184,7 @@ class CompressionCylinder(Experiment):
 
         return default_parameters
 
-    def create_displacement_boundary(self, V: df.fem.FunctionSpaceBase) -> list[df.fem.bcs.DirichletBC]:
+    def create_displacement_boundary(self, V: df.fem.FunctionSpace) -> list[df.fem.bcs.DirichletBC]:
         """Defines the displacement boundary conditions
 
         Args:
@@ -201,7 +201,7 @@ class CompressionCylinder(Experiment):
         if self.p["bc_setting"] == "fixed":
             if self.p["dim"] == 2:
                 bc_generator.add_dirichlet_bc(self.top_displacement, self.boundary_top(), 1, "geometrical", 1)
-                bc_generator.add_dirichlet_bc(np.float64(0.0), self.boundary_top(), 0, "geometrical", 0)
+                bc_generator.add_dirichlet_bc(np.float64(0.0), self.boundary_top(), 0, "geometrical", 1) 
                 bc_generator.add_dirichlet_bc(
                     df.fem.Constant(domain=self.mesh, c=(0.0, 0.0)),
                     self.boundary_bottom(),
@@ -209,15 +209,29 @@ class CompressionCylinder(Experiment):
                     "geometrical",
                 )
             elif self.p["dim"] == 3:
-                bc_generator.add_dirichlet_bc(self.top_displacement, self.boundary_top(), 2, "geometrical", 2)
-                bc_generator.add_dirichlet_bc(np.float64(0.0), self.boundary_top(), 0, "geometrical", 0)
-                bc_generator.add_dirichlet_bc(np.float64(0.0), self.boundary_top(), 1, "geometrical", 1)
+                bc_generator.add_dirichlet_bc(self.top_displacement, 
+                                              boundary = self.boundary_top(), 
+                                              sub=2, 
+                                              method="geometrical", 
+                                              entity_dim=self.mesh.topology.dim - 1)  # surface
+                bc_generator.add_dirichlet_bc(np.float64(0.0), 
+                                              boundary=self.boundary_top(), 
+                                              sub=0, 
+                                              method="geometrical", 
+                                              entity_dim=self.mesh.topology.dim - 1)  # surface
+                bc_generator.add_dirichlet_bc(np.float64(0.0), 
+                                              boundary = self.boundary_top(), 
+                                              sub=1, 
+                                              method="geometrical", 
+                                              entity_dim=self.mesh.topology.dim - 1)  # surface
+
                 bc_generator.add_dirichlet_bc(
                     df.fem.Constant(domain=self.mesh, c=(0.0, 0.0, 0.0)),
-                    self.boundary_bottom(),
-                    None,
-                    "geometrical",
+                    boundary = self.boundary_bottom(),
+                    method = "geometrical",
+                    entity_dim=self.mesh.topology.dim - 1,  # surface
                 )
+
 
         elif self.p["bc_setting"] == "free":
             if self.p["dim"] == 2:
@@ -236,11 +250,32 @@ class CompressionCylinder(Experiment):
                 # sorting by y coordinate
                 y_boundary_point = bottom_points[bottom_points[:, 1].argsort(kind="mergesort")][0]
 
-                bc_generator.add_dirichlet_bc(self.top_displacement, self.boundary_top(), 2, "geometrical", 2)
-                bc_generator.add_dirichlet_bc(np.float64(0.0), self.boundary_bottom(), 2, "geometrical", 2)
-                bc_generator.add_dirichlet_bc(np.float64(0.0), point_at(x_min_boundary_point), 1, "geometrical", 1)
-                bc_generator.add_dirichlet_bc(np.float64(0.0), point_at(x_max_boundary_point), 1, "geometrical", 1)
-                bc_generator.add_dirichlet_bc(np.float64(0.0), point_at(y_boundary_point), 0, "geometrical", 0)
+                bc_generator.add_dirichlet_bc(self.top_displacement,
+                                              boundary=self.boundary_top(),
+                                              sub=2,
+                                              method="geometrical",
+                                              entity_dim=self.mesh.topology.dim - 1)  # surface
+                bc_generator.add_dirichlet_bc(np.float64(0.0), 
+                                              boundary=self.boundary_bottom(), 
+                                              sub=2, 
+                                              method="geometrical", 
+                                              entity_dim=self.mesh.topology.dim - 1)  # surface
+                bc_generator.add_dirichlet_bc(np.float64(0.0), 
+                                              boundary=point_at(x_min_boundary_point), 
+                                              sub=1, 
+                                              method="geometrical", 
+                                              entity_dim=self.mesh.topology.dim - 1)  # surface
+                bc_generator.add_dirichlet_bc(np.float64(0.0), 
+                                              boundary=point_at(x_max_boundary_point), 
+                                              sub=1, 
+                                              method="geometrical", 
+                                              entity_dim=self.mesh.topology.dim - 1)  # surface
+                # to prevent rigid body motion, one node is fixed in y direction
+                bc_generator.add_dirichlet_bc(np.float64(0.0), 
+                                              boundary=point_at(y_boundary_point), 
+                                              sub=0, 
+                                              method="geometrical", 
+                                              entity_dim=0) #point
         else:
             raise ValueError(f"Wrong boundary setting: {self.p['bc_setting']}, for cylinder setup")
 

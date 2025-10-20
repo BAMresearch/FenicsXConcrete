@@ -66,6 +66,7 @@ class QuadratureFields:
     tensile_strength: ufl.core.expr.Expr | df.fem.Function | None = None
     youngs_modulus: ufl.core.expr.Expr | df.fem.Function | None = None
     yield_values: ufl.core.expr.Expr | df.fem.Function | None = None
+    history_scalar: ufl.core.expr.Expr | df.fem.Function | None = None
 
 
 class MaterialProblem(ABC, LogMixin):
@@ -187,7 +188,7 @@ class MaterialProblem(ABC, LogMixin):
 
     def update_time(self) -> None:
         """update time"""
-        self.time += self.p["dt"]
+        self.time += self.p["dt"] 
 
     def export_sensors_metadata(self, path: Path) -> None:
         """Exports sensor metadata to JSON file according to the appropriate schema.

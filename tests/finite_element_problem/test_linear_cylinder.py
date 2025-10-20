@@ -77,3 +77,7 @@ def test_errors_bc_setting() -> None:
 
     with pytest.raises(ValueError):
         measured, fem_p = simple_setup(p, displacement, p["bc_setting"])
+
+
+
+test_force_response("free", 1, 3)

@@ -6,7 +6,7 @@ from petsc4py.PETSc import ScalarType
 
 from fenicsxconcrete.experimental_setup import CantileverBeam, Experiment
 from fenicsxconcrete.finite_element_problem.base_material import MaterialProblem, QuadratureFields, SolutionFields
-from fenicsxconcrete.util import Parameters, ureg
+from fenicsxconcrete.util import Parameters, ureg, project
 
 
 class LinearElasticity(MaterialProblem):
@@ -44,8 +44,9 @@ class LinearElasticity(MaterialProblem):
             )
 
         # define function space ets.
-        self.V = df.fem.VectorFunctionSpace(self.mesh, ("Lagrange", self.p["degree"]))  # 2 for quadratic elements
-        self.V_scalar = df.fem.FunctionSpace(self.mesh, ("Lagrange", self.p["degree"]))
+        dim = self.experiment.mesh.topology.dim
+        self.V = df.fem.functionspace(self.mesh, ("Lagrange", self.p["degree"], (dim,)))  # 2 for quadratic elements
+        self.V_scalar = df.fem.functionspace(self.mesh, ("Lagrange", self.p["degree"]))
 
         # Define variational problem
         self.u_trial = ufl.TrialFunction(self.V)
@@ -153,5 +154,13 @@ class LinearElasticity(MaterialProblem):
     def pv_plot(self) -> None:
         # Displacement Plot
 
+        if self.p["degree"] > 1:
+            # project displacement to linear space for writing 
+            V_project = df.fem.functionspace(self.experiment.mesh, ("CG", 1, (self.p["dim"],)))
+            disp_plot = project(self.fields.displacement, V_project, ufl.dx)
+        else:
+            disp_plot = self.fields.displacement
+        disp_plot.name = "displacement"
+
         with df.io.XDMFFile(self.mesh.comm, self.pv_output_file, "a") as f:
-            f.write_function(self.fields.displacement, self.time)
+            f.write_function(disp_plot, self.time)

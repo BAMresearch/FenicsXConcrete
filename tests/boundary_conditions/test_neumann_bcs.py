@@ -11,7 +11,7 @@ from fenicsxconcrete.boundary_conditions.boundary import create_facet_tags, plan
 def test_constant_traction() -> None:
     n = 10
     domain = dolfinx.mesh.create_unit_square(MPI.COMM_WORLD, n, n, dolfinx.mesh.CellType.quadrilateral)
-    V = dolfinx.fem.VectorFunctionSpace(domain, ("Lagrange", 1))
+    V = dolfinx.fem.functionspace(domain, ("Lagrange", 1, (domain.geometry.dim,)))
     rmarker = 12
     my_boundaries = {"right": (rmarker, plane_at(0.0, "x"))}
     ft, mb = create_facet_tags(domain, my_boundaries)

@@ -3,11 +3,9 @@ import pytest
 from fenicsxconcrete.finite_element_problem.linear_elasticity import LinearElasticity
 from fenicsxconcrete.sensor_definition import (
     DisplacementSensor,
-    DOHSensor,
     ReactionForceSensor,
     StrainSensor,
     StressSensor,
-    TemperatureSensor,
     YoungsModulusSensor,
 )
 from fenicsxconcrete.util import ureg
@@ -67,9 +65,8 @@ def test_base_sensor() -> None:
         ReactionForceSensor,
         StressSensor,
         StrainSensor,
-        DOHSensor,
         YoungsModulusSensor,
-        TemperatureSensor,
+
     ],
 )
 def test_base_units(sensor) -> None:

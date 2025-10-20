@@ -4,6 +4,7 @@ import os
 from typing import TYPE_CHECKING
 
 import dolfinx as df
+import numpy as np
 
 if TYPE_CHECKING:
     from fenicsxconcrete.finite_element_problem.base_material import MaterialProblem
@@ -38,14 +39,17 @@ class DisplacementSensor(PointSensor):
         cells = []
 
         # Find cells whose bounding-box collide with the points
-        cell_candidates = df.geometry.compute_collisions_points(bb_tree, [self.where])
+        point = np.array(self.where, dtype=np.float64)
+        cell_candidates = df.geometry.compute_collisions_points(bb_tree, point)
 
         # Choose one of the cells that contains the point
-        colliding_cells = df.geometry.compute_colliding_cells(problem.experiment.mesh, cell_candidates, [self.where])
+        colliding_cells = df.geometry.compute_colliding_cells(problem.experiment.mesh, cell_candidates, point)
 
         # for i, point in enumerate(self.where):
         if len(colliding_cells.links(0)) > 0:
             cells.append(colliding_cells.links(0)[0])
+        else:
+            raise ValueError(f"cells with point {self.where} not found in mesh")
 
         # adding correct units to displacement
         displacement_data = problem.fields.displacement.eval([self.where], cells)
@@ -67,3 +71,4 @@ class DisplacementSensor(PointSensor):
             the base unit as pint unit object
         """
         return ureg.meter
+    
