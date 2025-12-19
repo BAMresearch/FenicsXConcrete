@@ -119,6 +119,20 @@ class ConcreteAMFC(MaterialProblem):
                 "p_y00": 2500 * ureg("MPa"),  # final yield stress
                 "p_w": 200 * ureg(""),  # saturation parameter
             }
+
+        elif material == "mohr_coulomb_smoothed_3D_analytical":
+            model_parameters = {
+                "E": 78000 * ureg("Pa"),
+                "nu": 0.3 * ureg(""),  # poisson ratio
+                "c_0": 1050 * ureg("Pa"),
+                "c_00": 2280 * ureg("Pa"),
+                "p_w": 10 * ureg(""),
+                "psi": 20 * np.pi / 180 * ureg(""),
+                "phi": 20 * np.pi / 180 * ureg(""),
+                "theta_T": 26 * np.pi / 180 * ureg(""),
+                "a": 0.25 * 1.05 / np.tan(20) * ureg("")
+            }
+
         else:
             raise ValueError("material law not known")
 
@@ -194,6 +208,7 @@ class ConcreteAMFC(MaterialProblem):
         # additional stuff/output field for activation or specific output
         self.modulus = self.mechanics_problem.modulus
         self.density_time = self.mechanics_problem.density_time
+        self.von_mises = self.mechanics_problem.von_mises
         # array describing path time per quadrature point
         self.q_array_path_time = np.zeros_like(self.density_time.x.array[:])  # zero as default
 
@@ -277,12 +292,14 @@ class ConcreteAMFC(MaterialProblem):
 
         elif self.material_law.__name__ == "VonMises3D":
             # changing parameters
-            time_params = ["p_ka", "p_mu", "p_y0"]
+            time_params = ["p_ka", "p_mu", "p_y0", "p_y00", "p_w"]
             p_values = self.get_params_gp(time_params)
             #
             self.mechanics_problem.laws[0][0].p_ka = p_values["p_ka"]
             self.mechanics_problem.laws[0][0].p_mu = p_values["p_mu"]
             self.mechanics_problem.laws[0][0].p_y0 = p_values["p_y0"]
+            self.mechanics_problem.laws[0][0].p_y00 = p_values["p_y00"]
+            self.mechanics_problem.laws[0][0].p_w = p_values["p_w"]
 
             # # store bulk modulus just for access since material law dependent do it here and not in ProblemAM
             self.mechanics_problem.modulus.x.array[:] = self.mechanics_problem.laws[0][0].p_ka
@@ -383,6 +400,10 @@ class ConcreteAMFC(MaterialProblem):
         # project(self.density_time, self.plot_space_alpha, ufl.dx, density_plot)
         # density_plot.x.scatter_forward()
 
+        Q0 = df.fem.functionspace(self.mesh, ("DG", 0))
+        VM_plot = project(self.von_mises, Q0, self.rule.dx)
+        VM_plot.name = "Von-Mises_DG0"
+
         if self.a_plot:
             alpha_plot = project(self.q_fields.history_scalar, self.plot_space_alpha, self.rule.dx)
             alpha_plot.name = "Alpha"
@@ -395,6 +416,7 @@ class ConcreteAMFC(MaterialProblem):
              f.write_function(disp_plot, self.time)
              f.write_function(sigma_plot, self.time)
              f.write_function(density_plot, self.time)
+             f.write_function(VM_plot, self.time)
              if self.a_plot:
                  f.write_function(alpha_plot, self.time)
 
@@ -539,6 +561,7 @@ class ProblemAM(df.fem.petsc.NonlinearProblem):
         s_space = df.fem.functionspace(mesh, QSe)
         self.modulus = df.fem.Function(s_space, name="modulus")  # one material parameter
         self.density_time = df.fem.Function(s_space, name="density")
+        self.von_mises = df.fem.Function(s_space, name="von_mises")
         ###
 
         # define forms
@@ -672,6 +695,8 @@ class ProblemAM(df.fem.petsc.NonlinearProblem):
 
         self.stress_1.x.scatter_forward()
         self.tangent.x.scatter_forward()
+        self.von_mises.x.array[:] = self.von_mises_from_mandel(self.stress_1.x.array)
+        self.von_mises.x.scatter_forward()
 
     def update(self) -> None:
         """
@@ -769,3 +794,41 @@ class ProblemAM(df.fem.petsc.NonlinearProblem):
         # print('mandel stress rotated ################',rotated_stress_mandel)
         # mandel_stress = mandel_stress.flatten()
         mandel_stress[:, :] = rotated_stress_mandel
+
+    def von_mises_from_mandel(self, mandel_stress):
+        """
+        Compute von Mises stress from stress tensor in Mandel notation.
+
+        Args:
+            mandel_stress: ndarray of shape (n_points, 6), in Mandel notation
+
+        Returns:
+            von_mises: ndarray of shape (n_points,)
+        """
+
+        I2 = np.eye(3, 3)
+        # shape = int(np.shape(self.mechanics_problem._del_grad_u)[0] / 9)
+
+        mandel_stress = mandel_stress.reshape(-1, 6)
+
+        s = mandel_stress.copy()
+
+        # Compute trace of stress tensor
+        trace = s[:, 0] + s[:, 1] + s[:, 2]
+
+        # Deviatoric part: s_ij = sigma_ij - (1/3) * trace * delta_ij
+        s[:, 0] -= trace / 3
+        s[:, 1] -= trace / 3
+        s[:, 2] -= trace / 3
+
+        # Compute von Mises stress
+        vm_squared = (
+                s[:, 0] ** 2
+                + s[:, 1] ** 2
+                + s[:, 2] ** 2
+                + s[:, 3] ** 2 + s[:, 4] ** 2 + s[:, 5] ** 2
+        )
+
+        ans = np.sqrt(1.5 * vm_squared)
+
+        return ans
