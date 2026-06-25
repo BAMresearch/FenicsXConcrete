@@ -30,6 +30,6 @@ dependencies:
   - isort
   - pip
   - pip:
-    - git+https://github.com/BAMresearch/fenics-constitutive.git@ee3f2f8744d0e1f39090ffac176c637c294fbf5a #Dolfinx 0.9.0 pull request
+    - git+https://github.com/BAMresearch/fenics-constitutive.git@368b5b945fecd3747e8938f44d18f958ed4772bc # 3-module + corotational solver API (CorotationalIncrSmallStrainProblem, external_forces)
     - -e .
 

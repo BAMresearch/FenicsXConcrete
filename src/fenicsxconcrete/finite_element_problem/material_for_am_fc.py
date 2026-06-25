@@ -3,7 +3,7 @@ from __future__ import annotations
 import numpy as np
 from numba import jit # for performance optimization
 
-from fenics_constitutive import StressStrainConstraint, IncrSmallStrainModel, strain_from_grad_u
+from fenics_constitutive.models import StressStrainConstraint, IncrSmallStrainModel, strain_from_grad_u
 
 
 # adapted from fenics-constitutive for changable Young's modulus during am simulation via factor (float or np.ndarray)
