@@ -210,7 +210,7 @@ class ConcreteAMFC(MaterialProblem):
             self.p["q_degree"],
             del_t=self.p["dt"],
             external_forces=external_forces,
-        )/
+        )
         self.mechanics_problem._time = self.p["dt"]
 
         # residual form for the reaction-force sensor: fenics-constitutive no longer
