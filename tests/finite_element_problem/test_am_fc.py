@@ -39,6 +39,10 @@ def set_test_parameters(mat: Literal["linear_elastic", "mises"]) -> Parameters:
     setup_parameters["num_elements_layer_height"] = 2 * ureg("")
     setup_parameters["num_elements_layer_width"] = 4 * ureg("")
 
+    # keep the problem isoparametric: the AmMultipleLayers mesh is first order
+    # (geometry degree 1), so use a first-order displacement field. This matches
+    # the requirement of fenics-constitutive's corotational mesh update.
+    setup_parameters["degree"] = 1 * ureg("")
     setup_parameters["q_degree"] = 4 * ureg("")
     setup_parameters["rho"] = 2000 * ureg("kg/m^3")
 

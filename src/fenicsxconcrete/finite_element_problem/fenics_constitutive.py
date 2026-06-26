@@ -2,7 +2,8 @@ import dolfinx as df
 import pint
 import ufl
 from dolfinx.nls.petsc import NewtonSolver
-from fenics_constitutive import IncrSmallStrainModel, IncrSmallStrainProblem, StressStrainConstraint
+from fenics_constitutive.models import IncrSmallStrainModel, StressStrainConstraint
+from fenics_constitutive.solver import IncrSmallStrainProblem, ufl_mandel_strain
 from mpi4py import MPI
 
 from fenicsxconcrete.experimental_setup import Experiment, SimpleCube
@@ -125,19 +126,38 @@ class FenicsConstitutive(MaterialProblem):
         # boundaries
         bcs = self.experiment.create_displacement_boundary(self.V)
 
-        # problem
-        self.mechanics_problem = IncrSmallStrainProblem(
-            law, self.fields.displacement, bcs, self.p["q_degree"], del_t=self.p["dt"]
-        )
-        # add external force and body force not implemented in IncrSmallStrainProblem
+        # external + body forces: fenics-constitutive main injects these through the
+        # IncrSmallStrainProblem constructor (`external_forces=`) rather than by mutating
+        # a residual-form attribute after construction (the old `R_form` is now a local
+        # variable compiled into the NonlinearProblem and is no longer exposed).
         v = ufl.TestFunction(self.V)
+        external_forces = []
         external_force = self.experiment.create_force_boundary(v)
         if external_force:
-            self.mechanics_problem.R_form -= external_force
-
+            external_forces.append(external_force)
         body_force = self.experiment.create_body_force(v)
         if body_force:
-            self.mechanics_problem.R_form -= body_force  # TODO check sign!!
+            external_forces.append(body_force)  # TODO check sign!!
+
+        # problem
+        self.mechanics_problem = IncrSmallStrainProblem(
+            law,
+            self.fields.displacement,
+            bcs,
+            self.p["q_degree"],
+            del_t=self.p["dt"],
+            external_forces=external_forces or None,
+        )
+
+        # residual form for the reaction-force sensor: fc main no longer exposes the
+        # assembled residual, so rebuild the same form IncrSmallStrainProblem uses
+        # internally (stress test-function pairing minus the external forces).
+        dxm = ufl.dx(metadata={"quadrature_degree": self.p["q_degree"], "quadrature_scheme": "default"})
+        self._residual_form = (
+            ufl.inner(ufl_mandel_strain(v, StressStrainConstraint.FULL), self.mechanics_problem.stress_1) * dxm
+        )
+        if external_forces:
+            self._residual_form -= sum(external_forces)
 
         # additional output fields
         #self.rule = QuadratureRule(cell_type=self.mesh.ufl_cell(), degree=self.p["q_degree"])
@@ -187,7 +207,7 @@ class FenicsConstitutive(MaterialProblem):
     def compute_residuals(self) -> None:
         """defines what to do, to compute the residuals. Called in solve for sensors"""
 
-        self.residual = self.mechanics_problem.R_form
+        self.residual = self._residual_form
 
     def pv_plot(self) -> None:
         """creates paraview output at given time step"""
